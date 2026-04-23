@@ -1,7 +1,7 @@
 # Coach Casey — Foundation Setup Spec
 
 **Owner:** Jason
-**Last updated:** 2026-04-23
+**Last updated:** 2026-04-23 (spec correction: Python runtime on Vercel)
 **Status:** Execution spec. First in a sequence of foundation specs. Ordered to be followed top-to-bottom.
 
 Covers: registering service accounts, creating the GitHub repository, deploying the Next.js shell to Vercel, and wiring service credentials into the deployment. Ends when the empty app auto-deploys on every push to `main` with all service credentials in place.
@@ -123,7 +123,11 @@ Goal: a private GitHub repo named `coach-casey` with the directory structure fro
    uv add fastapi anthropic openai supabase pydantic pydantic-settings
    uv add --dev pytest ruff black mypy
    ```
-   `uv` generates a `requirements.txt` automatically; Vercel reads this to install Python deps.
+   Export a `requirements.txt` for Vercel's Python runtime to read. `uv` does not generate this automatically — run it yourself, and re-run it whenever deps change (you can automate this later via a pre-commit hook):
+   ```bash
+   uv export --no-hashes --no-dev -o requirements.txt
+   ```
+   Commit `pyproject.toml`, `uv.lock`, and `requirements.txt` together.
 
 6. **Create `.env.example`** at the repo root with the variable names from `engineering-foundation.md` §4, no real values. This is the checked-in template.
 
@@ -170,19 +174,11 @@ Goal: every push to `main` triggers an automatic deploy to Vercel; the live URL 
    - **Deployment region:** Sydney (`syd1`). Under Project Settings → Functions → Default Region.
    - **Node.js version:** 22.x. Usually auto-detected from your `package.json` engines field; confirm it.
 
-3. **Create `vercel.json`** at the repo root to pin Python runtime for the `api/` folder:
-   ```json
-   {
-     "functions": {
-       "api/**/*.py": {
-         "runtime": "python3.12"
-       }
-     }
-   }
-   ```
-   Commit and push.
+3. **Python version pinning — no `vercel.json` needed.** Vercel's `vercel.json` `functions.runtime` field is only for *community* runtimes (things like `vercel-php@0.5.2`). Python is a built-in runtime and rejects that syntax — a `vercel.json` trying to set `"runtime": "python3.12"` fails the build with `Error: Function Runtimes must have a valid version, for example 'now-php@1.0.0'.`
 
-4. **Trigger the first deploy.** The push from step 3 should trigger it automatically. Watch the build in Vercel's dashboard.
+   Instead, pin the Python version via `requires-python` in `pyproject.toml` (which `uv init --python 3.12` already wrote). Vercel's built-in Python runtime reads this and provisions the matching version. No `vercel.json` required at this stage.
+
+4. **Trigger the first deploy.** Either push a trivial commit or click "Deploy" in the Vercel dashboard. Watch the build.
 
 5. **Verify the deploy.** Vercel gives you a URL like `coach-casey-xxx.vercel.app`. Open it. You should see the default Next.js landing page (you'll replace this later).
 
