@@ -39,6 +39,9 @@ yarn-error.log*
 # claude code local skills (wizard-dropped, kept local only)
 .claude/
 
+# pnpm user-local config (machine-specific paths)
+.npmrc
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
