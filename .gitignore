@@ -43,6 +43,9 @@ yarn-error.log*
 # pnpm user-local config (machine-specific paths)
 .npmrc
 
+# wireframe/mocks kept local for now; re-add when ready
+docs/coach-casey-wireframe.html
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
