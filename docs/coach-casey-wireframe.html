@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coach Casey — Marketing site wireframe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafafa;
+    --block: #ffffff;
+    --border: #d8d8d8;
+    --border-dashed: #bcbcbc;
+    --ink: #1a1a1a;
+    --ink-muted: #6a6a6a;
+    --ink-subtle: #9a9a9a;
+    --accent: #5C3763;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: 'Geist', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 2rem;
+  }
+
+  .banner {
+    max-width: 960px;
+    margin: 0 auto 2rem;
+    padding: 0.9rem 1rem;
+    background: var(--block);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-muted);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .banner-accent { color: var(--accent); }
+
+  .wireframe {
+    max-width: 960px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .block {
+    background: var(--block);
+    border: 1px dashed var(--border-dashed);
+    border-radius: 4px;
+    padding: 1.5rem;
+  }
+
+  .block-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 0.85rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .block-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .block-note {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--ink-subtle);
+    letter-spacing: 0.08em;
+  }
+
+  .block-content {
+    font-size: 0.9rem;
+    color: var(--ink-muted);
+    line-height: 1.6;
+  }
+
+  .block-content strong {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .placeholder {
+    padding: 1.25rem;
+    background: #f2f2f2;
+    border-radius: 3px;
+    color: var(--ink-subtle);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+  }
+
+  .block-row {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .placeholder-small {
+    padding: 0.7rem 0.9rem;
+    background: #f2f2f2;
+    border-radius: 3px;
+    color: var(--ink-muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+  }
+
+  .placeholder-small.cta {
+    background: var(--accent);
+    color: #ffffff;
+  }
+
+  .columns {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+  }
+
+  .cols-2 { grid-template-columns: 1fr 1fr; }
+  .cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+  @media (max-width: 700px) {
+    .cols-2, .cols-3, .cols-4 { grid-template-columns: 1fr; }
+  }
+
+  .mini-block {
+    padding: 1rem;
+    background: #f2f2f2;
+    border-radius: 3px;
+    color: var(--ink-muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    min-height: 4rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .mini-block strong {
+    display: block;
+    color: var(--ink);
+    font-family: 'Geist', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    margin-bottom: 0.3rem;
+    letter-spacing: -0.005em;
+  }
+
+  .hero-block .placeholder { min-height: 6rem; display: flex; align-items: center; }
+
+  .footer-guide {
+    margin-top: 3rem;
+    padding: 1.5rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--ink-muted);
+    line-height: 1.7;
+    max-width: 960px;
+    margin-left: auto;
+    margin-right: auto;
+    border-top: 1px solid var(--border);
+  }
+
+  .footer-guide strong { color: var(--ink); font-weight: 500; }
+
+  h1 {
+    max-width: 960px;
+    margin: 0 auto 1.25rem;
+    font-family: 'Geist', sans-serif;
+    font-weight: 500;
+    font-size: 1.5rem;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+
+  .intro {
+    max-width: 960px;
+    margin: 0 auto 1.75rem;
+    color: var(--ink-muted);
+    line-height: 1.55;
+  }
+</style>
+</head>
+<body>
+
+<h1>Coach Casey — marketing site wireframe</h1>
+
+<p class="intro">High-level information architecture only. Not designed. Placeholder copy and blocks where real content will live. Sits here as a structural reference while the marketing page becomes its own workstream.</p>
+
+<div class="banner">
+  <span>Wireframe · Structure only</span>
+  <span class="banner-accent">Design deferred to marketing workstream</span>
+</div>
+
+<div class="wireframe">
+
+  <!-- Nav -->
+  <div class="block">
+    <div class="block-header">
+      <span class="block-label">01 · Nav</span>
+      <span class="block-note">Sticky, minimal</span>
+    </div>
+    <div class="block-content">
+      <div class="block-row">
+        <span class="placeholder-small"><strong>Coach Casey</strong> wordmark</span>
+        <span class="placeholder-small">How it works</span>
+        <span class="placeholder-small">Pricing</span>
+        <span class="placeholder-small">Sign in</span>
+        <span class="placeholder-small cta">Start free trial</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div class="block hero-block">
+    <div class="block-header">
+      <span class="block-label">02 · Hero</span>
+      <span class="block-note">Above-the-fold value proposition</span>
+    </div>
+    <div class="block-content">
+      <div class="placeholder">Headline — short, declarative. Likely the tagline: "Doesn't write your plan. Helps you run it."</div>
+      <div class="block-row">
+        <span class="placeholder-small">One-line supporting</span>
+      </div>
+      <div class="block-row">
+        <span class="placeholder-small cta">Primary CTA — Start free trial</span>
+        <span class="placeholder-small">Secondary CTA — See how it works</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sample debrief -->
+  <div class="block">
+    <div class="block-header">
+      <span class="block-label">03 · Sample debrief</span>
+      <span class="block-note">Show, don't tell — the product's voice in action</span>
+    </div>
+    <div class="block-content">
+      <div class="placeholder">Worked example of a real debrief. The centrepiece of the page. A specific run, specific pace, specific context. Lets visitors feel the product without needing to read about it.</div>
+      <div class="block-row">
+        <span class="placeholder-small">4 metrics (pace · HR · distance · week)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- How it works -->
+  <div class="block">
+    <div class="block-header">
+      <span class="block-label">04 · How it works</span>
+      <span class="block-note">3 beats, not 4 — keep it tight</span>
+    </div>
+    <div class="block-content">
+      <div class="columns cols-3">
+        <div class="mini-block"><strong>Connect Strava</strong>Every new run syncs automatically.</div>
+        <div class="mini-block"><strong>Upload your plan</strong>Optional. Unlocks deeper reading.</div>
+        <div class="mini-block"><strong>Get debriefs</strong>Every run. Every week.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Who it's for -->
+  <div class="block">
+    <div class="block-header">
+      <span class="block-label">05 · Who it's for</span>
+      <span class="block-note">Qualification — lets the right people self-select in</span>
+    </div>
+    <div class="block-content">
+      <div class="columns cols-2">
+        <div class="mini-block"><strong>For you if</strong>You follow a plan (Pfitz, Hansons, Runna, coach) and want someone to read your runs as they come in.</div>
+        <div class="mini-block"><strong>Not for you if</strong>You're looking for a plan generator, already have a coach reviewing every run, or don't have a goal race.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pricing -->
+  <div class="block">
+    <div class="block-header">
+      <span class="block-label">06 · Pricing</span>
+      <span class="block-note">Monthly + annual, 14-day free trial</span>
+    </div>
+    <div class="block-content">
+      <div class="columns cols-2">
+        <div class="mini-block"><strong>Monthly — AU$24</strong>Cancel anytime.</div>
+        <div class="mini-block"><strong>Annual — AU$199</strong>Effective $16.60/mo. Save $89 a year.</div>
+      </div>
+      <div class="block-row">
+        <span class="placeholder-small cta">Start 14-day free trial</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="block">
+    <div class="block-header">
+      <span class="block-label">07 · FAQ</span>
+      <span class="block-note">5–6 questions, open (not accordion) or accordion — TBD</span>
+    </div>
+    <div class="block-content">
+      <div class="columns cols-2">
+        <div class="mini-block"><strong>Q</strong>Does it replace my coach?</div>
+        <div class="mini-block"><strong>Q</strong>What if I don't have a plan?</div>
+        <div class="mini-block"><strong>Q</strong>How is this different from Strava or Runna?</div>
+        <div class="mini-block"><strong>Q</strong>Where does my data go?</div>
+        <div class="mini-block"><strong>Q</strong>What does the trial include?</div>
+        <div class="mini-block"><strong>Q</strong>Can I cancel anytime?</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Final CTA -->
+  <div class="block">
+    <div class="block-header">
+      <span class="block-label">08 · Final CTA</span>
+      <span class="block-note">One action, no noise</span>
+    </div>
+    <div class="block-content">
+      <div class="placeholder">Short final line. One CTA button. Nothing else.</div>
+      <div class="block-row">
+        <span class="placeholder-small cta">Start free trial</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="block">
+    <div class="block-header">
+      <span class="block-label">09 · Footer</span>
+      <span class="block-note">Minimal</span>
+    </div>
+    <div class="block-content">
+      <div class="columns cols-4">
+        <div class="mini-block"><strong>Coach Casey</strong>Wordmark + tagline</div>
+        <div class="mini-block"><strong>Links</strong>How it works · Pricing · FAQ</div>
+        <div class="mini-block"><strong>Legal</strong>Privacy · Terms · Contact</div>
+        <div class="mini-block"><strong>Meta</strong>© 2026 · Made in AU/NZ</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer-guide">
+  <strong>Notes for the marketing workstream.</strong><br>
+  · Section order: value → proof → how → qualify → price → objection-handling → action.<br>
+  · Sample debrief is the load-bearing proof surface — it sells the product better than any copy can.<br>
+  · Copy brief: concrete, warm, talking <em>to</em> the runner not <em>about</em> the product. No strategy-language ("moat," "supplementary," "retrospective-first"). Contractions. Short sentences.<br>
+  · Visual direction to test at design time: closer-to-white background (~#fafafa), not the creamy #f7f3ec that skewed editorial-magazine.<br>
+  · This wireframe is a placeholder. Real page belongs to a proper design + copywriting pass, not another chat-session swing.
+</div>
+
+</body>
+</html>
