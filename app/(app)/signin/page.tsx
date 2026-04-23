@@ -1,12 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { Suspense, useActionState } from "react";
 import { useSearchParams } from "next/navigation";
 import { signInWithEmail, signInWithGoogle } from "@/app/actions/auth";
 import { GoogleIcon } from "@/app/(app)/_components/google-icon";
 
 export default function SignInPage() {
+  return (
+    <Suspense>
+      <SignInForm />
+    </Suspense>
+  );
+}
+
+function SignInForm() {
   const [state, formAction, isPending] = useActionState(signInWithEmail, null);
   const searchParams = useSearchParams();
   const urlError = searchParams.get("error");
