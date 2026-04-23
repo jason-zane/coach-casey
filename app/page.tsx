@@ -210,34 +210,31 @@ function Metric({
 function MoreThanTheDebrief() {
   return (
     <section className="border-b rule">
-      <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-24 md:py-32">
-        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-10 md:gap-20 items-start">
-          <div>
+      <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-20 md:py-28">
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-10 md:gap-20 items-center">
+          <div className="max-w-[42ch]">
             <p className="text-[13px] font-medium text-[color:var(--color-ink-muted)] uppercase tracking-[0.04em]">
               Between every debrief
             </p>
-            <h2 className="display-section text-[color:var(--color-ink)] mt-4">
+            <h2
+              className="mt-4 text-[color:var(--color-ink)]"
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontWeight: 450,
+                letterSpacing: "-0.02em",
+                lineHeight: 1.1,
+                fontSize: "clamp(1.75rem, 3vw, 2.5rem)",
+              }}
+            >
               There&rsquo;s more than the read after the run.
             </h2>
+            <p className="mt-5 prose-serif text-[color:var(--color-ink-muted)]">
+              Weekly reviews in context. And whenever you want to ask something,
+              you just ask.
+            </p>
           </div>
 
-          <div className="prose-serif text-[color:var(--color-ink-muted)] space-y-5 max-w-[58ch]">
-            <p>
-              Coach Casey isn&rsquo;t only there at the end of a run. It&rsquo;s
-              there during the week too.
-            </p>
-            <p>
-              When the week&rsquo;s over, it reads the whole thing in context,
-              not just each run one at a time. Sessions across the block.
-              Patterns it&rsquo;s seen before. What you said about the calf, the
-              work trip, the sleep.
-            </p>
-            <p>
-              And when you&rsquo;ve got a question, you can just ask.
-            </p>
-
-            <ChatExample />
-          </div>
+          <ChatExample />
         </div>
       </div>
     </section>
@@ -246,17 +243,17 @@ function MoreThanTheDebrief() {
 
 function ChatExample() {
   return (
-    <div className="mt-6 max-w-[52ch] space-y-3">
+    <div className="max-w-[52ch] space-y-3">
       <div className="flex justify-end">
         <div
-          className="inline-block rounded-[14px] rounded-br-[4px] bg-[color:var(--color-accent)] text-[color:var(--color-accent-ink)] px-4 py-2.5 text-[14px] leading-snug max-w-[42ch]"
+          className="inline-block rounded-[14px] rounded-br-[4px] bg-[color:var(--color-accent)] text-[color:var(--color-accent-ink)] px-4 py-2.5 text-[15px] leading-snug max-w-[44ch]"
           style={{ fontFamily: "var(--font-sans)" }}
         >
           Should I swap tomorrow&rsquo;s tempo given the calf?
         </div>
       </div>
-      <p className="text-[13px] text-[color:var(--color-ink-subtle)]" style={{ fontFamily: "var(--font-sans)" }}>
-        Not a question a plan can answer. Coach Casey can.
+      <p className="text-[13px] text-[color:var(--color-ink-subtle)] text-right" style={{ fontFamily: "var(--font-sans)" }}>
+        Not a question a plan can answer.
       </p>
     </div>
   );
@@ -347,46 +344,60 @@ function TheMoat() {
 /* ─────────────────────────────────────────────────────────────────────── */
 
 function WhoItsFor() {
+  const segments = [
+    { label: "From a book", example: "Pfitz, Hansons, Daniels." },
+    { label: "From a coach", example: "The block they wrote for you." },
+    { label: "From an app", example: "Runna, TrainingPeaks, Garmin." },
+    { label: "From a group", example: "The sessions you show up to each week." },
+  ];
+
   return (
     <section className="border-b rule">
-      <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-24 md:py-36">
-        <p className="text-[13px] font-medium text-[color:var(--color-ink-muted)] uppercase tracking-[0.04em]">
-          Who it&rsquo;s for
-        </p>
+      <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-24 md:py-32">
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] gap-10 md:gap-20 items-start">
+          <div>
+            <p className="text-[13px] font-medium text-[color:var(--color-ink-muted)] uppercase tracking-[0.04em]">
+              Who it&rsquo;s for
+            </p>
+            <h2 className="display-section text-[color:var(--color-ink)] mt-4">
+              Anyone following a plan.
+            </h2>
+            <p className="mt-6 prose-serif text-[color:var(--color-ink-muted)] max-w-[38ch]">
+              If you&rsquo;re showing up to the runs, you&rsquo;ve done the hard
+              part. The plan can come from anywhere.
+            </p>
+          </div>
 
-        <div className="mt-10 max-w-[62ch] space-y-8">
-          <p
-            className="display-sub text-[color:var(--color-ink)] font-normal"
-            style={{ fontWeight: 400, lineHeight: 1.25 }}
-          >
-            If you&rsquo;ve committed to a plan and you&rsquo;re showing up to
-            the runs, you&rsquo;ve done the hard part.
-          </p>
-
-          <p className="prose-serif text-[color:var(--color-ink-muted)]">
-            Coach Casey is for the runners in between. Following Pfitz, Hansons,
-            or Daniels from the book. Running the block your coach wrote.
-            Executing the Runna plan on your phone. Showing up to your running
-            group&rsquo;s sessions each week. Any of these. All of these. None
-            of them matter, as long as there&rsquo;s a plan and you&rsquo;re in
-            it.
-          </p>
-
-          <p className="prose-serif text-[color:var(--color-ink-muted)]">
-            What&rsquo;s missing for most plan-following runners is the read.
-            Someone holding the memory of every run, noticing the drift, asking
-            the sharper question before the pattern becomes a problem.
-            That&rsquo;s what Coach Casey is.
-          </p>
-
-          <p className="prose-serif text-[color:var(--color-ink-subtle)]">
-            If you want something to write your training, to pump you up through
-            an app, or to replace a coach who already watches every run of
-            yours, Coach Casey isn&rsquo;t that. It sits alongside what
-            you&rsquo;ve already got, reads what&rsquo;s happening, and answers
-            when you ask.
-          </p>
+          <ul className="divide-y rule border-y rule">
+            {segments.map((s) => (
+              <li
+                key={s.label}
+                className="py-5 grid grid-cols-[minmax(0,14ch)_1fr] gap-6 items-baseline"
+              >
+                <span
+                  className="text-[color:var(--color-ink)]"
+                  style={{
+                    fontFamily: "var(--font-serif)",
+                    fontWeight: 500,
+                    fontSize: "1.0625rem",
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  {s.label}
+                </span>
+                <span className="text-[15px] text-[color:var(--color-ink-muted)]">
+                  {s.example}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
+
+        <p className="mt-14 md:mt-16 prose-serif text-[color:var(--color-ink-subtle)] max-w-[58ch]">
+          Not the thing to write your training, pump you up, or replace a coach
+          who already watches every run. Coach Casey sits alongside what
+          you&rsquo;ve got.
+        </p>
       </div>
     </section>
   );
