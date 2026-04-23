@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# claude code local skills (wizard-dropped, kept local only)
+.claude/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
@@ -47,3 +50,4 @@ __pycache__/
 .ruff_cache/
 *.pyc
 .venv/
+.env.local
