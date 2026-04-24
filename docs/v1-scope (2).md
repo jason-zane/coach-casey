@@ -1,14 +1,16 @@
 # Coach Casey — V1 Scope
 
 **Owner:** Jason
-**Last updated:** 2026-04-23
+**Last updated:** 2026-04-24
 **Status:** Living document. Captures V1 scope as decided to date — athlete-facing surfaces, supporting infrastructure, the prompt engineering workstream, explicit exclusions, and open items for launch-prep. Update as decisions evolve; supersede entries rather than deleting them.
+
+**Recent revision (2026-04-24):** Updated to reflect the thesis refinement in `strategy-foundation.md` — Coach Casey is not prescriptive by default but is responsive when asked. Proactive surfaces (debriefs, weekly reviews, unprompted output) remain interpretive; chat is now explicitly the responsive surface where forward-looking athlete questions get engaged with. Language updated across §2.1, §2.3, §2.4, and §5. No structural changes to surfaces.
 
 ---
 
 ## 1. What V1 is
 
-V1 is the smallest product that can genuinely test the thesis: that a retrospective, life-aware interpretive layer for marathon runners is worth paying for, and that the accumulating athlete-specific memory is a real moat.
+V1 is the smallest product that can genuinely test the thesis: that a life-aware interpretive-and-responsive partner for marathon runners is worth paying for, and that the accumulating athlete-specific memory is a real moat.
 
 V1 is not a minimum viable product in the stripped-down sense. It's the minimum *thesis-proving* product. That distinction matters: every surface in V1 is here because it's load-bearing for either the thesis (does this work?) or the moat (does it compound?). Surfaces that would broaden the product without proving the thesis are out.
 
@@ -18,7 +20,7 @@ Target: 100–200 paying users within 6 months of launch. Real validation signal
 
 ## 2. In scope — athlete-facing surfaces
 
-Five surfaces. All retrospective. All deliberately chosen for thesis-proving value.
+Five surfaces. Four proactive surfaces are interpretive by default; chat is the responsive surface where athlete forward-looking questions get engaged with. All deliberately chosen for thesis-proving value.
 
 ### 2.1 Onboarding (two-phase)
 
@@ -27,13 +29,13 @@ Five surfaces. All retrospective. All deliberately chosen for thesis-proving val
 ~10–12 turns, roughly 5–8 minutes. Accomplishes four jobs: signals the voice, gathers the minimum context needed for the first debrief to be good, connects the integrations, sets expectations.
 
 Turn-by-turn shape:
-- Warm opening and thesis framing ("supplementary, retrospective, gets to know you over time")
+- Warm opening and thesis framing ("supplementary, interpretive, gets to know you over time, answers your questions when you ask")
 - Strava OAuth
 - Chunked validation step — Coach Casey presents ~5–6 interpretive observations drawn from Strava activity history, one at a time, inviting confirmation or correction between each. Adapts subsequent observations based on athlete responses. Athlete can exit the loop at any point.
 - Plan handling prompt — upload now or defer, with honest framing about what the plan unlocks (see §2.2)
 - Goal race question (light-touch version; "what's this race about" handled later — see §6)
 - Injury / niggle check
-- Expectation-setting: retrospective, doesn't replace your coach, gets better with time, 7–14 day trial, trial-to-subscription mechanics
+- Expectation-setting: interpretive by default, responsive when asked, doesn't replace your coach, gets better with time, 7–14 day trial, trial-to-subscription mechanics
 
 **Phase 2 — progressive gathering via post-run follow-ups.**
 
@@ -48,7 +50,7 @@ Context-gathering doesn't end at Phase 1. It continues through the first weeks, 
 
 ### 2.2 Plan ingestion (optional, progressively prompted)
 
-Coach Casey works with and without a plan. With a plan, interpretation is materially deeper (Coach Casey can evaluate what happened against what was meant to happen). Without a plan, Coach Casey interprets against recent training, history, and life context — still real, still useful, but thinner on the "was this what it was meant to be?" axis.
+Coach Casey works with and without a plan. With a plan, interpretation is materially deeper (Coach Casey can evaluate what happened against what was meant to happen, and can reason about what's coming up when asked). Without a plan, Coach Casey interprets against recent training, history, and life context — still real, still useful, but thinner on the "was this what it was meant to be?" axis and on forward-looking questions.
 
 **V1 requires:**
 - Screenshot, PDF, and text-paste input paths
@@ -65,14 +67,14 @@ Coach Casey works with and without a plan. With a plan, interpretation is materi
 - Native API integrations (TrainingPeaks, Runna, Final Surge — all deferred or dropped, see technical decision log)
 
 **Prompting behaviour:**
-- Onboarding surfaces plan upload as an optional step with specific framing: "Coach Casey can tell you whether you're pushing harder than the plan intends, not just whether you ran today. Want to share your plan?"
+- Onboarding surfaces plan upload as an optional step with specific framing: "Coach Casey can tell you whether you're pushing harder than the plan intends, and answer what's next when you ask. Want to share your plan?"
 - Smart re-prompts at natural moments: after the first debrief ("I could go deeper on this if I knew what today was meant to be"), at end of week 1, when athletes mention planned session types in chat
 - Cadence: once per week maximum, backs off entirely if dismissed twice
 - Framing is always honest — names the specific thing that's unlocked, never vague promises
 
 ### 2.3 Post-run debriefs
 
-Thesis in miniature. Triggered on Strava activity sync. Interprets the activity against: the plan if uploaded, recent training arc, historical patterns, known injuries/niggles, life context accumulated via chat and follow-ups.
+Thesis in miniature, on the proactive side. Triggered on Strava activity sync. Interprets the activity against: the plan if uploaded, recent training arc, historical patterns, known injuries/niggles, life context accumulated via chat and follow-ups.
 
 **Quality bar: great.** Debriefs are the surface users will judge the product by. Thin, generic debriefs kill trial conversion. This is the surface with the highest prompt-engineering investment and the most disciplined eval work.
 
@@ -80,20 +82,21 @@ Thesis in miniature. Triggered on Strava activity sync. Interprets the activity 
 - Opens with the claim that grounds the rest — one sentence that names what Coach Casey sees as the most important thing about this run
 - Develops the interpretation in 2–4 short paragraphs, drawing on plan/context/history
 - Ends with an optional follow-up question (see §2.1 Phase 2)
-- Never prescriptive — no "do X tomorrow"
+- **Interpretive, not prescriptive.** Proactive surfaces read the past; they do not volunteer forward instructions. If Coach Casey wants to flag something worth thinking about ("worth sitting with before tomorrow"), that's forward-implicating observation, not prescription. If the athlete has a forward-looking question, that's chat's job (see §2.4).
 
 **Edge cases to handle:** very short runs (recovery runs, cooldowns), aborted activities, non-run activities (cycling, cross-training), duplicate/edited activities from Strava, activities with missing HR or pace data.
 
 ### 2.4 Reactive chat
 
-Athlete-initiated conversation. Secondarily the catch-all for questions structured surfaces can't handle. **Primarily the channel where life context arrives** — "sleeping badly," "calf is tight," "work is kicking my ass" — which feeds the moat.
+Athlete-initiated conversation. The responsive surface of the product — where Coach Casey engages forward-looking questions, not just reflective ones. **Primarily the channel where life context arrives** — "sleeping badly," "calf is tight," "work is kicking my ass" — which feeds the moat. Secondarily the catch-all for questions structured surfaces can't handle.
 
 **Quality bar: solid.** Conversational context creates forgiveness that one-shot debriefs don't have. Excellent chat is a V1.1 goal.
 
 **V1 capabilities:**
 - Access to the athlete's full memory / context store
 - Can reference specific activities, past conversations, injury history, plan details
-- Never prescriptive — retrospective and interpretive only
+- **Responsive to forward-looking questions from the athlete.** When the athlete asks "should I swap tomorrow's tempo given the calf?" or "how should I approach this week?" — Coach Casey engages, bringing plan, recent training, and life context to bear. It reasons from *within* the plan's logic rather than rewriting it.
+- **Does not volunteer prescriptive output.** The athlete has to open the door. Coach Casey doesn't unsolicited-prescribe in chat any more than it does in debriefs.
 - Life context captured in chat persists to memory (via structured tool use) and surfaces in subsequent debriefs/reviews
 
 **V1 explicitly does not include:**
@@ -112,7 +115,7 @@ Proactive end-of-week reflection. The surface where the moat is most visible —
 - Arrives at a consistent weekly cadence (day TBD at launch-prep)
 - Summarises the week's training in Coach Casey's interpretive voice, not as stats
 - References patterns, life context, and plan where relevant
-- Ends with a reflective prompt, not an instruction
+- Interpretive, not prescriptive — same discipline as debriefs. Ends with a reflective prompt, not an instruction. Forward-looking questions can come back via chat.
 
 ---
 
@@ -163,7 +166,7 @@ Named as a V1 deliverable, not a sub-task. Coach Casey is made of prompts; the p
 - `post-run-debrief.md` — the highest-stakes prompt in the product
 - `post-run-followup-structured.md` — weeks 1–2 ranked question set
 - `post-run-followup-conversational.md` — generated per-run questions
-- `reactive-chat.md` — system prompt and tool use definitions
+- `reactive-chat.md` — system prompt and tool use definitions. Encodes the responsive-when-asked posture — reasons from within the plan's logic, does not prescribe unprompted.
 - `weekly-review.md`
 - `plan-extraction.md` — vision extraction (distinct prompt category — extraction, not voice)
 - `plan-upload-reprompts.md`
@@ -183,11 +186,12 @@ Named as a V1 deliverable, not a sub-task. Coach Casey is made of prompts; the p
 
 Named explicitly — the out-list matters as much as the in-list, because it's where scope creep gets contested.
 
-**Product exclusions (thesis-preserving, not trade-off):**
-- Plan generation or prescriptive coaching advice — violates the thesis, see strategy foundation §1
-- In-run coaching or real-time cueing — ditto
-- Direct medical, nutrition, or injury advice that crosses into clinical territory
-- Squad/social/sharing features, leaderboards, cross-athlete visibility — single-user-scope by design, also required by Strava API compliance
+**Product exclusions (thesis-preserving):**
+- **Autonomous plan generation.** Writing marathon plans from scratch. Violates the thesis — see strategy foundation §1. Responsive prescription (engaging athlete forward-looking questions in chat) is in scope; autonomous plan writing is not.
+- **Unsolicited prescriptive output.** Coach Casey does not volunteer "do X tomorrow" on its own across any surface. Proactive surfaces interpret; responsive prescription only happens when the athlete opens the door.
+- **In-run coaching or real-time cueing.** Not the product moment. Coach Casey is between-runs, not during.
+- **Direct medical, nutrition, or injury advice crossing into clinical territory.**
+- **Squad/social/sharing features, leaderboards, cross-athlete visibility.** Single-user-scope by design, also required by Strava API compliance.
 
 **Product exclusions (deferred, not violating thesis):**
 - Native mobile app (Expo trigger: 100 paying users or sustained mobile patterns PWA can't serve)
@@ -219,6 +223,7 @@ Items V1 will ship with, but which need specific design work closer to launch. N
 - **Weekly review cadence (day of week, time).** Triggered by Strava rhythms (end of training week) or by athlete preference.
 - **Validation step quality bar.** The single highest-stakes prompt in onboarding. Dedicated eval set, iteration time, and prompt-engineering discipline before launch.
 - **Debrief quality bar definition.** What "great" means operationally — rubric for grading debrief outputs against. **Load-bearing, do early.** Without a concrete rubric, "great debriefs" is vibes, not a bar — the eval suite can't grade against something undefined, and prompt iteration has no feedback loop. Belongs at the start of prompt engineering work on the debrief surface, not as documentation written retrospectively.
+- **Chat responsive-prescription quality bar.** New item following the 2026-04-24 thesis refinement. When an athlete asks a forward-looking question, what does a good Coach Casey response look like? Needs rubric, worked examples, anti-patterns (drift into unsolicited prescription, overriding the plan, medical advice). Belongs at the start of prompt engineering work on the chat surface.
 
 ---
 
@@ -247,7 +252,7 @@ Rough order, not dates. Dependencies named where they matter.
 
 **6. Plan ingestion.** Screenshot + PDF + text paste, Sonnet extraction, confirmation UI, versioning. Parallel-able with debrief work once infrastructure is in place.
 
-**7. Reactive chat.** Once memory system is stable from debrief work, chat rides on top with less incremental cost.
+**7. Reactive chat.** Once memory system is stable from debrief work, chat rides on top with less incremental cost. Responsive-prescription posture baked into the system prompt from day one.
 
 **8. Post-run follow-ups (structured + conversational).** Layered onto the debrief surface.
 
@@ -304,4 +309,4 @@ Different surfaces hit production at different quality bars. Explicit here to pr
 - **Items in §6 (open — design at launch-prep)** — revisited at the launch-prep checkpoint. Each gets closed into V1 scope or explicitly punted to V1.1.
 - **Reviewed** at V1 build kickoff, at each major milestone, at launch-prep, and immediately after launch. Reviewed quarterly thereafter.
 
-Supersedes project memory when they conflict. Separate from `strategy-foundation.md` (what we're building and why), `technical-decision-log.md` (engineering decisions), and `strava-api-compliance-note.md` (Strava application prep).
+Supersedes project memory when they conflict. Separate from `strategy-foundation.md` (what we're building and why), `technical-decision-log.md` (engineering decisions), `voice-guidelines.md` (voice rules), and `strava-api-compliance-note.md` (Strava application prep).
