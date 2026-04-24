@@ -80,7 +80,7 @@ body {
   font-family: var(--font-newsreader), ui-serif, Georgia, serif;
   font-weight: 450;
   letter-spacing: -0.035em;
-  line-height: 0.95;
+  line-height: 1.02;
   font-size: clamp(3rem, 9vw, 7rem);
 }
 .display-section {
