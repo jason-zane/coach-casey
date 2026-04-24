@@ -6,6 +6,7 @@
 
 **Recent revisions:**
 
+- **2026-04-24 (pm)** — ICP segment revision. Book-plan runners dropped from the primary ICP list; AI-chatbot-written plans added. Founder read is that book-plan following has materially declined as a behaviour in the target demographic and the segment no longer warrants explicit marketing invitation. AI-chatbot plans are the new bottom-tier plan source and Coach Casey's interpretive positioning sits naturally on top of them. See §3. **Disagreement logged (product-strategy skill):** book-plan runners (Pfitz, Hansons, Daniels) remain a live segment in AU/NZ marathon demographics and the empirical claim that "nobody follows books anymore" may be bubble-sampled. Revisit if post-launch cohort data surfaces runners self-describing as book-plan executors.
 - **2026-04-24** — Thesis refined in four ways. (1) Positioning sharpened with the "plans are the easy part" frame. (2) "Never prescriptive" softened to "not prescriptive by default, responsive when asked." (3) Moat surfacing named as a strategic requirement for external-facing copy, not an optional marketing flourish. (4) ICP invitation broadened in language — running groups, book-plan solo runners, and app-plan runners must be visibly invited, not implied. See §1, §2, §3, §5.
 - **2026-04-23** — Product renamed from Coach Jay to Coach Casey (Jay Johnson name collision + naming–positioning tension). Brand architecture revised — Coach Casey is now a standalone product brand; The Marathon Clinic is repositioned as a separate content/philosophy hub. See §2 (brand architecture) and §9 (Marathon Clinic content platform) for reasoning.
 
@@ -17,7 +18,7 @@
 
 Plans are the easy part. Structure is the easy part. The hard part is the nuance around them — the calf that's been a bit off since Tuesday, the work week that's about to destroy your sleep, the goal race that actually matters and why. The stuff a plan can't know about you. That's what Coach Casey is for.
 
-You've got a plan — from a book, a coach, a running group, an app, wherever. Coach Casey is the voice that's there every time you finish a run, that knows your history and your life, and that helps you make sense of what just happened and think more clearly about what's next. Not your coach. Not a plan writer. The reflective, aware partner that fills the space between finishing a run and having the next conversation with the person who wrote your plan.
+You've got a plan — from a coach, a running group, an app, a chatbot, wherever. Coach Casey is the voice that's there every time you finish a run, that knows your history and your life, and that helps you make sense of what just happened and think more clearly about what's next. Not your coach. Not a plan writer. The reflective, aware partner that fills the space between finishing a run and having the next conversation with the person (or tool) who wrote your plan.
 
 **Tagline:** *Doesn't write your plan. Helps you run it.*
 
@@ -50,7 +51,7 @@ The line that separates "responsive prescription" from "autonomous prescription"
 
 **The moat must be visible in external-facing copy.** This is strategic, not decorative. The life-aware longitudinal memory (§5) is the reason annual pricing makes sense, the reason differentiation vs Strava holds, and the reason retention past month 3 is defensible. If the marketing site, onboarding, and pricing page don't surface this — explicitly — the commercial narrative collapses. Every external surface needs to show or say that Coach Casey gets sharper the longer the athlete uses it. Specific, not generic. "Knows you better at month 6 than month 1" is the anchor claim. **Caveat for trial-conversion risk:** the moat narrative cannot frame day-1 value as "wait for it to get good." The value must be real on day 1 *and* compound. "Already useful, gets deeper" — not "get deep eventually."
 
-**The ICP invitation must be visibly broad.** The primary ICP (see §3) includes coached runners, book-plan solo runners, app-plan runners, and running-group members. All four need to see themselves in the marketing — not implied, not "you'll work it out," but invited by name. Copy that skews coach-framed misses three-quarters of the audience. Copy that opens "following a book plan, a coach's programme, or a running group's block? Coach Casey works with all of it" does the job.
+**The ICP invitation must be visibly broad.** The primary ICP (see §3) includes coached runners, app-plan runners, running-group members, and AI-chatbot-plan runners. All four need to see themselves in the marketing — not implied, not "you'll work it out," but invited by name. Copy that skews coach-framed misses three-quarters of the audience. Copy that opens "following a coach's programme, a running group's block, an app, or a plan a chatbot wrote you? Coach Casey works with all of it" does the job.
 
 ### Brand architecture
 
@@ -72,13 +73,15 @@ Coach Casey is a **standalone product brand** with its own domain (coachcasey.ap
 **Primary ICP:** Plan-following marathon runners without a regular interpretive voice beside them.
 
 The common thread is *has a plan, has no reflective partner*. This explicitly includes:
-- **Book-plan runners** (Pfitzinger, Hansons, Daniels, Hal Higdon)
 - **App-plan runners** (Runna, TrainingPeaks self-serve, Garmin coach)
+- **AI-written plan runners** (plans generated by ChatGPT or other LLM tools, with no human coaching layer)
 - **Running-group members** where the group writes a block and the athlete executes it largely solo
 - **Light-touch individual coaching clients** (coach writes a plan, minimal weekly follow-up)
 - **Group-coaching clients** where the coach can't give 1:1 attention
 
 All five are invited. Marketing copy must name them — implying "you'll know if this is you" leaves the non-coached segments feeling excluded by default.
+
+*Segment dropped 2026-04-24 (pm):* book-plan runners (Pfitzinger, Hansons, Daniels, Hal Higdon) were part of the primary ICP list until this revision. Founder read is that book-plan following has declined to the point where the segment no longer warrants explicit invitation in marketing copy. Disagreement logged in the revision entry at the top of this document; revisit if user cohort data contradicts the read.
 
 **Performance band:** marathon goal time 2:45–3:45. Marketing skews toward the competitive 2:45–3:15 range (aspirational hook); product volume sits in the 3:00–3:45 committed tier. Both bands are served by the same product.
 

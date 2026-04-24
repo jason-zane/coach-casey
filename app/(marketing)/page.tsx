@@ -65,21 +65,20 @@ function Hero() {
     <section className="relative">
       <div className="mx-auto max-w-[1180px] px-6 md:px-10 pt-20 md:pt-32 pb-24 md:pb-40">
         <h1 className="display-hero text-[color:var(--color-ink)] rise rise-1 max-w-[900px]">
-          Training plans know the run.{" "}
+          Training plans know the <em className="italic">run</em>.{" "}
           <span className="block">
-            <span className="text-[color:var(--color-accent)]">Coach Casey</span>{" "}
-            knows the runner.
+            Coach Casey knows the <em className="italic">runner</em>.
           </span>
         </h1>
 
-        <div className="mt-10 md:mt-14 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-10 md:gap-16 items-end">
-          <p className="prose-serif text-[color:var(--color-ink-muted)] max-w-[52ch] rise rise-2">
-            For runners following a plan, from a book, a coach, a running group,
-            or an app. Coach Casey reads the runs, answers the questions, and
-            gets sharper the longer it knows you.
+        <div className="mt-10 md:mt-14 max-w-[52ch] space-y-8 rise rise-2">
+          <p className="prose-serif text-[color:var(--color-ink-muted)]">
+            For runners following a plan. From a coach, a group, an app, a
+            chatbot, wherever. Coach Casey reads the runs, answers the
+            questions, and gets sharper the longer it knows you.
           </p>
 
-          <div className="flex flex-wrap gap-3 md:justify-end rise rise-3">
+          <div className="flex flex-wrap gap-3 rise rise-3">
             <Link
               href="/signup"
               className="inline-flex items-center justify-center h-11 px-5 rounded-[6px] bg-[color:var(--color-accent)] text-[color:var(--color-accent-ink)] text-[15px] font-medium hover:opacity-90 transition-opacity duration-150"
@@ -110,7 +109,7 @@ function SampleDebrief() {
         <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.8fr)] gap-10 md:gap-20 items-start">
           <div>
             <p className="text-[13px] font-medium text-[color:var(--color-ink-muted)] uppercase tracking-[0.04em]">
-              A debrief, written
+              A read, written
             </p>
             <h2 className="display-section text-[color:var(--color-ink)] mt-4">
               Every run, read.
@@ -211,26 +210,18 @@ function MoreThanTheDebrief() {
   return (
     <section className="border-b rule">
       <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-20 md:py-28">
-        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-10 md:gap-20 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] gap-10 md:gap-16 items-start">
           <div className="max-w-[42ch]">
             <p className="text-[13px] font-medium text-[color:var(--color-ink-muted)] uppercase tracking-[0.04em]">
-              Between every debrief
+              What a plan can&rsquo;t know
             </p>
-            <h2
-              className="mt-4 text-[color:var(--color-ink)]"
-              style={{
-                fontFamily: "var(--font-serif)",
-                fontWeight: 450,
-                letterSpacing: "-0.02em",
-                lineHeight: 1.1,
-                fontSize: "clamp(1.75rem, 3vw, 2.5rem)",
-              }}
-            >
-              There&rsquo;s more than the read after the run.
+            <h2 className="display-section text-[color:var(--color-ink)] mt-4">
+              The life around the runs.
             </h2>
             <p className="mt-5 prose-serif text-[color:var(--color-ink-muted)]">
-              Weekly reviews in context. And whenever you want to ask something,
-              you just ask.
+              The calf from Tuesday. The work trip on Thursday. Weekly reviews
+              that put the runs in context, and answers whenever you want to
+              bring it a question.
             </p>
           </div>
 
@@ -243,7 +234,7 @@ function MoreThanTheDebrief() {
 
 function ChatExample() {
   return (
-    <div className="max-w-[52ch] space-y-3">
+    <div className="max-w-[56ch] space-y-3">
       <div className="flex justify-end">
         <div
           className="inline-block rounded-[14px] rounded-br-[4px] bg-[color:var(--color-accent)] text-[color:var(--color-accent-ink)] px-4 py-2.5 text-[15px] leading-snug max-w-[44ch]"
@@ -252,9 +243,17 @@ function ChatExample() {
           Should I swap tomorrow&rsquo;s tempo given the calf?
         </div>
       </div>
-      <p className="text-[13px] text-[color:var(--color-ink-subtle)] text-right" style={{ fontFamily: "var(--font-sans)" }}>
-        Not a question a plan can answer.
-      </p>
+      <div className="flex justify-start">
+        <div
+          className="inline-block rounded-[14px] rounded-bl-[4px] bg-[color:var(--color-surface)] border rule text-[color:var(--color-ink)] px-4 py-2.5 text-[15px] leading-snug max-w-[48ch]"
+          style={{ fontFamily: "var(--font-sans)" }}
+        >
+          Plan wants 8x3min tempo. But you mentioned the calf on Tuesday, and
+          you&rsquo;ve got the work trip this week. Not a great week to push
+          through something that&rsquo;s already talking. I&rsquo;d swap for an
+          easy 45 and save tempo for Saturday. Your call.
+        </div>
+      </div>
     </div>
   );
 }
@@ -265,7 +264,7 @@ function TheMoat() {
   const stages = [
     {
       label: "Week 1",
-      line: "Reads your runs. Notices what&rsquo;s fast and what&rsquo;s not. Catches the obvious stuff.",
+      line: "Reads your runs. Catches the obvious stuff.",
     },
     {
       label: "Month 3",
@@ -289,53 +288,38 @@ function TheMoat() {
           </h2>
         </div>
 
-        <div className="mt-14 md:mt-20 grid grid-cols-1 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-12 md:gap-20 items-start">
-          <div className="prose-serif text-[color:var(--color-ink-muted)] space-y-6 max-w-[58ch]">
-            <p>
-              Your first week, Coach Casey is useful. It reads your runs,
-              notices what&rsquo;s fast and what&rsquo;s not, catches the
-              obvious stuff.
-            </p>
-            <p>
-              Your third month, it&rsquo;s different. It knows your easy pace
-              isn&rsquo;t the book&rsquo;s easy pace. It remembers the calf from
-              February and brings it up when you go quick on a Tuesday. It knows
-              which races matter and which are rehearsals. It knows you had a
-              kid six months ago and you&rsquo;re still finding your old sleep.
-            </p>
-            <p className="text-[color:var(--color-ink)]">
-              None of that&rsquo;s in your Strava data. It&rsquo;s in the slow
-              accumulation of everything you&rsquo;ve told Coach Casey along the
-              way. That&rsquo;s the part that compounds. That&rsquo;s the part
-              that doesn&rsquo;t exist anywhere else.
-            </p>
-          </div>
+        <ol className="mt-14 md:mt-20 grid grid-cols-1 md:grid-cols-3 border-y rule-strong">
+          {stages.map((s, i) => (
+            <li
+              key={s.label}
+              className={`py-10 md:py-12 md:px-10 ${
+                i > 0 ? "border-t md:border-t-0 md:border-l rule" : ""
+              } ${i === 0 ? "md:pl-0" : ""} ${i === stages.length - 1 ? "md:pr-0" : ""}`}
+            >
+              <p className="text-[12px] font-medium text-[color:var(--color-accent)] uppercase tracking-[0.12em]">
+                {s.label}
+              </p>
+              <p
+                className="mt-4 text-[color:var(--color-ink)]"
+                style={{
+                  fontFamily: "var(--font-serif)",
+                  fontWeight: 450,
+                  fontSize: "clamp(1.125rem, 1.6vw, 1.375rem)",
+                  lineHeight: 1.3,
+                  letterSpacing: "-0.01em",
+                }}
+                dangerouslySetInnerHTML={{ __html: s.line }}
+              />
+            </li>
+          ))}
+        </ol>
 
-          <ol className="space-y-6 md:space-y-0 md:border-l rule-strong md:pl-10">
-            {stages.map((s, i) => (
-              <li
-                key={s.label}
-                className={`md:py-6 ${i > 0 ? "md:border-t rule" : ""}`}
-              >
-                <p
-                  className="text-[12px] font-medium text-[color:var(--color-accent)] uppercase tracking-[0.12em]"
-                >
-                  {s.label}
-                </p>
-                <p
-                  className="mt-3 text-[color:var(--color-ink)] max-w-[34ch]"
-                  style={{
-                    fontFamily: "var(--font-serif)",
-                    fontStyle: "italic",
-                    fontSize: "clamp(1.0625rem, 1.2vw, 1.125rem)",
-                    lineHeight: 1.45,
-                  }}
-                  dangerouslySetInnerHTML={{ __html: s.line }}
-                />
-              </li>
-            ))}
-          </ol>
-        </div>
+        <p className="mt-14 md:mt-16 prose-serif text-[color:var(--color-ink-muted)] max-w-[62ch]">
+          None of that&rsquo;s in your Strava data. It&rsquo;s in the slow
+          accumulation of everything you&rsquo;ve told Coach Casey along the
+          way. That&rsquo;s the part that compounds, and the part that
+          doesn&rsquo;t exist anywhere else.
+        </p>
       </div>
     </section>
   );
@@ -345,10 +329,10 @@ function TheMoat() {
 
 function WhoItsFor() {
   const segments = [
-    { label: "From a book", example: "Pfitz, Hansons, Daniels." },
     { label: "From a coach", example: "The block they wrote for you." },
     { label: "From an app", example: "Runna, TrainingPeaks, Garmin." },
     { label: "From a group", example: "The sessions you show up to each week." },
+    { label: "From a chatbot", example: "A plan ChatGPT sketched, or one you talked into being." },
   ];
 
   return (
@@ -372,7 +356,7 @@ function WhoItsFor() {
             {segments.map((s) => (
               <li
                 key={s.label}
-                className="py-5 grid grid-cols-[minmax(0,14ch)_1fr] gap-6 items-baseline"
+                className="py-5 grid grid-cols-[minmax(0,15ch)_1fr] gap-6 items-baseline"
               >
                 <span
                   className="text-[color:var(--color-ink)]"
@@ -409,21 +393,21 @@ function HowItWorks() {
   const steps = [
     {
       n: "1",
-      title: "Connect Strava.",
+      title: "Connect Strava. Share what you&rsquo;re training for.",
       body:
-        "New activities sync automatically. Coach Casey starts reading from your first run.",
+        "Strava gets your runs in automatically. The plan tells Coach Casey what they were meant to be. Upload it, paste it, describe it, whatever you&rsquo;ve got. Five minutes, once.",
     },
     {
       n: "2",
-      title: "Tell it what you&rsquo;re training for.",
+      title: "Run the runs you were going to run.",
       body:
-        "Upload your plan, paste a block, or just describe the race and how you&rsquo;re getting there. The more Coach Casey knows, the sharper the reads.",
+        "No new app during the run. No new habit. No check-ins. Keep training exactly the way you were. Coach Casey reads what Strava picks up.",
     },
     {
       n: "3",
-      title: "Get your debriefs. Get your weekly reviews. Ask the questions.",
+      title: "Read what Coach Casey has to say.",
       body:
-        "Coach Casey writes after every run, reads your whole week at the end of it, and answers whatever you want to bring to it. Uses your actual data, your plan, and everything you&rsquo;ve told it.",
+        "A debrief after every run. A review at the end of every week. Chat, whenever you want. The longer you use it, the sharper it gets.",
     },
   ];
 
@@ -469,17 +453,13 @@ function Pricing() {
   return (
     <section id="pricing" className="border-b rule">
       <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-24 md:py-36">
-        <div className="max-w-[46ch]">
+        <div className="max-w-[50ch]">
           <p className="text-[13px] font-medium text-[color:var(--color-ink-muted)] uppercase tracking-[0.04em]">
             Pricing
           </p>
           <h2 className="display-section text-[color:var(--color-ink)] mt-4">
-            Fair for serious runners.
+            Less than one coaching session a month.
           </h2>
-          <p className="mt-6 prose-serif text-[color:var(--color-ink-muted)]">
-            Priced against a human coach, not against a running app. Less than
-            one coaching session a month, every month.
-          </p>
         </div>
 
         <div className="mt-16 md:mt-20 grid grid-cols-1 md:grid-cols-2 border-y rule-strong">
@@ -585,27 +565,32 @@ function Faq() {
   const items = [
     {
       q: "Does it replace my coach?",
-      a: "No. Coach Casey reads your runs, remembers the pattern, and answers your questions. Your coach decides the programme and the big calls. If anything, the debriefs give your coach a sharper starting point.",
+      a: "No. Coach Casey reads and remembers; your coach decides. If anything, the debriefs give your coach a sharper starting point for the next conversation.",
+      defaultOpen: true,
     },
     {
-      q: "What if I don't have a coach? Or I'm following a book plan, an app plan, or a group plan?",
-      a: "Coach Casey works with all of those. It needs a plan of some sort to read against, but the plan can come from anywhere. Book plan, Runna, TrainingPeaks, your coach, a running group block. It's all good. You can even just describe what you're training for in a few sentences, and Coach Casey will work with that until you've got something more structured.",
+      q: "I don't have a coach. Does Coach Casey still work?",
+      a: "Yes. Most Coach Casey users don't have one. App plan, group plan, chatbot-written plan, or a plan you sketched for yourself — Coach Casey reads against whatever you've got. You can even just describe what you're training for in a few sentences.",
     },
     {
-      q: "How is this different from Strava or Runna?",
-      a: "Strava records the run. Runna writes the plan. Coach Casey does neither. It reads your runs, weighs them against your plan, your history, and the life context you've given it, and answers your questions about all of it. The longer you use it, the sharper it gets, because it actually remembers.",
+      q: "How's this different from Strava or Runna?",
+      a: "Strava records the run. Runna writes the plan. Coach Casey reads. It's the layer neither of them does. The longer you use it, the sharper it gets, because it actually remembers.",
+    },
+    {
+      q: "What about a plan a chatbot wrote? Same deal?",
+      a: "Same relationship. A chatbot can write you a plan; it can't watch you run it, remember the calf from February, or know about the work trip. Coach Casey sits on top of whatever plan you've got, regardless of who or what wrote it.",
+    },
+    {
+      q: "Does it really get sharper over time, or is that marketing?",
+      a: "Yes, and not by magic. The life-context you share accumulates. By month three, Coach Casey references the calf from February without being reminded. Month six, it knows your easy pace isn't the book's easy pace. Month twelve, hard to imagine training without it.",
     },
     {
       q: "Where does my data go?",
       a: "Strava data comes in read-only through their API. Your runs, plan, and chat history are stored on Supabase, in Sydney. Coach Casey uses large language models to write debriefs and respond to you; your data is never used to train them.",
     },
     {
-      q: "What does the trial include?",
-      a: "14 days, no card required, everything enabled. Connect Strava, upload a plan if you've got one, get debriefs, weekly reviews, and open chat. If it isn't clicking by day 10, it probably isn't for you.",
-    },
-    {
-      q: "Can I cancel anytime?",
-      a: "Yes, from your account page. No claw-backs on the annual plan. Unused months refund automatically, pro-rata.",
+      q: "What's in the trial, and can I cancel?",
+      a: "14 days, no card required, everything enabled. Cancel anytime from your account page. No claw-backs on the annual plan. Unused months refund automatically, pro-rata.",
     },
   ];
 
@@ -621,31 +606,45 @@ function Faq() {
           </h2>
         </div>
 
-        <dl className="mt-16 md:mt-20 grid grid-cols-1 md:grid-cols-2 gap-x-14 gap-y-0">
-          {items.map((item, i) => (
-            <div
+        <div className="mt-14 md:mt-20 max-w-[820px] border-t rule">
+          {items.map((item) => (
+            <details
               key={item.q}
-              className={`py-8 md:py-10 border-t rule ${i < 2 ? "md:first:border-t" : ""}`}
+              open={item.defaultOpen}
+              className="group border-b rule"
             >
-              <dt
-                className="text-[color:var(--color-ink)]"
-                style={{
-                  fontFamily: "var(--font-serif)",
-                  fontStyle: "italic",
-                  fontSize: "clamp(1.125rem, 1.5vw, 1.375rem)",
-                  fontWeight: 500,
-                  letterSpacing: "-0.01em",
-                  lineHeight: 1.2,
-                }}
+              <summary
+                className="list-none cursor-pointer py-6 md:py-7 flex items-start gap-6 outline-none"
               >
-                {item.q}
-              </dt>
-              <dd className="mt-4 text-[15px] leading-relaxed text-[color:var(--color-ink-muted)] max-w-[56ch]">
-                {item.a}
-              </dd>
-            </div>
+                <span
+                  className="flex-1 text-[color:var(--color-ink)] transition-colors group-hover:text-[color:var(--color-accent)]"
+                  style={{
+                    fontFamily: "var(--font-serif)",
+                    fontStyle: "italic",
+                    fontSize: "clamp(1.125rem, 1.5vw, 1.375rem)",
+                    fontWeight: 500,
+                    letterSpacing: "-0.01em",
+                    lineHeight: 1.25,
+                  }}
+                >
+                  {item.q}
+                </span>
+                <span
+                  aria-hidden
+                  className="mt-1 shrink-0 text-[color:var(--color-ink-subtle)] transition-transform duration-200 group-open:rotate-45"
+                  style={{ fontFamily: "var(--font-sans)", fontSize: "22px", lineHeight: 1 }}
+                >
+                  +
+                </span>
+              </summary>
+              <div className="pb-7 md:pb-8 pr-12">
+                <p className="text-[15px] md:text-[16px] leading-relaxed text-[color:var(--color-ink-muted)] max-w-[62ch]">
+                  {item.a}
+                </p>
+              </div>
+            </details>
           ))}
-        </dl>
+        </div>
       </div>
     </section>
   );
@@ -658,19 +657,22 @@ function FinalCta() {
     <section className="border-b rule">
       <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-28 md:py-40 text-center">
         <h2 className="display-section text-[color:var(--color-ink)] mx-auto max-w-[22ch]">
-          Fourteen days, no card.
+          A few runs will tell you.
         </h2>
         <p className="mt-6 prose-serif text-[color:var(--color-ink-muted)] mx-auto max-w-[46ch]">
           Connect Strava, run the runs you were going to run anyway,
           see what Coach Casey has to say.
         </p>
-        <div className="mt-10">
+        <div className="mt-10 flex flex-col items-center gap-3">
           <Link
             href="/signup"
             className="inline-flex items-center justify-center h-12 px-6 rounded-[6px] bg-[color:var(--color-accent)] text-[color:var(--color-accent-ink)] text-[15px] font-medium hover:opacity-90 transition-opacity duration-150"
           >
             Start free trial
           </Link>
+          <p className="text-[13px] text-[color:var(--color-ink-subtle)]">
+            14 days. No card required.
+          </p>
         </div>
       </div>
     </section>
@@ -707,6 +709,16 @@ function SiteFooter() {
           </Link>
           <span className="ml-auto">© 2026</span>
         </div>
+        <p className="text-[12px] text-[color:var(--color-ink-subtle)]">
+          Built by Jason Hunt in Sydney. Founder of{" "}
+          <a
+            href="https://themarathonclinic.com"
+            className="underline underline-offset-2 hover:text-[color:var(--color-ink)] transition-colors duration-150"
+          >
+            The Marathon Clinic
+          </a>
+          .
+        </p>
       </div>
     </footer>
   );
