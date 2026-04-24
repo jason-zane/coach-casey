@@ -48,9 +48,10 @@ export async function refreshThread(
 export async function fetchMessagesAroundDate(
   threadId: string,
   isoDate: string,
+  { daysBefore = 3, daysAfter = 3 }: { daysBefore?: number; daysAfter?: number } = {},
 ): Promise<Message[]> {
   await requireAthleteId();
-  return loadAroundDate(threadId, isoDate, { daysBefore: 3, daysAfter: 3 });
+  return loadAroundDate(threadId, isoDate, { daysBefore, daysAfter });
 }
 
 export async function fetchCalendarDates(

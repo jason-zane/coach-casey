@@ -68,11 +68,18 @@ async function loadWindow(
     .eq("thread_id", threadId)
     .lt("created_at", start.toISOString());
 
-  return {
-    messages,
-    hasMore: (count ?? 0) > 0,
-    oldestLoaded: messages.length > 0 ? messages[0].created_at : null,
-  };
+  // When the window is empty but the thread has older history, advance the
+  // cursor to the window's start so the next paginate call continues from
+  // there rather than stalling on a null cursor.
+  const hasMore = (count ?? 0) > 0;
+  const oldestLoaded =
+    messages.length > 0
+      ? messages[0].created_at
+      : hasMore
+        ? start.toISOString()
+        : null;
+
+  return { messages, hasMore, oldestLoaded };
 }
 
 export async function loadRecentWindow(

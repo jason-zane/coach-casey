@@ -192,7 +192,17 @@ export function HomeSurface({
 
   const jumpToDate = useCallback(
     async (isoDate: string) => {
-      const slice = await fetchMessagesAroundDate(threadId, isoDate);
+      // Start with the default ±3-day window. If that's empty, widen once
+      // to ±30 so taps on days with activity (Strava runs, etc.) but no
+      // nearby chat content still land somewhere, matching the
+      // "jump to nearest" promise in design-principles.
+      let slice = await fetchMessagesAroundDate(threadId, isoDate);
+      if (slice.length === 0) {
+        slice = await fetchMessagesAroundDate(threadId, isoDate, {
+          daysBefore: 30,
+          daysAfter: 30,
+        });
+      }
       if (slice.length === 0) return;
       setMessages((prev) => {
         const map = new Map<string, Message>();
@@ -209,8 +219,16 @@ export function HomeSurface({
       requestAnimationFrame(() => {
         const container = scrollRef.current;
         if (!container) return;
+        // Find a row whose day matches, or else the nearest message in the
+        // slice by proximity to the target.
         const target =
-          slice.find((m) => dayKey(m.created_at) === isoDate) ?? slice[0];
+          slice.find((m) => dayKey(m.created_at) === isoDate) ??
+          slice.reduce((best, m) =>
+            Math.abs(new Date(m.created_at).getTime() - new Date(isoDate).getTime()) <
+            Math.abs(new Date(best.created_at).getTime() - new Date(isoDate).getTime())
+              ? m
+              : best,
+          );
         const el = container.querySelector(`[data-mid="${target.id}"]`);
         if (el instanceof HTMLElement) {
           el.scrollIntoView({ block: "start", behavior: "smooth" });
@@ -271,6 +289,10 @@ export function HomeSurface({
       let caseyId: string | null = null;
       let caseyCreatedAt: string | null = null;
       let accumulated = "";
+      // Tracks the athlete message's id as it changes — starts as the temp
+      // id, reconciles to the server id when /api/chat acks. Used to keep
+      // `failedSend` pinned to whatever id is currently in `messages`.
+      let currentAthleteId = tempId;
 
       try {
         const res = await fetch("/api/chat", {
@@ -286,6 +308,7 @@ export function HomeSurface({
 
         const handleEvent = (ev: ChatEvent) => {
           if (ev.type === "user_message") {
+            currentAthleteId = ev.id;
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === tempId
@@ -343,7 +366,10 @@ export function HomeSurface({
         }
       } catch (err) {
         console.error(err);
-        setFailedSend({ tempId, body });
+        // Pin the failure note to whatever id the athlete message currently
+        // carries — either the optimistic temp id (failure before ack) or the
+        // server id (failure after ack during streaming).
+        setFailedSend({ tempId: currentAthleteId, body });
       } finally {
         setStreamText(null);
         setThinking(false);
