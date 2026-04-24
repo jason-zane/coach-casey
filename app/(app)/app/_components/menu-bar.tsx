@@ -119,15 +119,23 @@ function HintArrow({ direction }: { direction: "left" | "right" }) {
 
 export function MenuBar({ onOpenCalendar, onOpenSearch }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
+  // Lazy initialiser so the SSR render and first client render both see the
+  // same "no hint history" default; we re-read from localStorage on first
+  // interaction below. Matches the set-state-in-effect guidance.
   const [hintCounts, setHintCounts] = useState<HintCounts>({
     calendar: 0,
     search: 0,
   });
+  const hydratedRef = useRef(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    setHintCounts(readHintCounts());
-  }, []);
+  function ensureHydrated(): HintCounts {
+    if (hydratedRef.current) return hintCounts;
+    hydratedRef.current = true;
+    const fromStore = readHintCounts();
+    setHintCounts(fromStore);
+    return fromStore;
+  }
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -141,14 +149,16 @@ export function MenuBar({ onOpenCalendar, onOpenSearch }: Props) {
   }, [menuOpen]);
 
   function handleCalendar() {
-    const next = { ...hintCounts, calendar: hintCounts.calendar + 1 };
+    const base = ensureHydrated();
+    const next = { ...base, calendar: base.calendar + 1 };
     setHintCounts(next);
     writeHintCounts(next);
     onOpenCalendar();
   }
 
   function handleSearch() {
-    const next = { ...hintCounts, search: hintCounts.search + 1 };
+    const base = ensureHydrated();
+    const next = { ...base, search: base.search + 1 };
     setHintCounts(next);
     writeHintCounts(next);
     onOpenSearch();

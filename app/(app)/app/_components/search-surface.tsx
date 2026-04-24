@@ -88,10 +88,7 @@ export function SearchSurface({ open, onClose, onPick }: Props) {
   useEffect(() => {
     if (!open) return;
     const q = query.trim();
-    if (q.length < 2) {
-      setResults([]);
-      return;
-    }
+    if (q.length < 2) return;
     const id = setTimeout(() => {
       startTransition(async () => {
         const res = await searchMessages(q);
@@ -100,6 +97,11 @@ export function SearchSurface({ open, onClose, onPick }: Props) {
     }, 180);
     return () => clearTimeout(id);
   }, [query, open]);
+
+  // Derive whether to render the results list from the current query — a
+  // short query means "no relevant results even if the previous state still
+  // holds older ones." Cheaper than maintaining a reset effect.
+  const resultsToShow = query.trim().length >= 2 ? results : [];
 
   if (!open) return null;
 
@@ -148,17 +150,17 @@ export function SearchSurface({ open, onClose, onPick }: Props) {
               Type a word or two. Matches across your chat, debriefs, weekly reviews,
               and run names.
             </div>
-          ) : pending && results.length === 0 ? (
+          ) : pending && resultsToShow.length === 0 ? (
             <div className="px-5 py-8 font-mono text-[11px] uppercase tracking-wider text-ink-subtle breath">
               Searching…
             </div>
-          ) : results.length === 0 ? (
+          ) : resultsToShow.length === 0 ? (
             <div className="px-5 py-8 font-sans text-[14px] text-ink-muted">
               Nothing matching that here yet.
             </div>
           ) : (
             <ul>
-              {results.map((r) => (
+              {resultsToShow.map((r) => (
                 <li key={`${r.kind}-${r.id}`}>
                   <button
                     type="button"

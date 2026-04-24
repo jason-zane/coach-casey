@@ -38,11 +38,9 @@ export function CalendarPicker({ threadId, open, onClose, onPick }: Props) {
   const [month, setMonth] = useState(today.getMonth() + 1);
   const [marked, setMarked] = useState<Set<string>>(new Set());
   const [pending, startTransition] = useTransition();
-  const [emptyDateNotice, setEmptyDateNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    setEmptyDateNotice(null);
     startTransition(async () => {
       const dates = await fetchCalendarDates(threadId, year, month);
       setMarked(new Set(dates));
@@ -123,7 +121,6 @@ export function CalendarPicker({ threadId, open, onClose, onPick }: Props) {
                 key={iso}
                 type="button"
                 onClick={() => {
-                  if (!hasActivity) setEmptyDateNotice(iso);
                   onPick(iso);
                   onClose();
                 }}
@@ -147,12 +144,6 @@ export function CalendarPicker({ threadId, open, onClose, onPick }: Props) {
             );
           })}
         </div>
-
-        {emptyDateNotice && (
-          <div className="px-5 mt-4 font-sans text-[13px] text-ink-muted">
-            Nothing in the thread that day. Jumping to the nearest day with something.
-          </div>
-        )}
 
         <div className="px-5 mt-auto pt-5 flex items-center justify-between">
           <button

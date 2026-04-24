@@ -99,87 +99,46 @@ export function HomeSurface({
   const [showBackToNow, setShowBackToNow] = useState(false);
   const [failedSend, setFailedSend] = useState<PendingSend | null>(null);
   const [caseyAnnouncement, setCaseyAnnouncement] = useState("");
-  const [online, setOnline] = useState(true);
+  const [online, setOnline] = useState(() =>
+    typeof navigator === "undefined" ? true : navigator.onLine,
+  );
   const [refreshing, setRefreshing] = useState(false);
   const [pullY, setPullY] = useState(0);
-  const [pendingQueued, setPendingQueued] = useState<PendingSend[]>([]);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const sentinelTopRef = useRef<HTMLDivElement | null>(null);
   const initialScrollDoneRef = useRef(false);
-  const firstUnreadIdRef = useRef<string | null>(null);
   const wasNearBottomOnStreamStartRef = useRef(true);
   const pullStartYRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    if (initialScrollDoneRef.current) return;
-    if (!lastViewedAt) {
-      firstUnreadIdRef.current = null;
-    } else {
-      const first = messages.find(
-        (m) => m.kind !== "chat_user" && m.created_at > lastViewedAt,
-      );
-      firstUnreadIdRef.current = first?.id ?? null;
-    }
-  }, [messages, lastViewedAt]);
+  // First unread is derived from the initial server payload — stable across
+  // re-renders. Accessing a ref during render would be incorrect (React would
+  // miss changes); a memoised value is the right shape.
+  const firstUnreadId = useMemo<string | null>(() => {
+    if (!lastViewedAt) return null;
+    const first = initialMessages.find(
+      (m) => m.kind !== "chat_user" && m.created_at > lastViewedAt,
+    );
+    return first?.id ?? null;
+  }, [initialMessages, lastViewedAt]);
 
-  useEffect(() => {
-    if (initialScrollDoneRef.current) return;
+  const scrollToBottom = useCallback((smooth = true) => {
     const container = scrollRef.current;
     if (!container) return;
-
-    const firstUnreadId = firstUnreadIdRef.current;
-    if (firstUnreadId) {
-      const el = container.querySelector(`[data-mid="${firstUnreadId}"]`);
-      if (el instanceof HTMLElement) {
-        el.scrollIntoView({ block: "start", behavior: "auto" });
-      } else {
-        container.scrollTop = container.scrollHeight;
-      }
-    } else {
-      container.scrollTop = container.scrollHeight;
-    }
-    initialScrollDoneRef.current = true;
-
-    const id = setTimeout(() => {
-      markThreadViewed(threadId).catch(() => {});
-    }, 800);
-    return () => clearTimeout(id);
-  }, [threadId]);
-
-  useEffect(() => {
-    const container = scrollRef.current;
-    if (!container) return;
-    function onScroll() {
-      if (!container) return;
-      const fromBottom =
-        container.scrollHeight - container.scrollTop - container.clientHeight;
-      setShowBackToNow(fromBottom > 400);
-    }
-    container.addEventListener("scroll", onScroll, { passive: true });
-    return () => container.removeEventListener("scroll", onScroll);
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior: smooth ? "smooth" : "auto",
+    });
   }, []);
 
-  useEffect(() => {
+  const isNearBottom = useCallback(() => {
     const container = scrollRef.current;
-    const sentinel = sentinelTopRef.current;
-    if (!container || !sentinel) return;
-    if (!hasMore) return;
-
-    const obs = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (e.isIntersecting && !loadingOlder && oldestLoaded) {
-            void loadOlder();
-          }
-        }
-      },
-      { root: container, rootMargin: "200px 0px 0px 0px" },
+    if (!container) return true;
+    return (
+      container.scrollHeight - container.scrollTop - container.clientHeight <
+      NEAR_BOTTOM_PX
     );
-    obs.observe(sentinel);
-    return () => obs.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasMore, loadingOlder, oldestLoaded]);
+  }, []);
 
   const loadOlder = useCallback(async () => {
     if (!oldestLoaded || loadingOlder || !hasMore) return;
@@ -238,7 +197,9 @@ export function HomeSurface({
       setMessages((prev) => {
         const map = new Map<string, Message>();
         for (const m of [...prev, ...slice]) map.set(m.id, m);
-        return [...map.values()].sort((a, b) => a.created_at.localeCompare(b.created_at));
+        return [...map.values()].sort((a, b) =>
+          a.created_at.localeCompare(b.created_at),
+        );
       });
       setOldestLoaded((prev) => {
         if (!prev) return slice[0]?.created_at ?? null;
@@ -248,7 +209,8 @@ export function HomeSurface({
       requestAnimationFrame(() => {
         const container = scrollRef.current;
         if (!container) return;
-        const target = slice.find((m) => dayKey(m.created_at) === isoDate) ?? slice[0];
+        const target =
+          slice.find((m) => dayKey(m.created_at) === isoDate) ?? slice[0];
         const el = container.querySelector(`[data-mid="${target.id}"]`);
         if (el instanceof HTMLElement) {
           el.scrollIntoView({ block: "start", behavior: "smooth" });
@@ -258,33 +220,13 @@ export function HomeSurface({
     [threadId],
   );
 
-  const scrollToBottom = useCallback((smooth = true) => {
-    const container = scrollRef.current;
-    if (!container) return;
-    container.scrollTo({
-      top: container.scrollHeight,
-      behavior: smooth ? "smooth" : "auto",
-    });
-  }, []);
-
-  const isNearBottom = useCallback(() => {
-    const container = scrollRef.current;
-    if (!container) return true;
-    return (
-      container.scrollHeight - container.scrollTop - container.clientHeight <
-      NEAR_BOTTOM_PX
-    );
-  }, []);
-
   const send = useCallback(
     async (body: string, existingTempId?: string) => {
       if (!existingTempId) setFailedSend(null);
       const tempId = existingTempId ?? `tmp-${crypto.randomUUID()}`;
       const nowIso = new Date().toISOString();
 
-      // Offline path: queue and show in thread with the offline marker.
       if (typeof navigator !== "undefined" && !navigator.onLine) {
-        const queued: PendingSend = { tempId, body };
         setMessages((prev) => {
           if (prev.some((m) => m.id === tempId)) return prev;
           return [
@@ -300,11 +242,11 @@ export function HomeSurface({
             },
           ];
         });
-        setPendingQueued((prev) => {
-          const next = [...prev.filter((p) => p.tempId !== tempId), queued];
-          writeQueue(next);
-          return next;
-        });
+        const updated = [
+          ...readQueue().filter((p) => p.tempId !== tempId),
+          { tempId, body },
+        ];
+        writeQueue(updated);
         requestAnimationFrame(() => scrollToBottom(false));
         return;
       }
@@ -346,7 +288,9 @@ export function HomeSurface({
           if (ev.type === "user_message") {
             setMessages((prev) =>
               prev.map((m) =>
-                m.id === tempId ? { ...m, id: ev.id, created_at: ev.created_at } : m,
+                m.id === tempId
+                  ? { ...m, id: ev.id, created_at: ev.created_at }
+                  : m,
               ),
             );
           } else if (ev.type === "text") {
@@ -411,47 +355,139 @@ export function HomeSurface({
   const retryFailed = useCallback(() => {
     if (!failedSend) return;
     const { body, tempId } = failedSend;
-    // Keep the bubble; send again reusing the temp id so it reconciles cleanly.
     setFailedSend(null);
     void send(body, tempId);
   }, [failedSend, send]);
 
-  // --- Offline detection + queue flush
+  // --- Flush queued sends one-by-one; used by the online event handler.
+  // Latest-ref pattern — the effect below writes `send`'s current closure
+  // into the ref each render so the online handler always calls the freshest
+  // version without re-subscribing.
+  const flushQueueRef = useRef<() => Promise<void>>(() => Promise.resolve());
   useEffect(() => {
-    function onlineChanged() {
-      setOnline(navigator.onLine);
-    }
-    setOnline(navigator.onLine);
-    setPendingQueued(readQueue());
-    window.addEventListener("online", onlineChanged);
-    window.addEventListener("offline", onlineChanged);
-    return () => {
-      window.removeEventListener("online", onlineChanged);
-      window.removeEventListener("offline", onlineChanged);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!online || pendingQueued.length === 0) return;
-    // Flush one at a time so Casey can respond between. Gently paced.
-    const queue = [...pendingQueued];
-    (async () => {
+    flushQueueRef.current = async () => {
+      const queue = readQueue();
+      if (queue.length === 0) return;
       for (const item of queue) {
-        // Remove the optimistic "queued" bubble — send() will re-append via
-        // reconciliation.
         setMessages((prev) => prev.filter((m) => m.id !== item.tempId));
-        setPendingQueued((prev) => {
-          const next = prev.filter((p) => p.tempId !== item.tempId);
-          writeQueue(next);
-          return next;
-        });
+        const remaining = readQueue().filter((p) => p.tempId !== item.tempId);
+        writeQueue(remaining);
         await send(item.body);
       }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [online]);
+    };
+  }, [send]);
 
-  // --- Swipe-from-edge gestures + pull-to-refresh
+  // --- Initial scroll and mark-viewed
+  useEffect(() => {
+    if (initialScrollDoneRef.current) return;
+    const container = scrollRef.current;
+    if (!container) return;
+
+    if (firstUnreadId) {
+      const el = container.querySelector(`[data-mid="${firstUnreadId}"]`);
+      if (el instanceof HTMLElement) {
+        el.scrollIntoView({ block: "start", behavior: "auto" });
+      } else {
+        container.scrollTop = container.scrollHeight;
+      }
+    } else {
+      container.scrollTop = container.scrollHeight;
+    }
+    initialScrollDoneRef.current = true;
+
+    const id = setTimeout(() => {
+      markThreadViewed(threadId).catch(() => {});
+    }, 800);
+    return () => clearTimeout(id);
+  }, [threadId, firstUnreadId]);
+
+  // --- Track scroll to toggle "Back to now"
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    function onScroll() {
+      if (!container) return;
+      const fromBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight;
+      setShowBackToNow(fromBottom > 400);
+    }
+    container.addEventListener("scroll", onScroll, { passive: true });
+    return () => container.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // --- Scroll-up pagination
+  useEffect(() => {
+    const container = scrollRef.current;
+    const sentinel = sentinelTopRef.current;
+    if (!container || !sentinel) return;
+    if (!hasMore) return;
+
+    const obs = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting && !loadingOlder && oldestLoaded) {
+            void loadOlder();
+          }
+        }
+      },
+      { root: container, rootMargin: "200px 0px 0px 0px" },
+    );
+    obs.observe(sentinel);
+    return () => obs.disconnect();
+  }, [hasMore, loadingOlder, oldestLoaded, loadOlder]);
+
+  // --- Online / offline detection + queue flush on reconnect. Flush runs in
+  // an event handler (not an effect), so it stays outside the
+  // set-state-in-effect guardrail.
+  useEffect(() => {
+    if (typeof navigator === "undefined") return;
+    function onlineHandler() {
+      setOnline(true);
+      void flushQueueRef.current();
+    }
+    function offlineHandler() {
+      setOnline(false);
+    }
+    window.addEventListener("online", onlineHandler);
+    window.addEventListener("offline", offlineHandler);
+
+    // Restore any messages that were queued from a prior session so they show
+    // in the thread; the flush runs on the next 'online' event. Syncing once
+    // from the localStorage store on mount is a legitimate external-state
+    // read, separate from the render-driven updates the rule guards against.
+    const restored = readQueue();
+    if (restored.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMessages((prev) => {
+        const existingIds = new Set(prev.map((m) => m.id));
+        const toInsert = restored
+          .filter((q) => !existingIds.has(q.tempId))
+          .map<Message>((q) => ({
+            id: q.tempId,
+            thread_id: threadId,
+            athlete_id: "",
+            kind: "chat_user",
+            body: q.body,
+            meta: { queued: true },
+            created_at: new Date().toISOString(),
+          }));
+        return toInsert.length === 0 ? prev : [...prev, ...toInsert];
+      });
+      // If already online at mount, flush immediately.
+      if (navigator.onLine) {
+        void flushQueueRef.current();
+      }
+    }
+
+    return () => {
+      window.removeEventListener("online", onlineHandler);
+      window.removeEventListener("offline", offlineHandler);
+    };
+    // Mount-only: we intentionally read navigator.onLine + localStorage once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // --- Swipe-from-edge gestures
   useEffect(() => {
     let startX = 0;
     let startY = 0;
@@ -492,6 +528,7 @@ export function HomeSurface({
     };
   }, []);
 
+  // --- Pull-to-refresh
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
@@ -536,7 +573,7 @@ export function HomeSurface({
     };
   }, [pullY, doRefresh]);
 
-  // --- Keyboard shortcuts (desktop)
+  // --- Desktop keyboard shortcuts
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const mod = e.metaKey || e.ctrlKey;
@@ -568,8 +605,6 @@ export function HomeSurface({
     }
     return out;
   }, [messages]);
-
-  const firstUnreadId = firstUnreadIdRef.current;
 
   return (
     <div className="min-h-dvh flex flex-col bg-paper">
