@@ -100,6 +100,24 @@ export async function generateDebriefForActivity(
     strava_id: ctx.activity.strava_id,
   };
 
+  // Under `force`, the partial unique index would block re-inserting a
+  // debrief for the same activity. Delete the existing debrief (and any
+  // follow-up that points at it) so the insert below succeeds. Done after
+  // generation, not before, so a failure in generateDebrief leaves the
+  // existing debrief in place — only a successful regenerate replaces it.
+  if (force) {
+    const stale = await findExistingDebrief(athleteId, activityId);
+    if (stale) {
+      await admin
+        .from("messages")
+        .delete()
+        .eq("athlete_id", athleteId)
+        .eq("kind", "follow_up")
+        .filter("meta->>parent_id", "eq", stale);
+      await admin.from("messages").delete().eq("id", stale);
+    }
+  }
+
   const { data: debriefRow, error: debriefErr } = await admin
     .from("messages")
     .insert({

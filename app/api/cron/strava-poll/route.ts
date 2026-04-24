@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { ingestLiveActivitiesForAthlete } from "@/lib/strava/ingest";
 import { generateDebriefForActivity } from "@/app/actions/debrief";
 
 export const runtime = "nodejs";
@@ -8,32 +7,31 @@ export const maxDuration = 300; // give a full 5 minutes for the whole sweep
 
 /**
  * Safety-net cron. The primary trigger for debriefs is the Strava webhook;
- * this endpoint exists so a missed webhook (outage, dropped retry, our
- * deploy bounced) doesn't mean the athlete never gets a debrief.
+ * this endpoint catches debriefs the webhook missed — outage, dropped
+ * retry, deploy bounced. It does NOT re-ingest activities: the webhook is
+ * the single source of truth for ingest, and a missed ingest self-heals
+ * on the next webhook event or when the user next opens the app.
  *
- * Schedule: every 30 minutes (configured in `vercel.json`). For each
- * athlete with a live Strava connection, pulls the last 2 days of
- * activities and triggers `generateDebriefForActivity` for each. The
- * server action is idempotent, so already-debriefed activities are a
- * no-op.
+ * Schedule: every 30 minutes (configured in `vercel.json`). Scans
+ * activities from the last 48h that don't yet have a `debrief` message
+ * and triggers generation for each. Steady-state cost: zero Strava API
+ * calls; only DB reads + an LLM call when a debrief is genuinely missing.
  *
  * Authorization: Vercel sets `Authorization: Bearer <CRON_SECRET>` on
  * scheduled invocations. We reject anything without it so the route
  * isn't a public side-effect trigger.
  */
 
-type Connection = {
-  athlete_id: string;
-  is_mock: boolean;
-  access_token: string | null;
-};
+const LOOKBACK_HOURS = 48;
 
-type ActivityLite = {
+type ActivityRow = {
   id: string;
+  athlete_id: string;
 };
 
-const POLL_WEEKS = 1; // look back 7 days per sweep
-const PER_ATHLETE_SLEEP_MS = 500; // gentle pacing across athletes
+type MessageMetaRow = {
+  meta: { activity_id?: string } | null;
+};
 
 export async function GET(request: Request) {
   const expected = process.env.CRON_SECRET;
@@ -52,68 +50,78 @@ export async function GET(request: Request) {
   }
 
   const admin = createAdminClient();
-  const { data: conns, error } = await admin
-    .from("strava_connections")
-    .select("athlete_id, is_mock, access_token")
-    .eq("is_mock", false)
-    .not("access_token", "is", null);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const since = new Date(Date.now() - LOOKBACK_HOURS * 60 * 60 * 1000);
 
-  const connections = (conns ?? []) as Connection[];
+  const { data: activities, error: actErr } = await admin
+    .from("activities")
+    .select("id, athlete_id")
+    .gte("start_date_local", since.toISOString())
+    .order("start_date_local", { ascending: true });
+  if (actErr) {
+    return NextResponse.json({ error: actErr.message }, { status: 500 });
+  }
 
-  let activitiesIngested = 0;
-  let debriefsAttempted = 0;
+  const recent = (activities ?? []) as ActivityRow[];
+  if (recent.length === 0) {
+    return NextResponse.json({
+      ok: true,
+      activitiesScanned: 0,
+      debriefsAttempted: 0,
+      debriefsCreated: 0,
+      debriefsSkipped: 0,
+      errors: [],
+    });
+  }
+
+  // Find which of these activities already have a debrief, so we can skip
+  // them without paying for the per-activity ownership + lookup inside the
+  // server action. A debrief for an activity in the lookback window will
+  // itself have been written within (roughly) the same window — bounding
+  // the messages query keeps it cheap as the table grows. The partial
+  // unique index would catch any race anyway, so this filter is purely an
+  // optimization.
+  const { data: existing, error: existingErr } = await admin
+    .from("messages")
+    .select("meta")
+    .eq("kind", "debrief")
+    .gte("created_at", since.toISOString());
+  if (existingErr) {
+    return NextResponse.json({ error: existingErr.message }, { status: 500 });
+  }
+
+  const activityIds = new Set(recent.map((a) => a.id));
+  const debriefed = new Set<string>();
+  for (const row of (existing ?? []) as MessageMetaRow[]) {
+    const id = row.meta?.activity_id;
+    if (typeof id === "string" && activityIds.has(id)) {
+      debriefed.add(id);
+    }
+  }
+  const missing = recent.filter((a) => !debriefed.has(a.id));
+
   let debriefsCreated = 0;
   let debriefsSkipped = 0;
-  let debriefsExisted = 0;
-  const athleteErrors: Array<{ athleteId: string; error: string }> = [];
+  const errors: Array<{ activityId: string; error: string }> = [];
 
-  for (const conn of connections) {
+  for (const a of missing) {
     try {
-      const n = await ingestLiveActivitiesForAthlete(conn.athlete_id, POLL_WEEKS);
-      activitiesIngested += n ?? 0;
-
-      const since = new Date();
-      since.setDate(since.getDate() - POLL_WEEKS * 7);
-      const { data: recent } = await admin
-        .from("activities")
-        .select("id")
-        .eq("athlete_id", conn.athlete_id)
-        .gte("start_date_local", since.toISOString())
-        .order("start_date_local", { ascending: true });
-
-      for (const a of (recent ?? []) as ActivityLite[]) {
-        debriefsAttempted += 1;
-        try {
-          const result = await generateDebriefForActivity(conn.athlete_id, a.id);
-          if (result.kind === "created") debriefsCreated += 1;
-          else if (result.kind === "exists") debriefsExisted += 1;
-          else debriefsSkipped += 1;
-        } catch (e) {
-          athleteErrors.push({
-            athleteId: conn.athlete_id,
-            error: `debrief ${a.id}: ${e instanceof Error ? e.message : String(e)}`,
-          });
-        }
-      }
+      const result = await generateDebriefForActivity(a.athlete_id, a.id);
+      if (result.kind === "created") debriefsCreated += 1;
+      else debriefsSkipped += 1;
     } catch (e) {
-      athleteErrors.push({
-        athleteId: conn.athlete_id,
-        error: `ingest: ${e instanceof Error ? e.message : String(e)}`,
+      errors.push({
+        activityId: a.id,
+        error: e instanceof Error ? e.message : String(e),
       });
     }
-
-    await new Promise((r) => setTimeout(r, PER_ATHLETE_SLEEP_MS));
   }
 
   return NextResponse.json({
     ok: true,
-    athletesChecked: connections.length,
-    activitiesIngested,
-    debriefsAttempted,
+    activitiesScanned: recent.length,
+    debriefsAttempted: missing.length,
     debriefsCreated,
-    debriefsExisted,
     debriefsSkipped,
-    athleteErrors,
+    errors,
   });
 }
