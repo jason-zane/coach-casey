@@ -2,12 +2,12 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Refreshes the Supabase session on every request and enforces auth gating:
- *   - Unauthed users hitting /app/* are sent to /signin
- *   - Authed users hitting /signin or /signup are sent to /app
- *
- * Invoked from the root-level proxy.ts (Next.js 16 convention, formerly
- * middleware.ts). Runs on every non-static route.
+ * Refreshes the Supabase session on every request and enforces routing gates:
+ *   - Unauthed on /app or /onboarding   → /signin
+ *   - Authed on /signin or /signup      → /app (onboarding gate below may redirect)
+ *   - Authed + onboarding incomplete on /app → /onboarding
+ *   - Authed + onboarding complete on /onboarding → /app
+ *   - Authed + onboarding incomplete on exact /onboarding → /onboarding/{currentStep}
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -39,16 +39,48 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
+  const onProtected =
+    pathname.startsWith("/app") || pathname.startsWith("/onboarding");
 
-  if (pathname.startsWith("/app") && !user) {
+  if (onProtected && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/signin";
     return NextResponse.redirect(url);
   }
 
-  if ((pathname === "/signin" || pathname === "/signup") && user) {
+  if (!user) return supabaseResponse;
+
+  // Authed from here on. Look up onboarding state once per request.
+  const { data: athlete } = await supabase
+    .from("athletes")
+    .select("onboarding_current_step, onboarding_completed_at")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const onboardingComplete = Boolean(athlete?.onboarding_completed_at);
+  const currentStep = athlete?.onboarding_current_step ?? "strava";
+
+  if (pathname === "/signin" || pathname === "/signup") {
+    const url = request.nextUrl.clone();
+    url.pathname = onboardingComplete ? "/app" : "/onboarding";
+    return NextResponse.redirect(url);
+  }
+
+  if (pathname.startsWith("/app") && !onboardingComplete) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/onboarding";
+    return NextResponse.redirect(url);
+  }
+
+  if (pathname.startsWith("/onboarding") && onboardingComplete) {
     const url = request.nextUrl.clone();
     url.pathname = "/app";
+    return NextResponse.redirect(url);
+  }
+
+  if (pathname === "/onboarding" || pathname === "/onboarding/") {
+    const url = request.nextUrl.clone();
+    url.pathname = `/onboarding/${currentStep}`;
     return NextResponse.redirect(url);
   }
 

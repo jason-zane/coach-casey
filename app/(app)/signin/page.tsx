@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Suspense, useActionState } from "react";
 import { useSearchParams } from "next/navigation";
 import { signInWithEmail, signInWithGoogle } from "@/app/actions/auth";
-import { GoogleIcon } from "@/app/(app)/_components/google-icon";
+import { GoogleButton } from "@/app/(app)/_components/google-button";
 
 export default function SignInPage() {
   return (
@@ -32,13 +32,7 @@ function SignInForm() {
         </header>
 
         <form action={signInWithGoogle}>
-          <button
-            type="submit"
-            className="flex w-full items-center justify-center gap-3 rounded-md border border-rule px-4 py-3 font-sans text-sm text-ink transition-colors hover:bg-ink/5"
-          >
-            <GoogleIcon className="h-5 w-5" />
-            Continue with Google
-          </button>
+          <GoogleButton />
         </form>
 
         <div className="relative">

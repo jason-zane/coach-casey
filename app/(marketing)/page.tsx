@@ -707,16 +707,6 @@ function SiteFooter() {
           </Link>
           <span className="ml-auto">© 2026</span>
         </div>
-        <p className="text-[12px] text-[color:var(--color-ink-subtle)]">
-          Built by Jason Gauci in Sydney. Founder of{" "}
-          <a
-            href="https://themarathonclinic.com"
-            className="underline underline-offset-2 hover:text-[color:var(--color-ink)] transition-colors duration-150"
-          >
-            The Marathon Clinic
-          </a>
-          .
-        </p>
       </div>
     </footer>
   );

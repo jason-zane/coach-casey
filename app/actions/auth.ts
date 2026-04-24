@@ -49,7 +49,7 @@ export async function signUpWithEmail(
   const supabase = await createClient();
   const origin = (await headers()).get("origin") ?? process.env.NEXT_PUBLIC_APP_URL;
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -61,6 +61,14 @@ export async function signUpWithEmail(
     return { error: error.message };
   }
 
+  // If email confirmation is off (Supabase project setting), signUp returns a
+  // session and the user is already logged in — go straight into onboarding.
+  if (data.session) {
+    revalidatePath("/", "layout");
+    redirect("/onboarding");
+  }
+
+  // Otherwise the user needs to click the confirmation email first.
   return { success: true };
 }
 
@@ -72,6 +80,13 @@ export async function signInWithGoogle() {
     provider: "google",
     options: {
       redirectTo: `${origin}/auth/callback`,
+      // Force the Google account picker on every sign-in, even when the user
+      // is already signed into one Google account. Lets you pick a different
+      // account or review what you're authorizing, and removes the "instant
+      // redirect" feel that makes the flow look broken.
+      queryParams: {
+        prompt: "select_account",
+      },
     },
   });
 

@@ -126,8 +126,39 @@ body {
 .rise-3 { animation-delay: 0.25s; }
 .rise-4 { animation-delay: 0.35s; }
 
+/* Observation-specific timings — compositional reveal for the validation
+   moment. Text arrives, response surface follows. */
+.rise-observation {
+  animation: rise 440ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+.rise-response {
+  animation: rise 320ms cubic-bezier(0.2, 0, 0, 1) both;
+  animation-delay: 280ms;
+}
+
+/* Route transitions — each page fades in softly on mount. Onboarding-only
+   per its parent wrapper. 360ms reads as deliberate without feeling slow. */
+.page-enter {
+  animation: page-enter 360ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(0.5rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Slow opacity breath for in-flight affordances that want to feel like
+   attention rather than a spinner. Quieter than a pulse. */
+@keyframes breath {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+.breath {
+  animation: breath 1.8s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .rise, .rise-1, .rise-2, .rise-3, .rise-4 {
+  .rise, .rise-1, .rise-2, .rise-3, .rise-4,
+  .rise-observation, .rise-response, .page-enter, .breath {
     animation: none;
     opacity: 1;
     transform: none;
@@ -139,4 +170,20 @@ body {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
   border-radius: 2px;
+}
+
+/* Click feedback — every button and submit-style control registers the press
+   visually. Scoped with :where so it loses specificity battles to utility
+   classes, letting individual buttons override if needed. */
+:where(button, [type="submit"], [role="button"]):not(:disabled) {
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease,
+    background-color 120ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:where(button, [type="submit"], [role="button"]):not(:disabled):active {
+  transform: scale(0.97);
+  opacity: 0.85;
 }

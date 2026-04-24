@@ -3,11 +3,14 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { signUpWithEmail, signInWithGoogle } from "@/app/actions/auth";
-import { GoogleIcon } from "@/app/(app)/_components/google-icon";
+import { GoogleButton } from "@/app/(app)/_components/google-button";
 
 export default function SignUpPage() {
   const [state, formAction, isPending] = useActionState(signUpWithEmail, null);
 
+  // "Check your email" state is only reached when email confirmation is on
+  // at the Supabase project level. With it off, signUp redirects straight
+  // into onboarding and this branch never renders.
   if (state && "success" in state) {
     return (
       <div className="flex min-h-dvh items-center justify-center px-6 py-12">
@@ -38,13 +41,7 @@ export default function SignUpPage() {
         </header>
 
         <form action={signInWithGoogle}>
-          <button
-            type="submit"
-            className="flex w-full items-center justify-center gap-3 rounded-md border border-rule px-4 py-3 font-sans text-sm text-ink transition-colors hover:bg-ink/5"
-          >
-            <GoogleIcon className="h-5 w-5" />
-            Continue with Google
-          </button>
+          <GoogleButton />
         </form>
 
         <div className="relative">

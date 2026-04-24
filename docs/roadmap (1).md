@@ -1,10 +1,12 @@
 # Coach Casey — Roadmap
 
 **Owner:** Jason
-**Last updated:** 2026-04-23
+**Last updated:** 2026-04-24
 **Status:** Living document. Captures what's being built now (V1), what's intended shortly after (V1.1), what's on the horizon (Next, Later), and what's explicitly out (Never). No dates. No vanity items.
 
-Supersedes project memory when they conflict. Separate from `v1-scope.md` (detailed V1 specification), `strategy-foundation.md` (strategic rationale), and `technical-decision-log.md` (engineering decisions with triggers).
+**Recent revision (2026-04-24):** §6 Never bucket refactored to reflect the thesis refinement in `strategy-foundation.md`. "Plan generation or prescriptive coaching advice" split into two distinct items — autonomous plan generation (still Never) and unsolicited prescriptive output (still Never). Responsive prescription (engaging athlete forward-looking questions in chat) is now in V1 scope and therefore not in Never.
+
+Supersedes project memory when they conflict. Separate from `v1-scope.md` (detailed V1 specification), `strategy-foundation.md` (strategic rationale), `voice-guidelines.md` (voice rules), and `technical-decision-log.md` (engineering decisions with triggers).
 
 ---
 
@@ -33,9 +35,9 @@ The athlete-facing surfaces, infrastructure, and prompt engineering workstream d
 
 - Two-phase onboarding (chunked conversational validation + progressive gathering via post-run follow-ups)
 - Plan ingestion (optional, progressively prompted — screenshot, PDF, text paste)
-- Post-run debriefs (quality bar: great)
-- Reactive chat (quality bar: solid)
-- Weekly reviews (quality bar: acceptable at launch, sharpened in V1.1)
+- Post-run debriefs — interpretive; quality bar: great
+- Reactive chat — responsive to forward-looking athlete questions; quality bar: solid
+- Weekly reviews — interpretive; quality bar: acceptable at launch, sharpened in V1.1
 - Supporting infrastructure (Strava, Stripe, Supabase, LLM pipeline, observability)
 - Prompt engineering workstream as a named deliverable
 
@@ -46,7 +48,7 @@ The athlete-facing surfaces, infrastructure, and prompt engineering workstream d
 Post-launch improvements to lift quality and close known gaps. Each item has a clear trigger or rationale.
 
 - **Weekly reviews to "great" quality.** Shipped at "acceptable" in V1; sharpened as accumulated athlete context gives them more to work with (see `v1-scope.md` §9).
-- **Reactive chat to "great" quality.** Shipped "solid" in V1; deepened as real usage patterns surface what users actually ask.
+- **Reactive chat to "great" quality.** Shipped "solid" in V1; deepened as real usage patterns surface what users actually ask — especially what forward-looking questions they bring to Coach Casey, which is the responsive-prescription use case the thesis now explicitly enables.
 - **Plan ingestion edge case handling.** Improved extraction accuracy, better handling of unusual plan formats, mid-block plan updates (currently out of V1 — users re-upload).
 - **Post-run follow-up refinement.** The conversational version improves based on real usage data (which questions land, which get skipped, which surface the most useful life context).
 - **Annual conversion mechanics — live versions of the four mechanics** (see `strategy-foundation.md` §9). Designed at V1 launch-prep; tuned based on early-cohort conversion data.
@@ -87,9 +89,10 @@ Items deliberately deferred, each with a specific trigger for revisit.
 
 Thesis-preserving exclusions. These aren't "not yet" — they're "not ever, unless the thesis itself changes."
 
-- **Plan generation or prescriptive coaching advice.** Violates the thesis (`strategy-foundation.md` §1). Coach Casey is supplementary and retrospective by design. Moving this out of Never requires rewriting the thesis.
-- **In-run coaching or real-time cueing during a workout.** Same — the thesis is retrospective.
-- **Direct medical, nutrition, or injury advice crossing into clinical territory.** Liability zone Coach Casey deliberately avoids.
+- **Autonomous plan generation.** Writing marathon plans from scratch. Coach Casey does not create training programmes; that belongs to the coach, the book, or the plan-generation app. Responsive prescription (engaging athlete forward-looking questions in chat — "should I swap tomorrow's tempo?") is in scope; autonomous plan generation is not. Moving this out of Never requires rewriting the thesis (`strategy-foundation.md` §1).
+- **Unsolicited prescriptive output.** Coach Casey does not volunteer "do X tomorrow" on its own initiative, across any surface. Proactive surfaces (debriefs, weekly reviews) interpret; the athlete has to open the door before Coach Casey engages with forward-looking prescription. Moving this out of Never also requires rewriting the thesis.
+- **In-run coaching or real-time cueing during a workout.** Not the product moment. Coach Casey is between-runs; it does not cue or instruct during a run.
+- **Direct medical, nutrition, or injury advice crossing into clinical territory.** Liability zone Coach Casey deliberately avoids. Responsive prescription does not extend into clinical territory — "you asked about the calf, here's what I'd think about" is fine; "you have a tibial stress response" is not.
 - **Selling, syndicating, or aggregating Strava-derived data.** Required by Strava API compliance (`strava-api-compliance-note.md`), but also a hard ethical line.
 - **Training models on Strava user data.** Same source.
 
