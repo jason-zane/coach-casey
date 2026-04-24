@@ -39,6 +39,31 @@ function labelForResult(r: SearchResult): string {
   }
 }
 
+function highlightMatches(snippet: string, query: string): React.ReactNode[] {
+  const terms = query
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 2);
+  if (terms.length === 0) return [snippet];
+  const escaped = terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const re = new RegExp(`(${escaped.join("|")})`, "gi");
+  const parts = snippet.split(re);
+  // String.split with a capturing group yields [text, match, text, match, …];
+  // odd indices are the matched terms.
+  return parts.map((part, i) =>
+    i % 2 === 1 ? (
+      <strong
+        key={i}
+        className="font-medium text-ink underline decoration-accent/60 decoration-[1.5px] underline-offset-[3px]"
+      >
+        {part}
+      </strong>
+    ) : (
+      <span key={i}>{part}</span>
+    ),
+  );
+}
+
 export function SearchSurface({ open, onClose, onPick }: Props) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -141,21 +166,21 @@ export function SearchSurface({ open, onClose, onPick }: Props) {
                       onPick(r.createdAt);
                       onClose();
                     }}
-                    className="w-full text-left px-5 py-3 border-b border-rule/40 hover:bg-rule/30"
+                    className="w-full text-left pl-4 pr-5 py-3 border-b border-rule/40 hover:bg-rule/30 border-l-[2px] border-l-transparent hover:border-l-accent/40 transition-colors"
                   >
                     <div className="flex items-baseline justify-between gap-3 mb-1">
-                      <span className="font-mono text-[10px] uppercase tracking-wider text-ink-subtle">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-subtle">
                         {labelForResult(r)}
                       </span>
                       <span
-                        className="font-mono text-[10px] uppercase tracking-wider text-ink-subtle"
+                        className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-subtle"
                         suppressHydrationWarning
                       >
                         {formatDate(r.createdAt)}
                       </span>
                     </div>
-                    <div className="font-sans text-[14px] text-ink leading-snug">
-                      {r.snippet}
+                    <div className="font-sans text-[14px] text-ink-muted leading-[1.5]">
+                      {highlightMatches(r.snippet, query)}
                     </div>
                   </button>
                 </li>

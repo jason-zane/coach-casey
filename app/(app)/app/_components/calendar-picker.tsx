@@ -123,22 +123,24 @@ export function CalendarPicker({ threadId, open, onClose, onPick }: Props) {
                 key={iso}
                 type="button"
                 onClick={() => {
-                  if (!hasActivity) {
-                    setEmptyDateNotice(iso);
-                  }
+                  if (!hasActivity) setEmptyDateNotice(iso);
                   onPick(iso);
                   onClose();
                 }}
-                className={`aspect-square rounded-sm font-sans text-[13px] grid place-items-center relative ${
-                  isToday ? "text-accent font-medium" : "text-ink"
+                className={`aspect-square rounded-full font-sans text-[13px] grid place-items-center relative transition-colors ${
+                  isToday
+                    ? "bg-accent/10 text-accent font-medium"
+                    : hasActivity
+                      ? "text-ink"
+                      : "text-ink-muted"
                 } hover:bg-rule/40`}
                 aria-label={`${iso}${hasActivity ? " — has activity" : ""}`}
               >
                 {Number(iso.slice(8, 10))}
-                {hasActivity && (
+                {hasActivity && !isToday && (
                   <span
                     aria-hidden
-                    className="absolute bottom-1 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-accent/80"
+                    className="absolute bottom-[6px] left-1/2 -translate-x-1/2 h-[2px] w-3 rounded-full bg-accent/70"
                   />
                 )}
               </button>

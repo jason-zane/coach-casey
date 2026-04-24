@@ -632,8 +632,22 @@ export function HomeSurface({
 
           <div ref={sentinelTopRef} />
           {hasMore && (
-            <div className="px-5 py-4 text-center font-mono text-[10px] uppercase tracking-wider text-ink-subtle">
-              {loadingOlder ? "Loading…" : "Scroll for older"}
+            <div className="px-5 py-4 flex items-center justify-center gap-3">
+              <span
+                aria-hidden
+                className={`h-px w-8 ${loadingOlder ? "bg-accent/70 breath" : "bg-rule"}`}
+              />
+              <span
+                className={`font-mono text-[10px] uppercase tracking-[0.14em] ${
+                  loadingOlder ? "text-accent breath" : "text-ink-subtle"
+                }`}
+              >
+                {loadingOlder ? "Loading older" : "Scroll for older"}
+              </span>
+              <span
+                aria-hidden
+                className={`h-px w-8 ${loadingOlder ? "bg-accent/70 breath" : "bg-rule"}`}
+              />
             </div>
           )}
 
@@ -707,9 +721,12 @@ export function HomeSurface({
             type="button"
             onClick={() => scrollToBottom(true)}
             aria-label="Back to now"
-            className="absolute right-4 bottom-4 bg-surface border border-rule rounded-full shadow-md h-10 w-10 grid place-items-center text-ink"
+            className="absolute right-4 bottom-4 bg-surface border border-rule rounded-full shadow-md pl-3 pr-2.5 h-9 flex items-center gap-1.5 text-ink hover:border-rule-strong transition-colors"
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-muted">
+              Now
+            </span>
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
               <path
                 d="M4 6l4 4 4-4"
                 stroke="currentColor"
