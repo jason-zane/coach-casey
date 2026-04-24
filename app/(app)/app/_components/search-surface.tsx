@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { searchMessages } from "@/app/actions/thread";
 import type { SearchResult } from "@/lib/thread/search";
+import { BottomSheet } from "./bottom-sheet";
 
 type Props = {
   open: boolean;
@@ -98,22 +99,10 @@ export function SearchSurface({ open, onClose, onPick }: Props) {
 
   const resultsToShow = query.trim().length >= 2 ? results : [];
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-40" role="dialog" aria-modal aria-label="Search">
-      <div
-        className="absolute inset-0 bg-ink/35 backdrop-blur-[2px] overlay-in"
-        onClick={onClose}
-      />
-      <div
-        className="absolute inset-y-0 right-0 w-[min(86vw,400px)] bg-paper border-l border-rule shadow-xl slide-in-right flex flex-col"
-        style={{
-          paddingTop: "env(safe-area-inset-top)",
-          paddingBottom: "env(safe-area-inset-bottom)",
-        }}
-      >
-        <div className="flex items-center justify-between px-5 py-3 border-b border-rule/60">
+    <BottomSheet open={open} onClose={onClose} ariaLabel="Search">
+      <div className="flex flex-col min-h-[60vh]">
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-rule/50">
           <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-subtle">
             Search
           </span>
@@ -173,7 +162,7 @@ export function SearchSurface({ open, onClose, onPick }: Props) {
           )}
         </div>
 
-        <div className="flex items-center gap-2 px-4 py-3 border-t border-rule/60 bg-paper">
+        <div className="flex items-center gap-2 px-4 py-3 border-t border-rule/50 bg-paper">
           <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden>
             <circle cx="9" cy="9" r="5.5" stroke="currentColor" strokeWidth="1.5" />
             <path
@@ -192,6 +181,6 @@ export function SearchSurface({ open, onClose, onPick }: Props) {
           />
         </div>
       </div>
-    </div>
+    </BottomSheet>
   );
 }

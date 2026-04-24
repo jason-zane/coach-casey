@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { fetchCalendarDates } from "@/app/actions/thread";
+import { BottomSheet } from "./bottom-sheet";
 
 type Props = {
   threadId: string;
@@ -88,21 +89,9 @@ export function CalendarPicker({ threadId, open, onClose, onPick }: Props) {
     return out;
   }, [thisYear]);
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-40" role="dialog" aria-modal aria-label="Calendar">
-      <div
-        className="absolute inset-0 bg-ink/35 backdrop-blur-[2px] overlay-in"
-        onClick={onClose}
-      />
-      <div
-        className="absolute inset-y-0 left-0 w-[min(86vw,360px)] bg-paper border-r border-rule shadow-xl slide-in-left flex flex-col"
-        style={{
-          paddingTop: "calc(1rem + env(safe-area-inset-top))",
-          paddingBottom: "calc(1rem + env(safe-area-inset-bottom))",
-        }}
-      >
+    <BottomSheet open={open} onClose={onClose} ariaLabel="Calendar">
+      <div className="flex flex-col pt-4 pb-4">
         <div className="flex items-center justify-between px-5 mb-4">
           <button
             type="button"
@@ -231,7 +220,7 @@ export function CalendarPicker({ threadId, open, onClose, onPick }: Props) {
           </div>
         )}
 
-        <div className="px-5 mt-auto pt-5 flex items-center justify-between">
+        <div className="px-5 mt-5 pt-4 border-t border-rule/50 flex items-center justify-between">
           <button
             type="button"
             onClick={onClose}
@@ -251,6 +240,6 @@ export function CalendarPicker({ threadId, open, onClose, onPick }: Props) {
           </button>
         </div>
       </div>
-    </div>
+    </BottomSheet>
   );
 }
