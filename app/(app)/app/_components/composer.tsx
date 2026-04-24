@@ -52,7 +52,11 @@ export function Composer({ onSend, disabled }: Props) {
         e.preventDefault();
         void submit();
       }}
-      className="flex items-end gap-2 px-4 sm:px-6 py-3 bg-paper/95 backdrop-blur-sm border-t border-rule/60"
+      // Safe-area bottom padding applies at sm+ where the mobile menu bar is
+      // hidden and the composer is the last thing on screen. Mobile keeps
+      // the tight padding because the menu bar below it already reserves
+      // space for the home indicator.
+      className="flex items-end gap-2 px-4 sm:px-6 py-3 sm:pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-paper/95 backdrop-blur-sm border-t border-rule/60"
     >
       <textarea
         id="chat-input"

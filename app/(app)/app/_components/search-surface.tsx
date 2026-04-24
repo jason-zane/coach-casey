@@ -48,8 +48,6 @@ function highlightMatches(snippet: string, query: string): React.ReactNode[] {
   const escaped = terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
   const re = new RegExp(`(${escaped.join("|")})`, "gi");
   const parts = snippet.split(re);
-  // String.split with a capturing group yields [text, match, text, match, …];
-  // odd indices are the matched terms.
   return parts.map((part, i) =>
     i % 2 === 1 ? (
       <strong
@@ -98,9 +96,6 @@ export function SearchSurface({ open, onClose, onPick }: Props) {
     return () => clearTimeout(id);
   }, [query, open]);
 
-  // Derive whether to render the results list from the current query — a
-  // short query means "no relevant results even if the previous state still
-  // holds older ones." Cheaper than maintaining a reset effect.
   const resultsToShow = query.trim().length >= 2 ? results : [];
 
   if (!open) return null;
@@ -108,37 +103,24 @@ export function SearchSurface({ open, onClose, onPick }: Props) {
   return (
     <div className="fixed inset-0 z-40" role="dialog" aria-modal aria-label="Search">
       <div
-        className="absolute inset-0 bg-ink/30 backdrop-blur-[2px] overlay-in"
+        className="absolute inset-0 bg-ink/35 backdrop-blur-[2px] overlay-in"
         onClick={onClose}
       />
       <div
-        className="absolute inset-y-0 right-0 w-full sm:w-[420px] bg-paper border-l border-rule slide-in-right flex flex-col"
+        className="absolute inset-y-0 right-0 w-[min(86vw,400px)] bg-paper border-l border-rule shadow-xl slide-in-right flex flex-col"
         style={{
           paddingTop: "env(safe-area-inset-top)",
           paddingBottom: "env(safe-area-inset-bottom)",
         }}
       >
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-rule/60">
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden>
-            <circle cx="9" cy="9" r="5.5" stroke="currentColor" strokeWidth="1.5" />
-            <path
-              d="M13.5 13.5l3 3"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            />
-          </svg>
-          <input
-            ref={inputRef}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search messages, debriefs, runs"
-            className="flex-1 bg-transparent font-sans text-[15px] text-ink placeholder:text-ink-subtle focus:outline-none"
-          />
+        <div className="flex items-center justify-between px-5 py-3 border-b border-rule/60">
+          <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-subtle">
+            Search
+          </span>
           <button
             type="button"
             onClick={onClose}
-            className="font-sans text-[13px] text-ink-muted px-2"
+            className="font-sans text-[13px] text-ink-muted px-1"
           >
             Close
           </button>
@@ -147,8 +129,8 @@ export function SearchSurface({ open, onClose, onPick }: Props) {
         <div className="flex-1 overflow-y-auto">
           {query.trim().length < 2 ? (
             <div className="px-5 py-8 font-sans text-[14px] text-ink-subtle">
-              Type a word or two. Matches across your chat, debriefs, weekly reviews,
-              and run names.
+              Type a word or two. Matches across your chat, debriefs, weekly
+              reviews, and run names.
             </div>
           ) : pending && resultsToShow.length === 0 ? (
             <div className="px-5 py-8 font-mono text-[11px] uppercase tracking-wider text-ink-subtle breath">
@@ -189,6 +171,25 @@ export function SearchSurface({ open, onClose, onPick }: Props) {
               ))}
             </ul>
           )}
+        </div>
+
+        <div className="flex items-center gap-2 px-4 py-3 border-t border-rule/60 bg-paper">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden>
+            <circle cx="9" cy="9" r="5.5" stroke="currentColor" strokeWidth="1.5" />
+            <path
+              d="M13.5 13.5l3 3"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+          </svg>
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search messages, debriefs, runs"
+            className="flex-1 bg-surface border border-rule/70 rounded-2xl px-4 py-2 font-sans text-[15px] text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent/60"
+          />
         </div>
       </div>
     </div>
