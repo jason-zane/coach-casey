@@ -37,6 +37,14 @@ export async function fetchOlderMessages(
   return loadOlderWindow(threadId, beforeIso, days);
 }
 
+export async function refreshThread(
+  threadId: string,
+  days = 14,
+): Promise<{ messages: Message[]; hasMore: boolean; oldestLoaded: string | null }> {
+  await requireAthleteId();
+  return loadRecentWindow(threadId, days);
+}
+
 export async function fetchMessagesAroundDate(
   threadId: string,
   isoDate: string,

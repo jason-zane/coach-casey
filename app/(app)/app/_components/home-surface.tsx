@@ -5,6 +5,7 @@ import {
   fetchMessagesAroundDate,
   fetchOlderMessages,
   markThreadViewed,
+  refreshThread,
 } from "@/app/actions/thread";
 import type { Message } from "@/lib/thread/types";
 import {
@@ -40,6 +41,9 @@ type PendingSend = {
 };
 
 const NEAR_BOTTOM_PX = 120;
+const PULL_THRESHOLD_PX = 64;
+const PULL_MAX_PX = 96;
+const QUEUE_KEY = "coach-casey:pending-sends:v1";
 
 function formatDayHeader(iso: string): string {
   const d = new Date(iso);
@@ -55,6 +59,26 @@ function formatDayHeader(iso: string): string {
 
 function dayKey(iso: string): string {
   return iso.slice(0, 10);
+}
+
+function readQueue(): PendingSend[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(QUEUE_KEY);
+    return raw ? (JSON.parse(raw) as PendingSend[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeQueue(items: PendingSend[]) {
+  if (typeof window === "undefined") return;
+  try {
+    if (items.length === 0) window.localStorage.removeItem(QUEUE_KEY);
+    else window.localStorage.setItem(QUEUE_KEY, JSON.stringify(items));
+  } catch {
+    // Quota / private mode — degrade silently; messages still show in thread.
+  }
 }
 
 export function HomeSurface({
@@ -75,12 +99,17 @@ export function HomeSurface({
   const [showBackToNow, setShowBackToNow] = useState(false);
   const [failedSend, setFailedSend] = useState<PendingSend | null>(null);
   const [caseyAnnouncement, setCaseyAnnouncement] = useState("");
+  const [online, setOnline] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [pullY, setPullY] = useState(0);
+  const [pendingQueued, setPendingQueued] = useState<PendingSend[]>([]);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const sentinelTopRef = useRef<HTMLDivElement | null>(null);
   const initialScrollDoneRef = useRef(false);
   const firstUnreadIdRef = useRef<string | null>(null);
   const wasNearBottomOnStreamStartRef = useRef(true);
+  const pullStartYRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (initialScrollDoneRef.current) return;
@@ -177,6 +206,31 @@ export function HomeSurface({
     }
   }, [oldestLoaded, loadingOlder, hasMore, threadId]);
 
+  const doRefresh = useCallback(async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      const res = await refreshThread(threadId, 14);
+      setMessages((prev) => {
+        const map = new Map<string, Message>();
+        for (const m of [...prev, ...res.messages]) map.set(m.id, m);
+        return [...map.values()].sort((a, b) =>
+          a.created_at.localeCompare(b.created_at),
+        );
+      });
+      setHasMore(res.hasMore);
+      if (res.oldestLoaded) {
+        setOldestLoaded((prev) => {
+          if (!prev) return res.oldestLoaded;
+          return res.oldestLoaded! < prev ? res.oldestLoaded : prev;
+        });
+      }
+    } finally {
+      setRefreshing(false);
+      setPullY(0);
+    }
+  }, [threadId, refreshing]);
+
   const jumpToDate = useCallback(
     async (isoDate: string) => {
       const slice = await fetchMessagesAroundDate(threadId, isoDate);
@@ -223,20 +277,50 @@ export function HomeSurface({
   }, []);
 
   const send = useCallback(
-    async (body: string) => {
-      setFailedSend(null);
-      const tempId = `tmp-${crypto.randomUUID()}`;
+    async (body: string, existingTempId?: string) => {
+      if (!existingTempId) setFailedSend(null);
+      const tempId = existingTempId ?? `tmp-${crypto.randomUUID()}`;
       const nowIso = new Date().toISOString();
-      const optimistic: Message = {
-        id: tempId,
-        thread_id: threadId,
-        athlete_id: "",
-        kind: "chat_user",
-        body,
-        meta: {},
-        created_at: nowIso,
-      };
-      setMessages((prev) => [...prev, optimistic]);
+
+      // Offline path: queue and show in thread with the offline marker.
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        const queued: PendingSend = { tempId, body };
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === tempId)) return prev;
+          return [
+            ...prev,
+            {
+              id: tempId,
+              thread_id: threadId,
+              athlete_id: "",
+              kind: "chat_user",
+              body,
+              meta: { queued: true },
+              created_at: nowIso,
+            },
+          ];
+        });
+        setPendingQueued((prev) => {
+          const next = [...prev.filter((p) => p.tempId !== tempId), queued];
+          writeQueue(next);
+          return next;
+        });
+        requestAnimationFrame(() => scrollToBottom(false));
+        return;
+      }
+
+      if (!existingTempId) {
+        const optimistic: Message = {
+          id: tempId,
+          thread_id: threadId,
+          athlete_id: "",
+          kind: "chat_user",
+          body,
+          meta: {},
+          created_at: nowIso,
+        };
+        setMessages((prev) => [...prev, optimistic]);
+      }
       setThinking(true);
       setStreamText("");
       wasNearBottomOnStreamStartRef.current = isNearBottom();
@@ -262,9 +346,7 @@ export function HomeSurface({
           if (ev.type === "user_message") {
             setMessages((prev) =>
               prev.map((m) =>
-                m.id === tempId
-                  ? { ...m, id: ev.id, created_at: ev.created_at }
-                  : m,
+                m.id === tempId ? { ...m, id: ev.id, created_at: ev.created_at } : m,
               ),
             );
           } else if (ev.type === "text") {
@@ -313,8 +395,6 @@ export function HomeSurface({
               created_at: finalAt,
             },
           ]);
-          // Announce the complete reply once, per build-standards §2.3 —
-          // streaming responses announced on completion, not per-token.
           setCaseyAnnouncement(`Coach Casey: ${finalText}`);
         }
       } catch (err) {
@@ -330,13 +410,48 @@ export function HomeSurface({
 
   const retryFailed = useCallback(() => {
     if (!failedSend) return;
-    setMessages((prev) => prev.filter((m) => m.id !== failedSend.tempId));
-    const body = failedSend.body;
+    const { body, tempId } = failedSend;
+    // Keep the bubble; send again reusing the temp id so it reconciles cleanly.
     setFailedSend(null);
-    void send(body);
+    void send(body, tempId);
   }, [failedSend, send]);
 
-  // Swipe-from-edge gestures (mobile).
+  // --- Offline detection + queue flush
+  useEffect(() => {
+    function onlineChanged() {
+      setOnline(navigator.onLine);
+    }
+    setOnline(navigator.onLine);
+    setPendingQueued(readQueue());
+    window.addEventListener("online", onlineChanged);
+    window.addEventListener("offline", onlineChanged);
+    return () => {
+      window.removeEventListener("online", onlineChanged);
+      window.removeEventListener("offline", onlineChanged);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!online || pendingQueued.length === 0) return;
+    // Flush one at a time so Casey can respond between. Gently paced.
+    const queue = [...pendingQueued];
+    (async () => {
+      for (const item of queue) {
+        // Remove the optimistic "queued" bubble — send() will re-append via
+        // reconciliation.
+        setMessages((prev) => prev.filter((m) => m.id !== item.tempId));
+        setPendingQueued((prev) => {
+          const next = prev.filter((p) => p.tempId !== item.tempId);
+          writeQueue(next);
+          return next;
+        });
+        await send(item.body);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [online]);
+
+  // --- Swipe-from-edge gestures + pull-to-refresh
   useEffect(() => {
     let startX = 0;
     let startY = 0;
@@ -377,7 +492,51 @@ export function HomeSurface({
     };
   }, []);
 
-  // Keyboard shortcuts (desktop). interaction-principles §8.
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    function onTouchStart(e: TouchEvent) {
+      if (!container || container.scrollTop > 0) return;
+      pullStartYRef.current = e.touches[0].clientY;
+    }
+    function onTouchMove(e: TouchEvent) {
+      if (pullStartYRef.current == null || !container) return;
+      if (container.scrollTop > 0) {
+        pullStartYRef.current = null;
+        setPullY(0);
+        return;
+      }
+      const dy = e.touches[0].clientY - pullStartYRef.current;
+      if (dy <= 0) {
+        setPullY(0);
+        return;
+      }
+      const damped = Math.min(PULL_MAX_PX, dy * 0.55);
+      setPullY(damped);
+    }
+    function onTouchEnd() {
+      if (pullStartYRef.current == null) return;
+      const py = pullY;
+      pullStartYRef.current = null;
+      if (py >= PULL_THRESHOLD_PX) {
+        void doRefresh();
+      } else {
+        setPullY(0);
+      }
+    }
+
+    container.addEventListener("touchstart", onTouchStart, { passive: true });
+    container.addEventListener("touchmove", onTouchMove, { passive: true });
+    container.addEventListener("touchend", onTouchEnd);
+    return () => {
+      container.removeEventListener("touchstart", onTouchStart);
+      container.removeEventListener("touchmove", onTouchMove);
+      container.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [pullY, doRefresh]);
+
+  // --- Keyboard shortcuts (desktop)
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const mod = e.metaKey || e.ctrlKey;
@@ -411,7 +570,6 @@ export function HomeSurface({
   }, [messages]);
 
   const firstUnreadId = firstUnreadIdRef.current;
-  const streamingAwayFromBottom = streamText !== null && !showBackToNow === false;
 
   return (
     <div className="min-h-dvh flex flex-col bg-paper">
@@ -432,8 +590,46 @@ export function HomeSurface({
         />
       </header>
 
+      {!online && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="px-5 sm:px-6 py-2 bg-ink/5 border-b border-rule/50 font-sans text-[13px] text-ink-muted"
+        >
+          Offline. I&rsquo;ll catch up when you&rsquo;re back.
+        </div>
+      )}
+
       <main id="thread" className="flex-1 min-h-0 relative">
-        <div ref={scrollRef} className="absolute inset-0 overflow-y-auto">
+        <div
+          ref={scrollRef}
+          className="absolute inset-0 overflow-y-auto"
+          style={{ overscrollBehaviorY: "contain" }}
+        >
+          <div
+            aria-hidden
+            className="overflow-hidden transition-[height] duration-150 ease-out flex items-center justify-center"
+            style={{ height: refreshing ? 40 : pullY }}
+          >
+            <span
+              className={`font-mono text-[10px] uppercase tracking-wider ${
+                refreshing
+                  ? "text-ink-subtle breath"
+                  : pullY >= PULL_THRESHOLD_PX
+                    ? "text-accent"
+                    : "text-ink-subtle"
+              }`}
+            >
+              {refreshing
+                ? "Catching up…"
+                : pullY >= PULL_THRESHOLD_PX
+                  ? "Release to refresh"
+                  : pullY > 8
+                    ? "Pull to refresh"
+                    : ""}
+            </span>
+          </div>
+
           <div ref={sentinelTopRef} />
           {hasMore && (
             <div className="px-5 py-4 text-center font-mono text-[10px] uppercase tracking-wider text-ink-subtle">
@@ -454,24 +650,36 @@ export function HomeSurface({
                   </div>
                   <div className="h-px flex-1 bg-rule/60" />
                 </div>
-                {g.items.map((m) => (
-                  <div key={m.id} data-mid={m.id}>
-                    <MessageBlock
-                      message={m}
-                      unread={
-                        firstUnreadId != null &&
-                        lastViewedAt != null &&
-                        m.kind !== "chat_user" &&
-                        m.created_at > lastViewedAt
-                      }
-                    />
-                    {failedSend?.tempId === m.id && (
-                      <div className="mt-1">
-                        <FailedMessageNote onRetry={retryFailed} />
-                      </div>
-                    )}
-                  </div>
-                ))}
+                {g.items.map((m) => {
+                  const isQueued = Boolean(
+                    (m.meta as { queued?: boolean } | null)?.queued,
+                  );
+                  return (
+                    <div key={m.id} data-mid={m.id}>
+                      <MessageBlock
+                        message={m}
+                        unread={
+                          firstUnreadId != null &&
+                          lastViewedAt != null &&
+                          m.kind !== "chat_user" &&
+                          m.created_at > lastViewedAt
+                        }
+                      />
+                      {isQueued && (
+                        <div className="px-5 sm:px-6 flex justify-end mt-1">
+                          <span className="font-mono text-[10px] uppercase tracking-wider text-ink-subtle">
+                            Queued — sends when you&rsquo;re back online
+                          </span>
+                        </div>
+                      )}
+                      {failedSend?.tempId === m.id && (
+                        <div className="mt-1">
+                          <FailedMessageNote onRetry={retryFailed} />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </section>
             ))}
 
@@ -490,7 +698,6 @@ export function HomeSurface({
           <div className="h-6" />
         </div>
 
-        {/* Casey reply live region — announces complete text on stream end. */}
         <div aria-live="polite" aria-atomic="true" className="sr-only">
           {caseyAnnouncement}
         </div>

@@ -15,9 +15,25 @@ function formatDateLabel(iso: string): string {
   return new Intl.DateTimeFormat(undefined, opts).format(d);
 }
 
+function weekOfLabel(iso: string): string {
+  const d = new Date(iso);
+  // Anchor to Monday of that week for a stable "week of X" kicker.
+  const day = (d.getDay() + 6) % 7;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - day);
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+  }).format(monday);
+}
+
 export function MessageBlock({ message, unread }: Props) {
   const wrapperBase = "px-5 sm:px-6";
-  const unreadRail = unread ? "border-l-2 border-accent/70" : "border-l-2 border-transparent";
+  // Casey messages get the plum rail when unread; transparent otherwise to
+  // preserve consistent horizontal alignment across messages.
+  const unreadRail = unread
+    ? "border-l-[2px] border-accent/80"
+    : "border-l-[2px] border-transparent";
 
   switch (message.kind) {
     case "chat_user":
@@ -26,7 +42,7 @@ export function MessageBlock({ message, unread }: Props) {
           <div
             role="article"
             aria-label={`You: ${message.body}`}
-            className="max-w-[78%] rounded-2xl rounded-br-md bg-accent text-accent-ink px-4 py-2.5 font-sans text-[15px] leading-snug whitespace-pre-wrap"
+            className="max-w-[78%] rounded-[18px] rounded-br-[6px] bg-accent text-accent-ink px-4 py-2.5 font-sans text-[15px] leading-[1.45] whitespace-pre-wrap break-words"
           >
             {message.body}
           </div>
@@ -38,7 +54,7 @@ export function MessageBlock({ message, unread }: Props) {
         <article
           data-kind={message.kind}
           aria-label={`Coach Casey: ${message.body}`}
-          className={`${wrapperBase} ${unreadRail} pl-4 sm:pl-5 max-w-[85%] font-sans text-[15px] leading-relaxed text-ink whitespace-pre-wrap`}
+          className={`${wrapperBase} ${unreadRail} pl-4 sm:pl-5 max-w-[85%] font-sans text-[15px] leading-[1.55] text-ink whitespace-pre-wrap break-words`}
         >
           {message.body}
         </article>
@@ -49,16 +65,20 @@ export function MessageBlock({ message, unread }: Props) {
         <article
           data-kind={message.kind}
           aria-label={`Coach Casey debrief: ${message.body}`}
-          className={`${wrapperBase} ${unreadRail} pl-4 sm:pl-5 space-y-3`}
+          className={`${wrapperBase} ${unreadRail} pl-4 sm:pl-5 space-y-4 max-w-[66ch]`}
         >
-          <div
-            className="font-mono text-[11px] uppercase tracking-wider text-ink-subtle"
-            suppressHydrationWarning
-            aria-hidden
-          >
-            Debrief · {formatDateLabel(message.created_at)}
+          <div className="pt-1 space-y-2">
+            <div className="h-px w-8 bg-accent/70" aria-hidden />
+            <div
+              className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-muted"
+              suppressHydrationWarning
+              aria-hidden
+            >
+              Debrief <span className="text-ink-subtle">·</span>{" "}
+              {formatDateLabel(message.created_at)}
+            </div>
           </div>
-          <div className="prose-serif max-w-[65ch] text-ink whitespace-pre-wrap">
+          <div className="prose-serif text-ink whitespace-pre-wrap break-words">
             {message.body}
           </div>
         </article>
@@ -69,29 +89,38 @@ export function MessageBlock({ message, unread }: Props) {
         <article
           data-kind={message.kind}
           aria-label={`Coach Casey weekly review: ${message.body}`}
-          className={`${wrapperBase} ${unreadRail} pl-4 sm:pl-5 space-y-3`}
+          className={`${wrapperBase} ${unreadRail} pl-4 sm:pl-5 space-y-4 max-w-[66ch]`}
         >
-          <div
-            className="font-mono text-[11px] uppercase tracking-wider text-ink-subtle"
-            suppressHydrationWarning
-            aria-hidden
-          >
-            Weekly review · {formatDateLabel(message.created_at)}
+          <div className="pt-1 space-y-2">
+            <div className="h-px w-12 bg-accent/70" aria-hidden />
+            <div
+              className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-muted"
+              suppressHydrationWarning
+              aria-hidden
+            >
+              Weekly review <span className="text-ink-subtle">·</span> week of{" "}
+              {weekOfLabel(message.created_at)}
+            </div>
           </div>
-          <div className="prose-serif max-w-[65ch] text-ink whitespace-pre-wrap">
+          <div className="prose-serif text-ink whitespace-pre-wrap break-words">
             {message.body}
           </div>
         </article>
       );
 
     case "follow_up":
+      // Structurally part of the preceding debrief / review. Extra indent and
+      // an en-dash lead make that relationship legible without a second kicker.
       return (
         <article
           data-kind={message.kind}
           aria-label={`Coach Casey follow-up: ${message.body}`}
-          className={`${wrapperBase} pl-4 sm:pl-5 max-w-[65ch]`}
+          className={`${wrapperBase} pl-8 sm:pl-10 max-w-[62ch]`}
         >
-          <p className="font-serif italic text-ink-muted text-[16px] leading-relaxed whitespace-pre-wrap">
+          <p className="font-serif italic text-ink-muted text-[16px] leading-[1.55] whitespace-pre-wrap break-words">
+            <span aria-hidden className="text-ink-subtle mr-2">
+              —
+            </span>
             {message.body}
           </p>
         </article>
@@ -100,7 +129,7 @@ export function MessageBlock({ message, unread }: Props) {
     case "system":
       return (
         <div className="px-5 sm:px-6 flex justify-center" role="status">
-          <span className="font-mono text-[11px] uppercase tracking-wider text-ink-subtle">
+          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-subtle">
             {message.body}
           </span>
         </div>
@@ -115,19 +144,27 @@ export function StreamingCaseyBlock({ text }: { text: string }) {
   return (
     <article
       aria-hidden
-      className="px-5 sm:px-6 pl-4 sm:pl-5 border-l-2 border-accent/50 max-w-[85%] font-sans text-[15px] leading-relaxed text-ink whitespace-pre-wrap"
+      className="px-5 sm:px-6 pl-4 sm:pl-5 border-l-[2px] border-accent/40 max-w-[85%] font-sans text-[15px] leading-[1.55] text-ink whitespace-pre-wrap break-words"
     >
       {text}
-      <span className="ml-0.5 inline-block h-[1em] w-[2px] align-[-0.15em] bg-accent breath" />
+      <span
+        aria-hidden
+        className="ml-0.5 inline-block h-[1em] w-[2px] align-[-0.15em] bg-accent breath"
+      />
     </article>
   );
 }
 
 export function ThinkingBlock() {
+  // Voice-aligned, typographic-not-graphical (interaction-principles §2.2).
+  // Three-dot ellipsis breathing on the same rail as a Casey reply would use.
   return (
-    <div aria-hidden className="px-5 sm:px-6 pl-4 sm:pl-5 max-w-[85%]">
-      <span className="font-mono text-[11px] uppercase tracking-wider text-ink-subtle breath">
-        …
+    <div
+      aria-hidden
+      className="px-5 sm:px-6 pl-4 sm:pl-5 border-l-[2px] border-accent/30 max-w-[85%]"
+    >
+      <span className="font-serif text-[18px] leading-none text-ink-muted breath tracking-[0.2em]">
+        · · ·
       </span>
     </div>
   );
