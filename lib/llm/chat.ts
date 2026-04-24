@@ -14,6 +14,12 @@ type ActivitySummary = {
   hr: number | null;
 };
 
+type GoalRace = {
+  name: string | null;
+  raceDate: string | null;
+  goalTimeSeconds: number | null;
+};
+
 export type ChatContext = {
   athleteId: string;
   displayName: string | null;
@@ -21,6 +27,7 @@ export type ChatContext = {
   recentActivities: ActivitySummary[];
   memoryItems: MemoryItem[];
   activePlanText: string | null;
+  goalRaces: GoalRace[];
 };
 
 export type ChatStreamEvent =
@@ -90,6 +97,28 @@ function renderContext(ctx: ChatContext): string {
   const parts: string[] = [];
 
   parts.push(`# Athlete\n${ctx.displayName ?? "(unnamed)"}`);
+
+  if (ctx.goalRaces.length > 0) {
+    const lines = ctx.goalRaces
+      .map((r) => {
+        const name = r.name ?? "(unnamed race)";
+        const date = r.raceDate ?? "date TBD";
+        const goal =
+          r.goalTimeSeconds != null
+            ? (() => {
+                const h = Math.floor(r.goalTimeSeconds / 3600);
+                const m = Math.floor((r.goalTimeSeconds % 3600) / 60);
+                const s = Math.round(r.goalTimeSeconds % 60);
+                const mm = String(m).padStart(2, "0");
+                const ss = String(s).padStart(2, "0");
+                return h > 0 ? `, goal ${h}:${mm}:${ss}` : `, goal ${m}:${ss}`;
+              })()
+            : "";
+        return `- ${name} on ${date}${goal}`;
+      })
+      .join("\n");
+    parts.push(`# Goal races\n${lines}`);
+  }
 
   if (ctx.activePlanText) {
     parts.push(`# Active training plan\n${ctx.activePlanText}`);

@@ -63,7 +63,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${newsreader.variable} ${plexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-paper text-ink font-sans">
+      <body className="min-h-full flex flex-col bg-paper text-ink font-sans overflow-x-hidden">
         {children}
       </body>
     </html>

@@ -62,13 +62,10 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Safe-area insets for installed PWAs on iOS with a notch. */
-@supports (padding: env(safe-area-inset-top)) {
-  body {
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-}
+/* Safe-area insets are applied per-surface (the home thread pins its own
+   header / menu bar to the viewport) rather than on body, so padding can't
+   accumulate and make the document taller than the viewport — that's what
+   introduced a whole-page scroll alongside the thread's inner scroll. */
 
 /* Editorial hairlines */
 .rule {

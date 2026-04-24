@@ -99,9 +99,9 @@ export function HomeSurface({
   const [showBackToNow, setShowBackToNow] = useState(false);
   const [failedSend, setFailedSend] = useState<PendingSend | null>(null);
   const [caseyAnnouncement, setCaseyAnnouncement] = useState("");
-  const [online, setOnline] = useState(() =>
-    typeof navigator === "undefined" ? true : navigator.onLine,
-  );
+  // Start as online to match SSR output; sync to navigator.onLine after mount.
+  // This avoids a hydration mismatch when the browser is offline at load.
+  const [online, setOnline] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [pullY, setPullY] = useState(0);
 
@@ -477,6 +477,13 @@ export function HomeSurface({
     window.addEventListener("online", onlineHandler);
     window.addEventListener("offline", offlineHandler);
 
+    // Sync to real navigator.onLine after mount. Initial state is true to
+    // match SSR, so flip to false if the browser is actually offline.
+    if (!navigator.onLine) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setOnline(false);
+    }
+
     // Restore any messages that were queued from a prior session so they show
     // in the thread; the flush runs on the next 'online' event. Syncing once
     // from the localStorage store on mount is a legitimate external-state
@@ -513,35 +520,59 @@ export function HomeSurface({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // --- Swipe-from-edge gestures
+  // --- Horizontal swipe gestures (full-screen).
+  // Swipe-right  → opens calendar from the left, OR closes search if open.
+  // Swipe-left   → opens search from the right, OR closes calendar if open.
+  // Never cross-opens: if one panel is open, an opposite-direction swipe
+  // returns the athlete to the thread instead of swapping panels.
   useEffect(() => {
     let startX = 0;
     let startY = 0;
-    let tracking: "calendar" | "search" | null = null;
+    let tracking = false;
+    let locked: "horizontal" | "vertical" | null = null;
 
     function onTouchStart(e: TouchEvent) {
+      if (e.touches.length !== 1) {
+        tracking = false;
+        return;
+      }
       const t = e.touches[0];
       startX = t.clientX;
       startY = t.clientY;
-      const w = window.innerWidth;
-      if (startX < 24) tracking = "calendar";
-      else if (startX > w - 24) tracking = "search";
-      else tracking = null;
+      tracking = true;
+      locked = null;
     }
     function onTouchMove(e: TouchEvent) {
       if (!tracking) return;
       const t = e.touches[0];
       const dx = t.clientX - startX;
       const dy = t.clientY - startY;
-      if (Math.abs(dy) > Math.abs(dx)) tracking = null;
+      if (locked === null) {
+        // Lock direction once the gesture passes a small commit threshold,
+        // so short wobbles don't flip us between modes.
+        if (Math.abs(dx) > 12 || Math.abs(dy) > 12) {
+          locked = Math.abs(dx) > Math.abs(dy) * 1.2 ? "horizontal" : "vertical";
+        }
+      }
+      if (locked === "vertical") tracking = false;
     }
     function onTouchEnd(e: TouchEvent) {
       if (!tracking) return;
+      tracking = false;
+      if (locked !== "horizontal") return;
       const t = e.changedTouches[0];
       const dx = t.clientX - startX;
-      if (tracking === "calendar" && dx > 60) setCalendarOpen(true);
-      else if (tracking === "search" && dx < -60) setSearchOpen(true);
-      tracking = null;
+      const THRESHOLD = 60;
+
+      if (dx > THRESHOLD) {
+        // Swipe right
+        if (searchOpen) setSearchOpen(false);
+        else if (!calendarOpen) setCalendarOpen(true);
+      } else if (dx < -THRESHOLD) {
+        // Swipe left
+        if (calendarOpen) setCalendarOpen(false);
+        else if (!searchOpen) setSearchOpen(true);
+      }
     }
 
     document.addEventListener("touchstart", onTouchStart, { passive: true });
@@ -552,7 +583,7 @@ export function HomeSurface({
       document.removeEventListener("touchmove", onTouchMove);
       document.removeEventListener("touchend", onTouchEnd);
     };
-  }, []);
+  }, [calendarOpen, searchOpen]);
 
   // --- Pull-to-refresh
   useEffect(() => {
@@ -633,7 +664,7 @@ export function HomeSurface({
   }, [messages]);
 
   return (
-    <div className="min-h-dvh flex flex-col bg-paper">
+    <div className="fixed inset-0 flex flex-col bg-paper">
       <a
         href="#thread"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-surface focus:text-ink focus:px-3 focus:py-1.5 focus:rounded focus:border focus:border-rule"
@@ -641,7 +672,10 @@ export function HomeSurface({
         Skip to thread
       </a>
 
-      <header className="flex items-center justify-between px-5 sm:px-6 py-3 border-b border-rule/50">
+      <header
+        className="flex items-center justify-between px-5 sm:px-6 py-3 border-b border-rule/50"
+        style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top))" }}
+      >
         <div className="font-serif text-[18px] tracking-tight text-ink">
           Coach Casey
         </div>

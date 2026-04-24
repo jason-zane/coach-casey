@@ -1,4 +1,5 @@
 import type { Message, MessageKind } from "@/lib/thread/types";
+import { renderInlineCopy } from "./rich-text";
 
 type Props = { message: Message; unread?: boolean };
 
@@ -29,8 +30,6 @@ function weekOfLabel(iso: string): string {
 
 export function MessageBlock({ message, unread }: Props) {
   const wrapperBase = "px-5 sm:px-6";
-  // Casey messages get the plum rail when unread; transparent otherwise to
-  // preserve consistent horizontal alignment across messages.
   const unreadRail = unread
     ? "border-l-[2px] border-accent/80"
     : "border-l-[2px] border-transparent";
@@ -56,7 +55,7 @@ export function MessageBlock({ message, unread }: Props) {
           aria-label={`Coach Casey: ${message.body}`}
           className={`${wrapperBase} ${unreadRail} pl-4 sm:pl-5 max-w-[85%] font-sans text-[15px] leading-[1.55] text-ink whitespace-pre-wrap break-words`}
         >
-          {message.body}
+          {renderInlineCopy(message.body)}
         </article>
       );
 
@@ -79,7 +78,7 @@ export function MessageBlock({ message, unread }: Props) {
             </div>
           </div>
           <div className="prose-serif text-ink whitespace-pre-wrap break-words">
-            {message.body}
+            {renderInlineCopy(message.body)}
           </div>
         </article>
       );
@@ -103,14 +102,12 @@ export function MessageBlock({ message, unread }: Props) {
             </div>
           </div>
           <div className="prose-serif text-ink whitespace-pre-wrap break-words">
-            {message.body}
+            {renderInlineCopy(message.body)}
           </div>
         </article>
       );
 
     case "follow_up":
-      // Structurally part of the preceding debrief / review. Extra indent and
-      // an en-dash lead make that relationship legible without a second kicker.
       return (
         <article
           data-kind={message.kind}
@@ -119,9 +116,9 @@ export function MessageBlock({ message, unread }: Props) {
         >
           <p className="font-serif italic text-ink-muted text-[16px] leading-[1.55] whitespace-pre-wrap break-words">
             <span aria-hidden className="text-ink-subtle mr-2">
-              —
+              –
             </span>
-            {message.body}
+            {renderInlineCopy(message.body)}
           </p>
         </article>
       );
@@ -146,7 +143,7 @@ export function StreamingCaseyBlock({ text }: { text: string }) {
       aria-hidden
       className="px-5 sm:px-6 pl-4 sm:pl-5 border-l-[2px] border-accent/40 max-w-[85%] font-sans text-[15px] leading-[1.55] text-ink whitespace-pre-wrap break-words"
     >
-      {text}
+      {renderInlineCopy(text)}
       <span
         aria-hidden
         className="ml-0.5 inline-block h-[1em] w-[2px] align-[-0.15em] bg-accent breath"
@@ -156,8 +153,6 @@ export function StreamingCaseyBlock({ text }: { text: string }) {
 }
 
 export function ThinkingBlock() {
-  // Voice-aligned, typographic-not-graphical (interaction-principles §2.2).
-  // Three-dot ellipsis breathing on the same rail as a Casey reply would use.
   return (
     <div
       aria-hidden
@@ -178,7 +173,7 @@ export function FailedMessageNote({ onRetry }: { onRetry: () => void }) {
         onClick={onRetry}
         className="font-sans text-[12px] text-ink-muted hover:text-ink underline-offset-4 hover:underline"
       >
-        Didn&rsquo;t send — tap to retry
+        Didn&rsquo;t send. Tap to retry.
       </button>
     </div>
   );
