@@ -62,6 +62,7 @@ export type PriorDebrief = {
 
 export type DebriefContext = {
   athleteId: string;
+  athleteCreatedAt: string;
   displayName: string | null;
   activity: DebriefActivity;
   arcWeeks: DebriefWeekAggregate[];
@@ -72,6 +73,22 @@ export type DebriefContext = {
   goalRaces: DebriefGoalRace[];
   priorDebriefs: PriorDebrief[];
   isFirstDebrief: boolean;
+  /**
+   * Trailing 28-day `(activity, rpe_value, planned_intent_inferred)`
+   * triples. Per `rpe-feature-spec.md` §6 + §9.1, the debrief prompt
+   * receives this as longitudinal context — *not* the current activity's
+   * RPE — for divergence pattern recognition.
+   */
+  rpeHistory: RpeHistoryEntry[];
+};
+
+export type RpeHistoryEntry = {
+  date: string;
+  distanceKm: number;
+  paceSPerKm: number | null;
+  isWorkout: boolean;
+  rpeValue: number;
+  inferredIntent: "easy" | "hard" | "mixed";
 };
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
@@ -232,6 +249,10 @@ export async function buildDebriefContext(
     new Date(activity.date).getTime() - recentLifeContextDays * DAY_MS,
   );
 
+  const rpeHistoryStart = new Date(
+    new Date(activity.date).getTime() - 28 * DAY_MS,
+  );
+
   const [
     athleteRes,
     arcRes,
@@ -239,8 +260,13 @@ export async function buildDebriefContext(
     planRes,
     racesRes,
     priorDebriefsRes,
+    rpeHistoryRes,
   ] = await Promise.all([
-    admin.from("athletes").select("id, display_name").eq("id", athleteId).single(),
+    admin
+      .from("athletes")
+      .select("id, display_name, created_at")
+      .eq("id", athleteId)
+      .single(),
     admin
       .from("activities")
       .select(
@@ -278,6 +304,26 @@ export async function buildDebriefContext(
       .eq("kind", "debrief")
       .order("created_at", { ascending: false })
       .limit(priorDebriefCount),
+    // Trailing RPE — answered notes only, joined to the activity row for
+    // shape inference. Excludes today's activity (`neq` on activity_id)
+    // so today's RPE never leaks into today's context per spec §6.
+    //
+    // Window is on the activity's actual date, not when the athlete tapped
+    // the rating. A late-answered run from 6 weeks ago shouldn't pollute
+    // the trailing 28-day picture, and a recent run answered late
+    // shouldn't fall out of it. Final ordering is applied in JS after
+    // fetch — referenced-table ordering through PostgREST is fragile
+    // across Supabase versions and the dataset is small.
+    admin
+      .from("activity_notes")
+      .select(
+        "rpe_value, rpe_answered_at, activity_id, activities!inner(start_date_local, distance_m, moving_time_s, avg_pace_s_per_km, laps)",
+      )
+      .eq("athlete_id", athleteId)
+      .neq("activity_id", activityId)
+      .not("rpe_value", "is", null)
+      .gte("activities.start_date_local", rpeHistoryStart.toISOString())
+      .lte("activities.start_date_local", activity.date),
   ]);
 
   const arcRows = (arcRes.data ?? []) as ActivityRow[];
@@ -322,8 +368,44 @@ export async function buildDebriefContext(
     body: d.body,
   }));
 
+  type RpeHistoryRow = {
+    rpe_value: number;
+    activities: {
+      start_date_local: string;
+      distance_m: number | null;
+      moving_time_s: number | null;
+      avg_pace_s_per_km: number | null;
+      laps: unknown;
+    };
+  };
+  const rpeHistory = ((rpeHistoryRes.data ?? []) as unknown as RpeHistoryRow[])
+    .filter((r) => r.activities)
+    .sort((a, b) =>
+      a.activities.start_date_local.localeCompare(b.activities.start_date_local),
+    )
+    .map((r) => {
+      const laps = parseLaps(r.activities.laps);
+      const isWorkout = workoutShape(laps);
+      const distanceKm = Number(((r.activities.distance_m ?? 0) / 1000).toFixed(2));
+      const pace =
+        r.activities.avg_pace_s_per_km ??
+        paceSPerKm(r.activities.distance_m, r.activities.moving_time_s);
+      const inferredIntent: "easy" | "hard" | "mixed" = isWorkout
+        ? "hard"
+        : "mixed";
+      return {
+        date: r.activities.start_date_local,
+        distanceKm,
+        paceSPerKm: pace,
+        isWorkout,
+        rpeValue: r.rpe_value,
+        inferredIntent,
+      };
+    });
+
   return {
     athleteId,
+    athleteCreatedAt: (athleteRes.data?.created_at as string) ?? activity.date,
     displayName: (athleteRes.data?.display_name as string | null) ?? null,
     activity,
     arcWeeks: aggregateWeeks(arcRuns),
@@ -334,5 +416,6 @@ export async function buildDebriefContext(
     goalRaces,
     priorDebriefs,
     isFirstDebrief: priorDebriefs.length === 0,
+    rpeHistory,
   };
 }
