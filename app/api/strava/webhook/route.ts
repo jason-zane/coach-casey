@@ -3,6 +3,8 @@ import { after } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { fetchActivityDetail } from "@/lib/strava/client";
 import { generateDebriefForActivity } from "@/app/actions/debrief";
+import { generateCrossTrainingAckForActivity } from "@/app/actions/cross-training";
+import { classifyActivityType } from "@/lib/strava/activity-types";
 
 export const runtime = "nodejs";
 // Webhook ACKs are tiny; the real work runs in `after()`. Keeping a tight
@@ -110,8 +112,8 @@ async function handleEvent(event: StravaWebhookEvent): Promise<void> {
 
   // create or update: fetch the detail (with laps) and upsert.
   const detail = await fetchActivityDetail(athleteId, event.object_id);
-  const type = (detail.sport_type ?? detail.type ?? "").toLowerCase();
-  const isRun = type.includes("run");
+  const rawType = detail.sport_type ?? detail.type ?? null;
+  const activityClass = classifyActivityType(rawType);
 
   const row = {
     athlete_id: athleteId,
@@ -140,15 +142,27 @@ async function handleEvent(event: StravaWebhookEvent): Promise<void> {
   if (error) throw error;
   const activityId = (upserted as { id: string }).id;
 
-  // Debrief only for runs. Non-run activities fall through to the gate
-  // anyway, but skipping avoids the extra context assembly round-trip.
-  if (!isRun) return;
-
-  // On `create`: generate a debrief. On `update`: generate only if one
-  // doesn't exist yet (the upsert may have filled in missing fields on a
-  // previously-too-thin event). Force-regeneration is never triggered by a
-  // Strava update — that's a decision we'll make product-side, not
-  // webhook-side.
+  // Route to the right pipeline based on activity classification:
+  //   run            — post-run debrief
+  //   cross_training — cross-training acknowledgement
+  //   catch_all      — cross-training acknowledgement (catch-all variant)
+  //   ambient        — stored only; no thread message (e.g. Walk)
+  //
+  // Both downstream pipelines are idempotent — a webhook retry returns
+  // `{ kind: "exists" }` rather than duplicating. Force-regeneration is
+  // never triggered from the webhook; that's a product-side decision.
   const force = false;
-  await generateDebriefForActivity(athleteId, activityId, { force });
+  switch (activityClass) {
+    case "run":
+      await generateDebriefForActivity(athleteId, activityId, { force });
+      break;
+    case "cross_training":
+    case "catch_all":
+      await generateCrossTrainingAckForActivity(athleteId, activityId, { force });
+      break;
+    case "ambient":
+      // Stored only — Walks and similar low-signal types are ambient
+      // context, not thread-worthy.
+      break;
+  }
 }
