@@ -1,10 +1,39 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { loadDebriefRpeMetaBatch } from "@/lib/rpe/repository";
 import type { Message, MessageKind, Thread } from "./types";
 
 const MESSAGE_COLUMNS =
   "id, thread_id, athlete_id, kind, body, meta, created_at";
+
+/**
+ * Attach RPE state to debrief messages so the client can render the
+ * picker without an extra round-trip per message. No-op when no
+ * debriefs are present.
+ */
+async function enrichDebriefRpe(
+  athleteId: string,
+  messages: Message[],
+): Promise<Message[]> {
+  const debriefActivityIds: string[] = [];
+  for (const m of messages) {
+    if (m.kind !== "debrief") continue;
+    const id = (m.meta as { activity_id?: unknown }).activity_id;
+    if (typeof id === "string") debriefActivityIds.push(id);
+  }
+  if (debriefActivityIds.length === 0) return messages;
+
+  const meta = await loadDebriefRpeMetaBatch(athleteId, debriefActivityIds);
+  return messages.map((m) => {
+    if (m.kind !== "debrief") return m;
+    const aid = (m.meta as { activity_id?: unknown }).activity_id;
+    if (typeof aid !== "string") return m;
+    const rpe = meta.get(aid);
+    if (!rpe) return m;
+    return { ...m, meta: { ...m.meta, rpe } };
+  });
+}
 
 /**
  * Idempotent — uses ensure_thread() SQL helper which upserts on the unique
@@ -84,19 +113,25 @@ async function loadWindow(
 
 export async function loadRecentWindow(
   threadId: string,
+  athleteId: string,
   days = 14,
 ): Promise<{ messages: Message[]; hasMore: boolean; oldestLoaded: string | null }> {
   const supabase = await createClient();
-  return loadWindow(supabase, threadId, { beforeIso: null, days });
+  const window = await loadWindow(supabase, threadId, { beforeIso: null, days });
+  const messages = await enrichDebriefRpe(athleteId, window.messages);
+  return { ...window, messages };
 }
 
 export async function loadOlderWindow(
   threadId: string,
+  athleteId: string,
   beforeIso: string,
   days = 14,
 ): Promise<{ messages: Message[]; hasMore: boolean; oldestLoaded: string | null }> {
   const supabase = await createClient();
-  return loadWindow(supabase, threadId, { beforeIso, days });
+  const window = await loadWindow(supabase, threadId, { beforeIso, days });
+  const messages = await enrichDebriefRpe(athleteId, window.messages);
+  return { ...window, messages };
 }
 
 /**
@@ -105,6 +140,7 @@ export async function loadOlderWindow(
  */
 export async function loadAroundDate(
   threadId: string,
+  athleteId: string,
   isoDate: string,
   { daysBefore = 3, daysAfter = 3 }: { daysBefore?: number; daysAfter?: number } = {},
 ): Promise<Message[]> {
@@ -122,7 +158,7 @@ export async function loadAroundDate(
     .order("created_at", { ascending: true });
 
   if (error) throw error;
-  return (data ?? []) as Message[];
+  return enrichDebriefRpe(athleteId, (data ?? []) as Message[]);
 }
 
 export async function appendAthleteMessage(

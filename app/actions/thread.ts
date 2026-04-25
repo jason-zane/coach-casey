@@ -33,16 +33,16 @@ export async function fetchOlderMessages(
   beforeIso: string,
   days = 14,
 ): Promise<{ messages: Message[]; hasMore: boolean; oldestLoaded: string | null }> {
-  await requireAthleteId();
-  return loadOlderWindow(threadId, beforeIso, days);
+  const athleteId = await requireAthleteId();
+  return loadOlderWindow(threadId, athleteId, beforeIso, days);
 }
 
 export async function refreshThread(
   threadId: string,
   days = 14,
 ): Promise<{ messages: Message[]; hasMore: boolean; oldestLoaded: string | null }> {
-  await requireAthleteId();
-  return loadRecentWindow(threadId, days);
+  const athleteId = await requireAthleteId();
+  return loadRecentWindow(threadId, athleteId, days);
 }
 
 export async function fetchMessagesAroundDate(
@@ -50,8 +50,8 @@ export async function fetchMessagesAroundDate(
   isoDate: string,
   { daysBefore = 3, daysAfter = 3 }: { daysBefore?: number; daysAfter?: number } = {},
 ): Promise<Message[]> {
-  await requireAthleteId();
-  return loadAroundDate(threadId, isoDate, { daysBefore, daysAfter });
+  const athleteId = await requireAthleteId();
+  return loadAroundDate(threadId, athleteId, isoDate, { daysBefore, daysAfter });
 }
 
 export async function fetchCalendarDates(

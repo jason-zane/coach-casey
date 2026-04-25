@@ -9,6 +9,12 @@ import type {
   DebriefContext,
   DebriefWeekAggregate,
 } from "@/lib/thread/debrief-context";
+import {
+  pickerEnabled,
+  pickFollowUp,
+  type FollowUpPick,
+} from "./followup-picker";
+import { generateRpeBranchedFollowUp } from "./followup-rpe-branched";
 
 export type DebriefSkipReason =
   | "non_run"
@@ -184,12 +190,32 @@ function renderStableContext(ctx: DebriefContext): string {
   return parts.join("\n\n");
 }
 
+function renderRpeHistory(ctx: DebriefContext): string {
+  if (ctx.rpeHistory.length === 0) {
+    return "(no RPE answers in the trailing 28 days — the athlete hasn't engaged with the prompt yet, or this is early in the trial.)";
+  }
+  const lines = ctx.rpeHistory.slice(-20).map((r) => {
+    const date = r.date.slice(0, 10);
+    const dow = new Date(r.date).toLocaleString("en-US", { weekday: "short" });
+    const pace = formatPace(r.paceSPerKm);
+    const tag = r.isWorkout ? " [workout]" : "";
+    return `  - ${date} (${dow}): ${r.distanceKm.toFixed(1)} km, ${pace}${tag}, RPE ${r.rpeValue}`;
+  });
+  return `Trailing 28-day RPE log (oldest first, this run excluded):\n${lines.join("\n")}`;
+}
+
 function renderVolatileContext(ctx: DebriefContext): string {
   const parts: string[] = [];
 
   parts.push(`# The run being debriefed\n${renderActivity(ctx.activity)}`);
 
   parts.push(`# Recent training arc\n${renderArc(ctx.arcWeeks, ctx.arcRuns)}`);
+
+  // Per spec §6 + §9.1: trailing RPE feeds the debrief as longitudinal
+  // context; the current activity's RPE does not. Pattern recognition
+  // for divergence ("yesterday's easy was a 7, keeping today gentler")
+  // happens at this layer.
+  parts.push(`# Trailing RPE history (longitudinal context)\n${renderRpeHistory(ctx)}`);
 
   if (ctx.lifeContext.length > 0) {
     const lines = ctx.lifeContext
@@ -208,7 +234,8 @@ function renderVolatileContext(ctx: DebriefContext): string {
 }
 
 let cachedDebriefPrompt: string | null = null;
-let cachedFollowupPrompt: string | null = null;
+let cachedConversationalPrompt: string | null = null;
+let cachedStructuredPrompt: string | null = null;
 
 async function loadDebriefPrompt(): Promise<string> {
   if (!cachedDebriefPrompt) {
@@ -218,12 +245,20 @@ async function loadDebriefPrompt(): Promise<string> {
   return cachedDebriefPrompt;
 }
 
-async function loadFollowupPrompt(): Promise<string> {
-  if (!cachedFollowupPrompt) {
+async function loadConversationalPrompt(): Promise<string> {
+  if (!cachedConversationalPrompt) {
     const p = path.join(process.cwd(), "prompts/post-run-followup-conversational.md");
-    cachedFollowupPrompt = await readFile(p, "utf8");
+    cachedConversationalPrompt = await readFile(p, "utf8");
   }
-  return cachedFollowupPrompt;
+  return cachedConversationalPrompt;
+}
+
+async function loadStructuredPrompt(): Promise<string> {
+  if (!cachedStructuredPrompt) {
+    const p = path.join(process.cwd(), "prompts/post-run-followup-structured.md");
+    cachedStructuredPrompt = await readFile(p, "utf8");
+  }
+  return cachedStructuredPrompt;
 }
 
 function mockMode(): boolean {
@@ -327,13 +362,16 @@ export async function generateDebriefBody(ctx: DebriefContext): Promise<string> 
 }
 
 /**
- * Generate the follow-up question for a debrief, or null if the prompt
- * returns `SKIP`. Independent of the debrief body call.
+ * Conversational follow-up — the long-running default. Generated per-run
+ * based on what's notable about the activity. Returns `null` when the
+ * prompt elects to `SKIP` rather than ask a generic question.
  */
-export async function generateFollowUp(ctx: DebriefContext): Promise<string | null> {
+export async function generateConversationalFollowUp(
+  ctx: DebriefContext,
+): Promise<string | null> {
   if (mockMode()) return mockDebrief(ctx).followUp;
 
-  const system = await loadFollowupPrompt();
+  const system = await loadConversationalPrompt();
   const stable = renderStableContext(ctx);
   const volatile = renderVolatileContext(ctx);
 
@@ -366,8 +404,97 @@ export async function generateFollowUp(ctx: DebriefContext): Promise<string | nu
 }
 
 /**
+ * Structured follow-up — picks from the ranked question bank in
+ * `post-run-followup-structured.md`. The bank is a starter draft (per
+ * `v1-scope.md` §6); the prompt returns `DEFER` when nothing fits, and
+ * the caller falls back to conversational.
+ */
+export async function generateStructuredFollowUp(
+  ctx: DebriefContext,
+): Promise<string | null> {
+  if (mockMode()) {
+    return "What's on the plan for this week, roughly?";
+  }
+
+  const system = await loadStructuredPrompt();
+  const stable = renderStableContext(ctx);
+  const volatile = renderVolatileContext(ctx);
+
+  const response = await callWithRetry(() =>
+    anthropic().messages.create({
+      model: SONNET_MODEL,
+      max_tokens: 160,
+      temperature: 0.7,
+      system: [
+        { type: "text", text: system, cache_control: { type: "ephemeral" } },
+        { type: "text", text: stable, cache_control: { type: "ephemeral" } },
+      ],
+      messages: [
+        {
+          role: "user",
+          content: `${volatile}\n\n# Task\n\nPick the highest-ranked question from the bank that fits this run and hasn't been asked or answered. If nothing fits, respond with the literal string DEFER.`,
+        },
+      ],
+    }),
+  );
+
+  const text =
+    response.content
+      .filter((b): b is Anthropic.TextBlock => b.type === "text")
+      .map((b) => b.text)
+      .join("\n")
+      .trim() || "";
+  if (!text || text.toUpperCase() === "DEFER") return null;
+  return text;
+}
+
+/**
+ * Picker-driven Question 2 generator. At debrief sync time `rpeValue`
+ * is null, so the picker resolves to structured (weeks 1–2) or
+ * conversational. The same function is reused on RPE submit (with
+ * `rpeValue` populated) to evaluate whether the run merits an
+ * RPE-branched replacement.
+ */
+export async function generateFollowUp(
+  ctx: DebriefContext,
+  athleteCreatedAt: string,
+  rpeValue: number | null,
+): Promise<{ pick: FollowUpPick; text: string | null }> {
+  if (!pickerEnabled()) {
+    const text = await generateConversationalFollowUp(ctx);
+    return { pick: { type: "conversational" }, text };
+  }
+
+  const pick = pickFollowUp({
+    activity: ctx.activity,
+    arcRuns: ctx.arcRuns,
+    athleteCreatedAt,
+    rpeValue,
+  });
+
+  if (pick.type === "rpe_branched") {
+    const text = await generateRpeBranchedFollowUp(ctx, pick.branch, pick.rpeValue);
+    return { pick, text };
+  }
+
+  if (pick.type === "structured") {
+    const text = await generateStructuredFollowUp(ctx);
+    if (text) return { pick, text };
+    const fallback = await generateConversationalFollowUp(ctx);
+    return { pick: { type: "conversational" }, text: fallback };
+  }
+
+  const text = await generateConversationalFollowUp(ctx);
+  return { pick, text };
+}
+
+/**
  * Full debrief generation: gate, body, follow-up. Does not persist — the
- * server action layer handles persistence and idempotency.
+ * server action layer handles persistence and idempotency. The follow-up
+ * is generated via the picker; at sync time the picker has no RPE
+ * answer to consider, so it resolves to structured (weeks 1–2) or
+ * conversational. RPE-branched follow-ups arrive later via
+ * `regenerateFollowUpForRpeAnswer` when the athlete submits their RPE.
  */
 export async function generateDebrief(ctx: DebriefContext): Promise<DebriefOutcome> {
   const skip = debriefGate(ctx.activity);
@@ -379,7 +506,8 @@ export async function generateDebrief(ctx: DebriefContext): Promise<DebriefOutco
   // Follow-up runs independently; if it fails, the debrief still ships.
   let followUp: string | null = null;
   try {
-    followUp = await generateFollowUp(ctx);
+    const result = await generateFollowUp(ctx, ctx.athleteCreatedAt, null);
+    followUp = result.text;
   } catch (e) {
     console.warn("follow-up generation failed, debrief will ship without one", e);
   }

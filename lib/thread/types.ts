@@ -16,6 +16,25 @@ export type Message = {
   created_at: string;
 };
 
+/**
+ * Convenience accessors for the RPE meta block that the debrief
+ * enrichment step attaches to debrief messages. Centralised so the
+ * client doesn't shape-check the meta object inline at every render
+ * site.
+ */
+import type { DebriefRpeMeta } from "@/lib/rpe/types";
+export function getDebriefRpe(message: Message): DebriefRpeMeta | null {
+  if (message.kind !== "debrief") return null;
+  const rpe = (message.meta as { rpe?: DebriefRpeMeta }).rpe;
+  return rpe ?? null;
+}
+
+export function getDebriefActivityId(message: Message): string | null {
+  if (message.kind !== "debrief") return null;
+  const id = (message.meta as { activity_id?: unknown }).activity_id;
+  return typeof id === "string" ? id : null;
+}
+
 export type Thread = {
   id: string;
   athlete_id: string;

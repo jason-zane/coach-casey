@@ -1,5 +1,7 @@
 import type { Message, MessageKind } from "@/lib/thread/types";
+import { getDebriefActivityId, getDebriefRpe } from "@/lib/thread/types";
 import { renderInlineCopy } from "./rich-text";
+import { RpePrompt } from "./rpe-prompt";
 
 type Props = { message: Message; unread?: boolean };
 
@@ -59,7 +61,9 @@ export function MessageBlock({ message, unread }: Props) {
         </article>
       );
 
-    case "debrief":
+    case "debrief": {
+      const rpe = getDebriefRpe(message);
+      const activityId = getDebriefActivityId(message);
       return (
         <article
           data-kind={message.kind}
@@ -77,11 +81,15 @@ export function MessageBlock({ message, unread }: Props) {
               {formatDateLabel(message.created_at)}
             </div>
           </div>
+          {rpe && activityId && (rpe.eligible || rpe.state.kind !== "unanswered") && (
+            <RpePrompt activityId={activityId} initial={rpe} />
+          )}
           <div className="prose-serif text-ink whitespace-pre-wrap break-words">
             {renderInlineCopy(message.body)}
           </div>
         </article>
       );
+    }
 
     case "weekly_review":
       return (

@@ -27,7 +27,7 @@ export default async function HomePage() {
 
   const [thread, window] = await Promise.all([
     loadThread(athlete.id as string),
-    loadRecentWindow(threadId, 14),
+    loadRecentWindow(threadId, athlete.id as string, 14),
   ]);
 
   return (
