@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { generateDebriefForActivity } from "@/app/actions/debrief";
 import { generateCrossTrainingAckForActivity } from "@/app/actions/cross-training";
 import { classifyActivityType } from "@/lib/strava/activity-types";
+import { calculateAndPersistLoadForActivity } from "@/lib/training-load/calculator";
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // give a full 5 minutes for the whole sweep
@@ -105,6 +106,21 @@ export async function GET(request: Request) {
   for (const a of missing) {
     const cls = classifyActivityType(a.activity_type);
     try {
+      // Best-effort load calculation before the downstream pipelines fire,
+      // so the missed-debrief catch-up has fresh load values to consume.
+      // Race detection + snapshot append is intentionally NOT run here:
+      // the safety-net cron should match webhook behaviour, but the
+      // race-snapshot path is owned by the webhook (and any backfill is
+      // a separate, deliberate operation).
+      try {
+        await calculateAndPersistLoadForActivity(a.athlete_id, a.id);
+      } catch (loadErr) {
+        console.warn("training_load.cron.calc_failed", {
+          activityId: a.id,
+          error: loadErr instanceof Error ? loadErr.message : String(loadErr),
+        });
+      }
+
       if (cls === "run") {
         runStats.attempted += 1;
         const result = await generateDebriefForActivity(a.athlete_id, a.id);

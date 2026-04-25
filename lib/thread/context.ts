@@ -6,6 +6,10 @@ import { extractWorkoutType } from "@/lib/strava/ingest";
 import { classifyWorkout } from "@/lib/strava/workout-detect";
 import type { StravaLap } from "@/lib/strava/client";
 import type { Message } from "./types";
+import {
+  getLoadPicture,
+  type FullLoadPicture,
+} from "@/lib/training-load/load-picture";
 
 /**
  * Assemble the chat context for a single turn: athlete profile, recent
@@ -147,6 +151,16 @@ export async function buildChatContext(
     goalTimeSeconds: r.goal_time_seconds,
   }));
 
+  let loadContext: FullLoadPicture | null = null;
+  try {
+    loadContext = await getLoadPicture(athleteId);
+  } catch (e) {
+    console.warn("training_load.chat_context.load_picture_failed", {
+      athleteId,
+      error: e instanceof Error ? e.message : String(e),
+    });
+  }
+
   return {
     athleteId,
     displayName: (athleteRes.data?.display_name as string | null) ?? null,
@@ -156,5 +170,6 @@ export async function buildChatContext(
     memoryItems,
     activePlanText: (planRes.data?.raw_text as string | null) ?? null,
     goalRaces,
+    loadContext,
   };
 }

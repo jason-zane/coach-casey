@@ -8,6 +8,7 @@ import {
   type WorkoutClassification,
 } from "@/lib/strava/workout-detect";
 import type { Message } from "@/lib/thread/types";
+import type { FullLoadPicture } from "@/lib/training-load/load-picture";
 
 type MemoryItem = { kind: string; content: string; tags: string[] };
 type ActivitySummary = {
@@ -44,6 +45,13 @@ export type ChatContext = {
   memoryItems: MemoryItem[];
   activePlanText: string | null;
   goalRaces: GoalRace[];
+  /**
+   * Load picture from `lib/training-load/load-picture.ts`. Per
+   * `training-load-feature-spec.md` §7.3, the chat prompt receives this
+   * as longitudinal context — the prompt-engineering workstream wires it
+   * into the rendered prompt as it would any other signal.
+   */
+  loadContext: FullLoadPicture | null;
 };
 
 export type ChatStreamEvent =

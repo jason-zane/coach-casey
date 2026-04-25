@@ -41,11 +41,33 @@ export type PickFollowUpArgs = {
    * unless the caller passes a more accurate signal.
    */
   structuredBacklogRemaining?: boolean;
+  /**
+   * Per `training-load-feature-spec.md` §7.4, the picker prefers load-based
+   * heuristics over the legacy HR/distance/pace ones once load data exists.
+   * Optional so the picker degrades gracefully on athletes without load
+   * coverage yet (first runs, tier-2 fallback).
+   */
+  loadSignal?: {
+    thisActivityLoadAu: number;
+    thisActivityLoadIf: number | null;
+    /** Trailing 30-day load_au samples (excluding this activity). */
+    recentLoadAus: number[];
+  };
 };
 
 const TENURE_WEEKS_FOR_STRUCTURED = 2;
 const HIGH_RPE_FLOOR = 7;
 const LOW_RPE_CEIL = 4;
+
+// Per `training-load-feature-spec.md` §7.4 — sharper heuristics than the
+// crude HR/quartile ones, used when load data is present.
+const HARD_INTENT_LOAD_IF_FLOOR = 0.85;
+const EASY_INTENT_LOAD_IF_CEILING = 0.75;
+const HARD_INTENT_LOAD_PERCENTILE = 0.75;
+const EASY_INTENT_LOAD_PERCENTILE = 0.5;
+// Need at least this many trailing samples before the percentile gate is
+// trustworthy. Below this, we fall through to the legacy heuristics.
+const MIN_LOAD_SAMPLES = 4;
 
 /**
  * V1 picker logic. Deliberately simple per spec §7.1 — heuristics are
@@ -65,16 +87,75 @@ export function pickFollowUp(args: PickFollowUpArgs): FollowUpPick {
   // Priority 2 — RPE-branched on divergence. Reachable only when the
   // caller has an RPE value to evaluate against.
   if (args.rpeValue !== null) {
-    if (args.rpeValue >= HIGH_RPE_FLOOR && hasEasyIntent(args.activity, args.arcRuns)) {
+    const easy = isEasyIntent(args);
+    const hard = isHardIntent(args);
+    if (args.rpeValue >= HIGH_RPE_FLOOR && easy) {
       return { type: "rpe_branched", branch: "high_on_easy", rpeValue: args.rpeValue };
     }
-    if (args.rpeValue <= LOW_RPE_CEIL && hasHardIntent(args.activity, args.arcRuns)) {
+    if (args.rpeValue <= LOW_RPE_CEIL && hard) {
       return { type: "rpe_branched", branch: "low_on_hard", rpeValue: args.rpeValue };
     }
   }
 
   // Priority 3 — conversational fallback.
   return { type: "conversational" };
+}
+
+/**
+ * Combined intent gate: prefer load-based per `training-load-feature-spec.md`
+ * §7.4 when a load signal is present and large enough; otherwise fall
+ * back to the legacy HR/distance/pace heuristics.
+ */
+function isEasyIntent(args: PickFollowUpArgs): boolean {
+  const load = args.loadSignal;
+  if (load && load.recentLoadAus.length >= MIN_LOAD_SAMPLES) {
+    return hasEasyIntentByLoad(load);
+  }
+  return hasEasyIntent(args.activity, args.arcRuns);
+}
+
+function isHardIntent(args: PickFollowUpArgs): boolean {
+  const load = args.loadSignal;
+  if (load && load.recentLoadAus.length >= MIN_LOAD_SAMPLES) {
+    return hasHardIntentByLoad(load);
+  }
+  return hasHardIntent(args.activity, args.arcRuns);
+}
+
+/**
+ * Load-based easy-intent gate per `training-load-feature-spec.md` §7.4:
+ * activity load_au is in the bottom 50% of the trailing 30 days AND the
+ * intensity factor is below 0.75.
+ *
+ * Both conditions must hold — a low-IF very long run can still be high-load
+ * (long-run intent), and a short hard run can be low-load but high-IF.
+ */
+export function hasEasyIntentByLoad(load: NonNullable<PickFollowUpArgs["loadSignal"]>): boolean {
+  if (load.thisActivityLoadIf == null) return false;
+  if (load.thisActivityLoadIf >= EASY_INTENT_LOAD_IF_CEILING) return false;
+  const cutoff = percentile(load.recentLoadAus, EASY_INTENT_LOAD_PERCENTILE);
+  return load.thisActivityLoadAu <= cutoff;
+}
+
+/**
+ * Load-based hard-intent gate per `training-load-feature-spec.md` §7.4:
+ * activity load_au is in the top 25% of the trailing 30 days OR
+ * intensity factor exceeds 0.85.
+ */
+export function hasHardIntentByLoad(load: NonNullable<PickFollowUpArgs["loadSignal"]>): boolean {
+  if (load.thisActivityLoadIf != null && load.thisActivityLoadIf > HARD_INTENT_LOAD_IF_FLOOR) {
+    return true;
+  }
+  const cutoff = percentile(load.recentLoadAus, HARD_INTENT_LOAD_PERCENTILE);
+  return load.thisActivityLoadAu > cutoff;
+}
+
+function percentile(xs: number[], p: number): number {
+  if (xs.length === 0) return 0;
+  const sorted = [...xs].sort((a, b) => a - b);
+  // Nearest-rank percentile. For p=0.75 with 4 samples: rank = 3, index 2.
+  const rank = Math.max(1, Math.ceil(p * sorted.length));
+  return sorted[rank - 1];
 }
 
 /**

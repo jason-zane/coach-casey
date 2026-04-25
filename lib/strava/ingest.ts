@@ -8,6 +8,7 @@ import {
   type StravaLap,
 } from "./client";
 import { classifyActivityType } from "./activity-types";
+import { runPostIngestForActivity } from "@/lib/training-load/post-ingest";
 
 export async function ingestMockActivitiesForAthlete(athleteId: string) {
   const admin = createAdminClient();
@@ -28,10 +29,35 @@ export async function ingestMockActivitiesForAthlete(athleteId: string) {
     raw: { source: "mock-fixture" },
   }));
 
-  const { error } = await admin
+  const { data: upserted, error } = await admin
     .from("activities")
-    .upsert(rows, { onConflict: "athlete_id,strava_id" });
+    .upsert(rows, { onConflict: "athlete_id,strava_id" })
+    .select("id, strava_id");
   if (error) throw error;
+
+  const idByStravaId = new Map<number, string>();
+  for (const r of (upserted ?? []) as Array<{ id: string; strava_id: number }>) {
+    idByStravaId.set(r.strava_id, r.id);
+  }
+  for (const f of fixture) {
+    const activityId = idByStravaId.get(f.strava_id);
+    if (!activityId) continue;
+    try {
+      await runPostIngestForActivity(athleteId, activityId, {
+        name: f.name,
+        activityType: f.activity_type,
+        movingTimeS: f.moving_time_s,
+        distanceM: f.distance_m,
+        startDateLocal: f.start_date_local,
+        stravaWorkoutType: null,
+      });
+    } catch (e) {
+      console.warn("training_load.mock_ingest.post_ingest_failed", {
+        activityId,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
 }
 
 function paceSPerKm(distance_m: number, moving_time_s: number): number | null {
@@ -151,10 +177,42 @@ export async function ingestLiveActivitiesForAthlete(
   );
   const nonRunRows = nonRuns.map((a) => mapStravaActivity(a, athleteId, null));
   const rows = [...runRows, ...nonRunRows];
-  const { error } = await admin
+  const { data: upserted, error } = await admin
     .from("activities")
-    .upsert(rows, { onConflict: "athlete_id,strava_id" });
+    .upsert(rows, { onConflict: "athlete_id,strava_id" })
+    .select("id, strava_id");
   if (error) throw error;
+
+  // Run training-load post-ingest for each activity. This includes race
+  // detection + snapshot append (with recalc on threshold change) + the
+  // per-activity load. We do it after the bulk upsert to keep DB writes
+  // batched, then iterate sequentially to keep memory bounded — the
+  // race-snapshot path needs to see the previous snapshot when present
+  // and shouldn't race with itself.
+  const idByStravaId = new Map<number, string>();
+  for (const r of (upserted ?? []) as Array<{ id: string; strava_id: number }>) {
+    idByStravaId.set(r.strava_id, r.id);
+  }
+  for (const source of [...runDetails, ...nonRuns]) {
+    const activityId = idByStravaId.get(source.id);
+    if (!activityId) continue;
+    try {
+      await runPostIngestForActivity(athleteId, activityId, {
+        name: source.name ?? null,
+        activityType: source.sport_type ?? source.type ?? null,
+        movingTimeS: source.moving_time,
+        distanceM: source.distance,
+        startDateLocal: source.start_date_local,
+        stravaWorkoutType:
+          (source as { workout_type?: number | null }).workout_type ?? null,
+      });
+    } catch (e) {
+      console.warn("training_load.live_ingest.post_ingest_failed", {
+        activityId,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
   return rows.length;
 }
 

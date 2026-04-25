@@ -465,11 +465,42 @@ export async function generateFollowUp(
     return { pick: { type: "conversational" }, text };
   }
 
+  // Load-based signal for the picker per `training-load-feature-spec.md`
+  // §7.4. Computed lazily — only fetched when we have an RPE value the
+  // picker would actually evaluate against. Errors fall through to the
+  // legacy heuristics; the picker degrades gracefully.
+  let loadSignal: Parameters<typeof pickFollowUp>[0]["loadSignal"];
+  if (rpeValue !== null) {
+    try {
+      const { getRecentLoadSamples, getActivityLoadSample } = await import(
+        "@/lib/training-load/load-picture"
+      );
+      const thisActivity = await getActivityLoadSample(ctx.activity.id);
+      if (thisActivity) {
+        const samples = await getRecentLoadSamples(ctx.athleteId, {
+          excludeActivityId: ctx.activity.id,
+          now: new Date(ctx.activity.date),
+        });
+        loadSignal = {
+          thisActivityLoadAu: thisActivity.loadAu,
+          thisActivityLoadIf: thisActivity.loadIf,
+          recentLoadAus: samples.map((s) => s.loadAu),
+        };
+      }
+    } catch (e) {
+      console.warn("training_load.picker.load_signal_failed", {
+        activityId: ctx.activity.id,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
+
   const pick = pickFollowUp({
     activity: ctx.activity,
     arcRuns: ctx.arcRuns,
     athleteCreatedAt,
     rpeValue,
+    loadSignal,
   });
 
   if (pick.type === "rpe_branched") {

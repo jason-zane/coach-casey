@@ -5,6 +5,7 @@ import { fetchActivityDetail } from "@/lib/strava/client";
 import { generateDebriefForActivity } from "@/app/actions/debrief";
 import { generateCrossTrainingAckForActivity } from "@/app/actions/cross-training";
 import { classifyActivityType } from "@/lib/strava/activity-types";
+import { runPostIngestForActivity } from "@/lib/training-load/post-ingest";
 
 export const runtime = "nodejs";
 // Webhook ACKs are tiny; the real work runs in `after()`. Keeping a tight
@@ -141,6 +142,19 @@ async function handleEvent(event: StravaWebhookEvent): Promise<void> {
     .single();
   if (error) throw error;
   const activityId = (upserted as { id: string }).id;
+
+  // Training-load post-ingest: race detection + snapshot append (with
+  // recalc on threshold change) + per-activity load. Runs before debrief
+  // generation so the debrief context can read fresh load values for
+  // this activity. Tolerant of failures — every step inside is wrapped.
+  await runPostIngestForActivity(athleteId, activityId, {
+    name: detail.name,
+    activityType: detail.sport_type ?? detail.type ?? null,
+    movingTimeS: detail.moving_time,
+    distanceM: detail.distance,
+    startDateLocal: detail.start_date_local,
+    stravaWorkoutType: detail.workout_type ?? null,
+  });
 
   // Route to the right pipeline based on activity classification:
   //   run            — post-run debrief

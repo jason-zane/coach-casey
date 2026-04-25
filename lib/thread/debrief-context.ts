@@ -1,5 +1,9 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/server";
+import {
+  getLoadPicture,
+  type FullLoadPicture,
+} from "@/lib/training-load/load-picture";
 
 export type DebriefLap = {
   idx: number;
@@ -80,6 +84,13 @@ export type DebriefContext = {
    * RPE — for divergence pattern recognition.
    */
   rpeHistory: RpeHistoryEntry[];
+  /**
+   * Per `training-load-feature-spec.md` §7.1 — load picture, threshold
+   * snapshot context, and this activity's load. Computed on read; never
+   * shown to the athlete directly. Null when the load pipeline has not
+   * yet run for the athlete (fresh-account state).
+   */
+  loadContext: FullLoadPicture | null;
 };
 
 export type RpeHistoryEntry = {
@@ -403,6 +414,23 @@ export async function buildDebriefContext(
       };
     });
 
+  // Load picture is independent of the rest of the context; if it fails,
+  // the debrief still ships with `loadContext: null`. The prompt template
+  // treats null as "first runs together — load picture not yet built".
+  let loadContext: FullLoadPicture | null = null;
+  try {
+    loadContext = await getLoadPicture(athleteId, {
+      activityId,
+      now: new Date(activity.date),
+    });
+  } catch (e) {
+    console.warn("training_load.debrief_context.load_picture_failed", {
+      athleteId,
+      activityId,
+      error: e instanceof Error ? e.message : String(e),
+    });
+  }
+
   return {
     athleteId,
     athleteCreatedAt: (athleteRes.data?.created_at as string) ?? activity.date,
@@ -417,5 +445,6 @@ export async function buildDebriefContext(
     priorDebriefs,
     isFirstDebrief: priorDebriefs.length === 0,
     rpeHistory,
+    loadContext,
   };
 }
