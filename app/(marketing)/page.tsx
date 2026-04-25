@@ -67,7 +67,13 @@ function Hero() {
         <h1 className="display-hero text-[color:var(--color-ink)] rise rise-1 max-w-[900px]">
           Training plans know the <em className="italic">run</em>.{" "}
           <span className="block">
-            Coach Casey knows the <em className="italic">runner</em>.
+            <span
+              className="text-[color:var(--color-accent)]"
+              style={{ fontWeight: 600 }}
+            >
+              Coach Casey
+            </span>{" "}
+            knows the <em className="italic">runner</em>.
           </span>
         </h1>
 
@@ -109,10 +115,10 @@ function SampleDebrief() {
         <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.8fr)] gap-10 md:gap-20 items-start">
           <div>
             <p className="text-[13px] font-medium text-[color:var(--color-ink-muted)] uppercase tracking-[0.04em]">
-              A read, written
+              After the run
             </p>
             <h2 className="display-section text-[color:var(--color-ink)] mt-4">
-              Every run, read.
+              A debrief, written.
             </h2>
             <p className="mt-6 text-[15px] leading-relaxed text-[color:var(--color-ink-muted)] max-w-[36ch]">
               Not a summary. Not a scoreboard. A read on what actually happened,
@@ -209,22 +215,33 @@ function Metric({
 function MoreThanTheDebrief() {
   return (
     <section className="border-b rule">
-      <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-20 md:py-28">
-        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] gap-10 md:gap-16 items-start">
-          <div className="max-w-[42ch]">
-            <p className="text-[13px] font-medium text-[color:var(--color-ink-muted)] uppercase tracking-[0.04em]">
-              What a plan can&rsquo;t know
-            </p>
-            <h2 className="display-section text-[color:var(--color-ink)] mt-4">
-              The life around the runs.
-            </h2>
-            <p className="mt-5 prose-serif text-[color:var(--color-ink-muted)]">
-              The calf from Tuesday. The work trip on Thursday. Weekly reviews
-              that put the runs in context, and answers whenever you want to
-              bring it a question.
-            </p>
-          </div>
+      <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-32 md:py-44">
+        <div className="max-w-[64ch]">
+          <p className="text-[12px] font-medium text-[color:var(--color-accent)] uppercase tracking-[0.14em]">
+            What a plan can&rsquo;t know
+          </p>
+          <h2
+            className="mt-7 text-[color:var(--color-ink)]"
+            style={{
+              fontFamily: "var(--font-serif)",
+              fontWeight: 450,
+              letterSpacing: "-0.035em",
+              lineHeight: 0.98,
+              fontSize: "clamp(2.75rem, 6.5vw, 5.25rem)",
+            }}
+          >
+            The life <em className="italic">around</em> the runs.
+          </h2>
+          <p className="mt-8 prose-serif text-[color:var(--color-ink-muted)] max-w-[58ch]">
+            A plan tells you Tuesday is a tempo. It can&rsquo;t know the calf
+            has been niggling since the long run. It can&rsquo;t know about the
+            work trip Thursday, or that the kids haven&rsquo;t been sleeping,
+            or that race day is the reason any of this matters. Coach Casey
+            holds the rest of the picture, and brings it to every read.
+          </p>
+        </div>
 
+        <div className="mt-16 md:mt-20">
           <ChatExample />
         </div>
       </div>
@@ -234,26 +251,40 @@ function MoreThanTheDebrief() {
 
 function ChatExample() {
   return (
-    <div className="max-w-[56ch] space-y-3">
+    <div className="max-w-[640px] space-y-6">
+      {/* User question — matches in-app chat_user: plum bubble, right-aligned */}
       <div className="flex justify-end">
         <div
-          className="inline-block rounded-[14px] rounded-br-[4px] bg-[color:var(--color-accent)] text-[color:var(--color-accent-ink)] px-4 py-2.5 text-[15px] leading-snug max-w-[44ch]"
-          style={{ fontFamily: "var(--font-sans)" }}
+          className="rounded-[18px] rounded-br-[6px] bg-[color:var(--color-accent)] text-[color:var(--color-accent-ink)] px-4 py-2.5 max-w-[78%] break-words"
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "15px",
+            lineHeight: 1.45,
+          }}
         >
           Should I swap tomorrow&rsquo;s tempo given the calf?
         </div>
       </div>
-      <div className="flex justify-start">
-        <div
-          className="inline-block rounded-[14px] rounded-bl-[4px] bg-[color:var(--color-surface)] border rule text-[color:var(--color-ink)] px-4 py-2.5 text-[15px] leading-snug max-w-[48ch]"
-          style={{ fontFamily: "var(--font-sans)" }}
-        >
-          Plan wants 8x3min tempo. But you mentioned the calf on Tuesday, and
-          you&rsquo;ve got the work trip this week. Not a great week to push
-          through something that&rsquo;s already talking. I&rsquo;d swap for an
-          easy 45 and save tempo for Saturday. Your call.
-        </div>
-      </div>
+
+      {/* Casey reply — matches in-app chat_casey: left-rail text, no bubble */}
+      <article
+        className="border-l-[2px] border-[color:var(--color-accent)]/80 pl-4 sm:pl-5 max-w-[88%] text-[color:var(--color-ink)]"
+        style={{
+          fontFamily: "var(--font-sans)",
+          fontSize: "15px",
+          lineHeight: 1.55,
+        }}
+      >
+        <p>
+          Plan wants 8&times;3min tempo. But you mentioned the calf on Tuesday,
+          and you&rsquo;ve got the work trip this week. Not a great week to
+          push through something that&rsquo;s already talking.
+        </p>
+        <p className="mt-3">
+          I&rsquo;d swap for an easy 45 and save tempo for Saturday.{" "}
+          <span className="text-[color:var(--color-accent)]">Your call.</span>
+        </p>
+      </article>
     </div>
   );
 }
@@ -329,55 +360,52 @@ function TheMoat() {
 
 function WhoItsFor() {
   const segments = [
-    { label: "From a coach", example: "The block they wrote for you." },
-    { label: "From an app", example: "Runna, TrainingPeaks, Garmin." },
-    { label: "From a group", example: "The sessions you show up to each week." },
-    { label: "From a chatbot", example: "A plan ChatGPT sketched, or one you talked into being." },
+    { label: "A coach", example: "The block they wrote for you." },
+    { label: "An app", example: "Runna, TrainingPeaks, Garmin." },
+    { label: "A group", example: "Sessions you show up to each week." },
+    { label: "A chatbot", example: "A plan ChatGPT sketched for you." },
   ];
 
   return (
     <section className="border-b rule">
       <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-24 md:py-32">
-        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] gap-10 md:gap-20 items-start">
-          <div>
-            <p className="text-[13px] font-medium text-[color:var(--color-ink-muted)] uppercase tracking-[0.04em]">
-              Who it&rsquo;s for
-            </p>
-            <h2 className="display-section text-[color:var(--color-ink)] mt-4">
-              Anyone following a plan.
-            </h2>
-            <p className="mt-6 prose-serif text-[color:var(--color-ink-muted)] max-w-[38ch]">
-              If you&rsquo;re showing up to the runs, you&rsquo;ve done the hard
-              part. The plan can come from anywhere.
-            </p>
-          </div>
-
-          <ul className="divide-y rule border-y rule">
-            {segments.map((s) => (
-              <li
-                key={s.label}
-                className="py-5 grid grid-cols-[minmax(0,15ch)_1fr] gap-6 items-baseline"
-              >
-                <span
-                  className="text-[color:var(--color-ink)]"
-                  style={{
-                    fontFamily: "var(--font-serif)",
-                    fontWeight: 500,
-                    fontSize: "1.0625rem",
-                    letterSpacing: "-0.01em",
-                  }}
-                >
-                  {s.label}
-                </span>
-                <span className="text-[15px] text-[color:var(--color-ink-muted)]">
-                  {s.example}
-                </span>
-              </li>
-            ))}
-          </ul>
+        <div className="max-w-[60ch]">
+          <p className="text-[13px] font-medium text-[color:var(--color-ink-muted)] uppercase tracking-[0.04em]">
+            Who it&rsquo;s for
+          </p>
+          <h2 className="display-section text-[color:var(--color-ink)] mt-4">
+            Anyone following a plan.
+          </h2>
+          <p className="mt-6 prose-serif text-[color:var(--color-ink-muted)] max-w-[52ch]">
+            If you&rsquo;re showing up to the runs, you&rsquo;ve done the hard
+            part. The plan can come from anywhere.
+          </p>
         </div>
 
-        <p className="mt-14 md:mt-16 prose-serif text-[color:var(--color-ink-subtle)] max-w-[58ch]">
+        <div className="mt-14 md:mt-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-10 gap-y-10">
+          {segments.map((s) => (
+            <div key={s.label} className="space-y-3">
+              <div className="h-[2px] w-8 bg-[color:var(--color-accent)]" />
+              <h3
+                className="text-[color:var(--color-ink)]"
+                style={{
+                  fontFamily: "var(--font-serif)",
+                  fontWeight: 500,
+                  fontSize: "clamp(1.25rem, 1.7vw, 1.5rem)",
+                  letterSpacing: "-0.015em",
+                  lineHeight: 1.15,
+                }}
+              >
+                {s.label}
+              </h3>
+              <p className="text-[14px] leading-[1.55] text-[color:var(--color-ink-muted)]">
+                {s.example}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-16 md:mt-20 text-[15px] leading-relaxed text-[color:var(--color-ink-subtle)] max-w-[58ch]">
           Not the thing to write your training, pump you up, or replace a coach
           who already watches every run. Coach Casey sits alongside what
           you&rsquo;ve got.
