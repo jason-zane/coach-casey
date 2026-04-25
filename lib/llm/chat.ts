@@ -3,6 +3,10 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type Anthropic from "@anthropic-ai/sdk";
 import { anthropic, SONNET_MODEL } from "./anthropic";
+import {
+  renderLapBreakdown,
+  type WorkoutClassification,
+} from "@/lib/strava/workout-detect";
 import type { Message } from "@/lib/thread/types";
 
 type MemoryItem = { kind: string; content: string; tags: string[] };
@@ -12,6 +16,17 @@ type ActivitySummary = {
   distance_km: number;
   pace: string;
   hr: number | null;
+  duration_minutes: number | null;
+  workout: WorkoutClassification;
+};
+
+type CrossTrainingSummary = {
+  date: string;
+  activityType: string | null;
+  name: string | null;
+  durationMinutes: number | null;
+  distanceKm: number | null;
+  avgHr: number | null;
 };
 
 type GoalRace = {
@@ -25,6 +40,7 @@ export type ChatContext = {
   displayName: string | null;
   recentMessages: Message[];
   recentActivities: ActivitySummary[];
+  recentCrossTraining: CrossTrainingSummary[];
   memoryItems: MemoryItem[];
   activePlanText: string | null;
   goalRaces: GoalRace[];
@@ -133,17 +149,57 @@ function renderContext(ctx: ChatContext): string {
   }
 
   if (ctx.recentActivities.length > 0) {
-    const lines = ctx.recentActivities
-      .slice(-14)
-      .map(
-        (a) =>
-          `- ${a.date}: ${a.name ?? "Run"}, ${a.distance_km.toFixed(1)} km, ${a.pace}${a.hr ? `, HR ${a.hr}` : ""}`,
-      )
+    const lines = ctx.recentActivities.map(renderActivityForPrompt).join("\n");
+    parts.push(
+      `# Recent runs (last 12 weeks, oldest → newest)\n${lines}`,
+    );
+  }
+
+  if (ctx.recentCrossTraining.length > 0) {
+    const lines = ctx.recentCrossTraining
+      .map((c) => {
+        const dur =
+          c.durationMinutes != null ? `${c.durationMinutes} min` : "duration n/a";
+        const dist =
+          c.distanceKm != null && c.distanceKm > 0
+            ? `, ${c.distanceKm.toFixed(1)} km`
+            : "";
+        const hr = c.avgHr ? `, HR ${c.avgHr}` : "";
+        const label = c.activityType ?? "session";
+        const title = c.name && c.name.trim() ? ` "${c.name.trim()}"` : "";
+        return `- ${c.date}: ${label}${title}, ${dur}${dist}${hr}`;
+      })
       .join("\n");
-    parts.push(`# Recent runs (up to 14)\n${lines}`);
+    parts.push(
+      `# Recent cross-training (last 12 weeks)\n${lines}`,
+    );
   }
 
   return parts.join("\n\n");
+}
+
+function renderActivityForPrompt(a: ActivitySummary): string {
+  const w = a.workout;
+  const dur =
+    a.duration_minutes != null ? `, ${formatDuration(a.duration_minutes)}` : "";
+  const head = `- ${a.date}: ${a.name ?? "Run"}, ${a.distance_km.toFixed(1)} km, ${a.pace}${dur}${a.hr ? `, HR ${a.hr}` : ""}`;
+  const wantsLaps =
+    w.kind === "intervals" ||
+    w.kind === "tempo" ||
+    w.kind === "progression" ||
+    w.kind === "race";
+  if (!wantsLaps || !w.laps || w.laps.length === 0) return head;
+  const tag = `  [${w.kind}] ${w.summary}`;
+  return `${head}\n${tag}\n${renderLapBreakdown(w.laps)}`;
+}
+
+function formatDuration(minutes: number): string {
+  if (minutes >= 60) {
+    const h = Math.floor(minutes / 60);
+    const m = Math.round(minutes - h * 60);
+    return m > 0 ? `${h}h${m}m` : `${h}h`;
+  }
+  return `${Math.round(minutes)} min`;
 }
 
 function renderHistory(messages: Message[]): Anthropic.MessageParam[] {
@@ -177,19 +233,26 @@ async function* mockStream(userText: string): AsyncGenerator<ChatStreamEvent> {
   yield { type: "done", fullText: response };
 }
 
-export function summariseActivity(a: {
-  start_date_local: string;
-  name: string | null;
-  distance_m: number | null;
-  avg_pace_s_per_km: number | null;
-  avg_hr: number | null;
-}): ActivitySummary {
+export function summariseActivity(
+  a: {
+    start_date_local: string;
+    name: string | null;
+    distance_m: number | null;
+    moving_time_s?: number | null;
+    avg_pace_s_per_km: number | null;
+    avg_hr: number | null;
+  },
+  workout: WorkoutClassification,
+): ActivitySummary {
   return {
     date: a.start_date_local.slice(0, 10),
     name: a.name,
     distance_km: (a.distance_m ?? 0) / 1000,
     pace: formatPace(a.avg_pace_s_per_km),
     hr: a.avg_hr,
+    duration_minutes:
+      a.moving_time_s != null ? Math.round(a.moving_time_s / 60) : null,
+    workout,
   };
 }
 

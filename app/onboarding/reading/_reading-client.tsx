@@ -108,7 +108,7 @@ function CyclingLine({ text }: { text: string }) {
 }
 
 function SettledLine({ summary }: { summary: IngestSummary }) {
-  const { runCount, workoutCount, weeks, status } = summary;
+  const { runCount, workoutCount, crossTrainingCount, weeks, status } = summary;
   if (status === "empty") {
     return (
       <p
@@ -124,12 +124,16 @@ function SettledLine({ summary }: { summary: IngestSummary }) {
     workoutCount > 0
       ? ` ${workoutCount} ${workoutCount === 1 ? "session" : "sessions"} in there that read like structured work.`
       : "";
+  const crossClause =
+    crossTrainingCount > 0
+      ? ` Plus ${crossTrainingCount} cross-training ${crossTrainingCount === 1 ? "session" : "sessions"}.`
+      : "";
   return (
     <p
       className="font-serif text-2xl md:text-3xl leading-snug text-ink rise"
       aria-live="polite"
     >
-      {runCount} runs across {weeks} weeks.{workoutClause}
+      {runCount} runs across {weeks} weeks.{workoutClause}{crossClause}
       {" "}Let&rsquo;s look at a few of them.
     </p>
   );
