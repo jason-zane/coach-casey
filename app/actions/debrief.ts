@@ -5,6 +5,7 @@ import { buildDebriefContext } from "@/lib/thread/debrief-context";
 import { debriefGate, generateDebrief } from "@/lib/llm/debrief";
 import { ensureThread } from "@/lib/thread/repository";
 import type { DebriefSkipReason } from "@/lib/llm/debrief";
+import { sendPushToAthlete } from "@/lib/push/send";
 
 export type GenerateDebriefResult =
   | {
@@ -168,5 +169,45 @@ export async function generateDebriefForActivity(
     }
   }
 
+  // Best-effort push notification once the debrief is durably persisted.
+  // Wrapped so a push failure can't surface as a debrief failure — the
+  // debrief is the value, the notification is the alert. The lead text
+  // mirrors the opening sentence of the debrief, so the notification
+  // preview is itself useful even if the athlete doesn't open the app.
+  try {
+    const lead = leadFromBody(outcome.body);
+    await sendPushToAthlete(athleteId, {
+      title: pushTitleForActivity(ctx.activity),
+      body: lead,
+      tag: `debrief:${activityId}`,
+      url: "/app",
+    });
+  } catch (err) {
+    console.warn("debrief push fanout failed", err);
+  }
+
   return { kind: "created", debriefId, followUpId };
+}
+
+/**
+ * First sentence (or first ~140 chars) of the debrief body. Push payloads
+ * are tight and notification previews truncate aggressively; clipping here
+ * keeps the lead readable on lock screens.
+ */
+function leadFromBody(body: string): string {
+  const trimmed = body.trim().replace(/\s+/g, " ");
+  const sentenceEnd = trimmed.search(/(?<=[.!?])\s/);
+  const lead = sentenceEnd > 0 ? trimmed.slice(0, sentenceEnd) : trimmed;
+  if (lead.length <= 140) return lead;
+  return lead.slice(0, 137).trimEnd() + "…";
+}
+
+function pushTitleForActivity(a: { name: string | null; distanceKm: number }): string {
+  if (a.name && a.name.trim().length > 0) {
+    return `Debrief: ${a.name.trim()}`;
+  }
+  // Fall back to a distance-anchored title rather than a generic "Debrief"
+  // so notification stacks on the lock screen are skim-able.
+  const km = a.distanceKm > 0 ? `${a.distanceKm.toFixed(1)} km` : null;
+  return km ? `Debrief: ${km}` : "Debrief";
 }
