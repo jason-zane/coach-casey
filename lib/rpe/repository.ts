@@ -215,6 +215,14 @@ export type RpeSubmitResult = {
  * disallows edits in V1 — so this no-ops when the row has already been
  * answered or skipped. Validation lives here, not at the client edge,
  * so an out-of-range value fails fast even if a request is hand-crafted.
+ *
+ * Server-side enforces the same gates the UI applies (eligibility +
+ * athlete pause). The client's eligibility/pause state can drift —
+ * stale tab across a deploy, hand-crafted request, race with a pause
+ * trigger — and without these checks an ineligible or paused write
+ * would silently corrupt the eligibility/skip-count history. Errors
+ * throw rather than return a typed result because they should never
+ * happen in normal flow; surfacing in Sentry is the desired outcome.
  */
 export async function submitRpe(
   athleteId: string,
@@ -224,7 +232,14 @@ export async function submitRpe(
   if (!Number.isInteger(value) || value < RPE_MIN || value > RPE_MAX) {
     throw new Error(`invalid RPE value: ${value}`);
   }
-  await assertActivityOwnership(athleteId, activityId);
+  const activity = await assertActivityOwnership(athleteId, activityId);
+  if (!isEligibleActivity(activity)) {
+    throw new Error(`activity ${activityId} is not eligible for RPE`);
+  }
+  const pauseState = await loadAthletePauseState(athleteId);
+  if (isPaused(pauseState.pausedUntil)) {
+    throw new Error(`RPE prompts paused for athlete ${athleteId}`);
+  }
   const note = await ensureActivityNote(athleteId, activityId);
 
   if (note.rpe_value !== null) {
@@ -271,12 +286,24 @@ export type RpeSkipResult = {
  * Record an explicit skip and, if this skip pushes the consecutive count
  * to the threshold, set the pause flag. Returns whether the pause was
  * just applied so the client can surface a confirmation if it wants to.
+ *
+ * Same defensive gates as `submitRpe` — eligibility and pause are
+ * re-checked server-side. A paused athlete can't accumulate further
+ * skips (would corrupt the threshold counter); an ineligible activity
+ * can't enter the skip pool at all.
  */
 export async function skipRpe(
   athleteId: string,
   activityId: string,
 ): Promise<RpeSkipResult> {
-  await assertActivityOwnership(athleteId, activityId);
+  const activity = await assertActivityOwnership(athleteId, activityId);
+  if (!isEligibleActivity(activity)) {
+    throw new Error(`activity ${activityId} is not eligible for RPE`);
+  }
+  const initialPauseState = await loadAthletePauseState(athleteId);
+  if (isPaused(initialPauseState.pausedUntil)) {
+    throw new Error(`RPE prompts paused for athlete ${athleteId}`);
+  }
   const note = await ensureActivityNote(athleteId, activityId);
 
   if (note.rpe_value !== null || note.rpe_skipped_at !== null) {
@@ -306,7 +333,7 @@ export async function skipRpe(
   const consecutive = await countConsecutiveSkips(athleteId, pause.anchorAt);
   if (consecutive >= PAUSE_THRESHOLD_SKIPS) {
     const pausedUntil = new Date(Date.now() + PAUSE_DURATION_MS).toISOString();
-    await admin
+    const { error: pauseErr } = await admin
       .from("athletes")
       .update({
         rpe_prompts_paused_until: pausedUntil,
@@ -316,6 +343,15 @@ export async function skipRpe(
         rpe_skip_count_anchor_at: now,
       })
       .eq("id", athleteId);
+    if (pauseErr) {
+      // Don't return paused:true when the DB write failed — the client
+      // would surface a "prompts paused" toast that doesn't match
+      // reality, analytics would log a state change that didn't happen,
+      // and the next skip would re-trigger this branch in a loop. The
+      // skip itself is durably recorded; raising here lets the caller
+      // retry the pause transition cleanly.
+      throw pauseErr;
+    }
     return { state: rowToState(data as ActivityNoteRow), paused: true };
   }
 

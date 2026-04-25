@@ -307,6 +307,13 @@ export async function buildDebriefContext(
     // Trailing RPE — answered notes only, joined to the activity row for
     // shape inference. Excludes today's activity (`neq` on activity_id)
     // so today's RPE never leaks into today's context per spec §6.
+    //
+    // Window is on the activity's actual date, not when the athlete tapped
+    // the rating. A late-answered run from 6 weeks ago shouldn't pollute
+    // the trailing 28-day picture, and a recent run answered late
+    // shouldn't fall out of it. Final ordering is applied in JS after
+    // fetch — referenced-table ordering through PostgREST is fragile
+    // across Supabase versions and the dataset is small.
     admin
       .from("activity_notes")
       .select(
@@ -315,9 +322,8 @@ export async function buildDebriefContext(
       .eq("athlete_id", athleteId)
       .neq("activity_id", activityId)
       .not("rpe_value", "is", null)
-      .gte("rpe_answered_at", rpeHistoryStart.toISOString())
-      .lte("rpe_answered_at", activity.date)
-      .order("rpe_answered_at", { ascending: true }),
+      .gte("activities.start_date_local", rpeHistoryStart.toISOString())
+      .lte("activities.start_date_local", activity.date),
   ]);
 
   const arcRows = (arcRes.data ?? []) as ActivityRow[];
@@ -374,6 +380,9 @@ export async function buildDebriefContext(
   };
   const rpeHistory = ((rpeHistoryRes.data ?? []) as unknown as RpeHistoryRow[])
     .filter((r) => r.activities)
+    .sort((a, b) =>
+      a.activities.start_date_local.localeCompare(b.activities.start_date_local),
+    )
     .map((r) => {
       const laps = parseLaps(r.activities.laps);
       const isWorkout = workoutShape(laps);
