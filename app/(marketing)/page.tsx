@@ -114,7 +114,7 @@ function SampleDebrief() {
       <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-24 md:py-36">
         <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.8fr)] gap-10 md:gap-20 items-start">
           <div>
-            <p className="text-[13px] font-medium text-[color:var(--color-ink-muted)] uppercase tracking-[0.04em]">
+            <p className="text-[12px] font-medium text-[color:var(--color-accent)] uppercase tracking-[0.14em]">
               After the run
             </p>
             <h2 className="display-section text-[color:var(--color-ink)] mt-4">
@@ -311,7 +311,7 @@ function TheMoat() {
     <section className="bg-[color:var(--color-surface)] border-b rule">
       <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-24 md:py-36">
         <div className="max-w-[52ch]">
-          <p className="text-[13px] font-medium text-[color:var(--color-ink-muted)] uppercase tracking-[0.04em]">
+          <p className="text-[12px] font-medium text-[color:var(--color-accent)] uppercase tracking-[0.14em]">
             The hidden part
           </p>
           <h2 className="display-section text-[color:var(--color-ink)] mt-4">
@@ -370,7 +370,7 @@ function WhoItsFor() {
     <section className="border-b rule">
       <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-24 md:py-32">
         <div className="max-w-[60ch]">
-          <p className="text-[13px] font-medium text-[color:var(--color-ink-muted)] uppercase tracking-[0.04em]">
+          <p className="text-[12px] font-medium text-[color:var(--color-accent)] uppercase tracking-[0.14em]">
             Who it&rsquo;s for
           </p>
           <h2 className="display-section text-[color:var(--color-ink)] mt-4">
@@ -443,7 +443,7 @@ function HowItWorks() {
     <section id="how" className="bg-[color:var(--color-surface)] border-b rule">
       <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-24 md:py-36">
         <div className="max-w-[42ch]">
-          <p className="text-[13px] font-medium text-[color:var(--color-ink-muted)] uppercase tracking-[0.04em]">
+          <p className="text-[12px] font-medium text-[color:var(--color-accent)] uppercase tracking-[0.14em]">
             How it works
           </p>
           <h2 className="display-section text-[color:var(--color-ink)] mt-4">
@@ -482,7 +482,7 @@ function Pricing() {
     <section id="pricing" className="border-b rule">
       <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-24 md:py-36">
         <div className="max-w-[50ch]">
-          <p className="text-[13px] font-medium text-[color:var(--color-ink-muted)] uppercase tracking-[0.04em]">
+          <p className="text-[12px] font-medium text-[color:var(--color-accent)] uppercase tracking-[0.14em]">
             Pricing
           </p>
           <h2 className="display-section text-[color:var(--color-ink)] mt-4">
@@ -626,7 +626,7 @@ function Faq() {
     <section id="faq" className="bg-[color:var(--color-surface)] border-b rule">
       <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-24 md:py-36">
         <div className="max-w-[42ch]">
-          <p className="text-[13px] font-medium text-[color:var(--color-ink-muted)] uppercase tracking-[0.04em]">
+          <p className="text-[12px] font-medium text-[color:var(--color-accent)] uppercase tracking-[0.14em]">
             Questions
           </p>
           <h2 className="display-section text-[color:var(--color-ink)] mt-4">
