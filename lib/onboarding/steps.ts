@@ -3,6 +3,7 @@ export type OnboardingStep =
   | "validation"
   | "plan"
   | "install"
+  | "notifications"
   | "goal-race"
   | "injury"
   | "welcome";
@@ -12,6 +13,10 @@ export const ONBOARDING_STEP_ORDER_MOBILE: OnboardingStep[] = [
   "validation",
   "plan",
   "install",
+  // notifications sits right after install: standalone PWA on iOS is the
+  // only context where push is reliable, so the prompt happens while that
+  // standalone context is still front of mind.
+  "notifications",
   "goal-race",
   "injury",
   "welcome",
@@ -21,6 +26,9 @@ export const ONBOARDING_STEP_ORDER_DESKTOP: OnboardingStep[] = [
   "strava",
   "validation",
   "plan",
+  // Desktop browsers can subscribe to web push without install; offer it
+  // here too, even though the channel is secondary on desktop.
+  "notifications",
   "goal-race",
   "injury",
   "welcome",
@@ -86,6 +94,7 @@ export const STEP_TITLES: Record<OnboardingStep, string> = {
   validation: "A look at your training",
   plan: "Your training plan",
   install: "Put Coach Casey on your home screen",
+  notifications: "Stay in the loop",
   "goal-race": "Your next race",
   injury: "Anything to know",
   welcome: "What to expect",
