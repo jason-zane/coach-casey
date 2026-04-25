@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { generateDebriefForActivity } from "@/app/actions/debrief";
+import { generateCrossTrainingAckForActivity } from "@/app/actions/cross-training";
+import { classifyActivityType } from "@/lib/strava/activity-types";
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // give a full 5 minutes for the whole sweep
@@ -27,6 +29,7 @@ const LOOKBACK_HOURS = 48;
 type ActivityRow = {
   id: string;
   athlete_id: string;
+  activity_type: string | null;
 };
 
 type MessageMetaRow = {
@@ -54,7 +57,7 @@ export async function GET(request: Request) {
 
   const { data: activities, error: actErr } = await admin
     .from("activities")
-    .select("id, athlete_id")
+    .select("id, athlete_id, activity_type")
     .gte("start_date_local", since.toISOString())
     .order("start_date_local", { ascending: true });
   if (actErr) {
@@ -66,48 +69,54 @@ export async function GET(request: Request) {
     return NextResponse.json({
       ok: true,
       activitiesScanned: 0,
-      debriefsAttempted: 0,
-      debriefsCreated: 0,
-      debriefsSkipped: 0,
+      runDebriefs: { attempted: 0, created: 0, skipped: 0 },
+      crossTrainingAcks: { attempted: 0, created: 0, skipped: 0 },
       errors: [],
     });
   }
 
-  // Find which of these activities already have a debrief, so we can skip
-  // them without paying for the per-activity ownership + lookup inside the
-  // server action. A debrief for an activity in the lookback window will
-  // itself have been written within (roughly) the same window — bounding
-  // the messages query keeps it cheap as the table grows. The partial
-  // unique index would catch any race anyway, so this filter is purely an
-  // optimization.
+  // Find which of these activities already have a Casey-authored message
+  // (debrief or cross-training ack). The partial unique indexes catch any
+  // race; this filter is the optimisation that avoids paying for context
+  // assembly when the work is already done.
   const { data: existing, error: existingErr } = await admin
     .from("messages")
     .select("meta")
-    .eq("kind", "debrief")
+    .in("kind", ["debrief", "cross_training_ack", "cross_training_substitution"])
     .gte("created_at", since.toISOString());
   if (existingErr) {
     return NextResponse.json({ error: existingErr.message }, { status: 500 });
   }
 
   const activityIds = new Set(recent.map((a) => a.id));
-  const debriefed = new Set<string>();
+  const handled = new Set<string>();
   for (const row of (existing ?? []) as MessageMetaRow[]) {
     const id = row.meta?.activity_id;
     if (typeof id === "string" && activityIds.has(id)) {
-      debriefed.add(id);
+      handled.add(id);
     }
   }
-  const missing = recent.filter((a) => !debriefed.has(a.id));
+  const missing = recent.filter((a) => !handled.has(a.id));
 
-  let debriefsCreated = 0;
-  let debriefsSkipped = 0;
+  const runStats = { attempted: 0, created: 0, skipped: 0 };
+  const ctStats = { attempted: 0, created: 0, skipped: 0 };
   const errors: Array<{ activityId: string; error: string }> = [];
 
   for (const a of missing) {
+    const cls = classifyActivityType(a.activity_type);
     try {
-      const result = await generateDebriefForActivity(a.athlete_id, a.id);
-      if (result.kind === "created") debriefsCreated += 1;
-      else debriefsSkipped += 1;
+      if (cls === "run") {
+        runStats.attempted += 1;
+        const result = await generateDebriefForActivity(a.athlete_id, a.id);
+        if (result.kind === "created") runStats.created += 1;
+        else runStats.skipped += 1;
+      } else if (cls === "cross_training" || cls === "catch_all") {
+        ctStats.attempted += 1;
+        const result = await generateCrossTrainingAckForActivity(a.athlete_id, a.id);
+        if (result.kind === "created") ctStats.created += 1;
+        else ctStats.skipped += 1;
+      }
+      // ambient: no thread message; nothing for the cron to do.
     } catch (e) {
       errors.push({
         activityId: a.id,
@@ -119,9 +128,8 @@ export async function GET(request: Request) {
   return NextResponse.json({
     ok: true,
     activitiesScanned: recent.length,
-    debriefsAttempted: missing.length,
-    debriefsCreated,
-    debriefsSkipped,
+    runDebriefs: runStats,
+    crossTrainingAcks: ctStats,
     errors,
   });
 }

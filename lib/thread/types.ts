@@ -4,6 +4,8 @@ export type MessageKind =
   | "debrief"
   | "weekly_review"
   | "follow_up"
+  | "cross_training_ack"
+  | "cross_training_substitution"
   | "system";
 
 export type Message = {

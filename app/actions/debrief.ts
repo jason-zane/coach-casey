@@ -6,6 +6,10 @@ import { debriefGate, generateDebrief } from "@/lib/llm/debrief";
 import { ensureThread } from "@/lib/thread/repository";
 import type { DebriefSkipReason } from "@/lib/llm/debrief";
 import { sendPushToAthlete } from "@/lib/push/send";
+import { SONNET_MODEL } from "@/lib/llm/anthropic";
+
+const DEBRIEF_PROMPT_VERSION = "post-run-debrief@v1";
+const FOLLOW_UP_PROMPT_VERSION = "post-run-followup-conversational@v1";
 
 export type GenerateDebriefResult =
   | {
@@ -127,6 +131,8 @@ export async function generateDebriefForActivity(
       kind: "debrief",
       body: outcome.body,
       meta: debriefMeta,
+      model_version: SONNET_MODEL,
+      prompt_version: DEBRIEF_PROMPT_VERSION,
     })
     .select("id")
     .single();
@@ -157,6 +163,8 @@ export async function generateDebriefForActivity(
           activity_id: activityId,
           parent_id: debriefId,
         },
+        model_version: SONNET_MODEL,
+        prompt_version: FOLLOW_UP_PROMPT_VERSION,
       })
       .select("id")
       .single();
@@ -174,14 +182,26 @@ export async function generateDebriefForActivity(
   // debrief is the value, the notification is the alert. The lead text
   // mirrors the opening sentence of the debrief, so the notification
   // preview is itself useful even if the athlete doesn't open the app.
+  // Gated by the master `push_enabled` flag and the per-kind
+  // `debrief_push_enabled` toggle (default true).
   try {
-    const lead = leadFromBody(outcome.body);
-    await sendPushToAthlete(athleteId, {
-      title: pushTitleForActivity(ctx.activity),
-      body: lead,
-      tag: `debrief:${activityId}`,
-      url: "/app",
-    });
+    const { data: prefs } = await admin
+      .from("preferences")
+      .select("push_enabled, debrief_push_enabled")
+      .eq("athlete_id", athleteId)
+      .maybeSingle();
+    const masterOn = (prefs as { push_enabled?: boolean } | null)?.push_enabled ?? false;
+    const subOn =
+      (prefs as { debrief_push_enabled?: boolean } | null)?.debrief_push_enabled ?? true;
+    if (masterOn && subOn) {
+      const lead = leadFromBody(outcome.body);
+      await sendPushToAthlete(athleteId, {
+        title: pushTitleForActivity(ctx.activity),
+        body: lead,
+        tag: `debrief:${activityId}`,
+        url: "/app",
+      });
+    }
   } catch (err) {
     console.warn("debrief push fanout failed", err);
   }
