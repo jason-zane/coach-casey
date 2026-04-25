@@ -33,6 +33,9 @@ function labelForResult(r: SearchResult): string {
       return "Coach Casey";
     case "chat_user":
       return "You";
+    case "cross_training_ack":
+    case "cross_training_substitution":
+      return "Cross-training";
     case "system":
       return "System";
     default:

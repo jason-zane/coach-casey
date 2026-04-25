@@ -28,6 +28,25 @@ function weekOfLabel(iso: string): string {
   }).format(monday);
 }
 
+// Maps the raw Strava activity_type (as stored on messages.meta.activity_type
+// for cross_training_ack / cross_training_substitution rows) to the display
+// label used in the thread eyebrow. Kept in lockstep with
+// `pushTitleForActivity` in app/actions/cross-training.ts.
+function crossTrainingLabel(activityType: unknown): string {
+  if (typeof activityType !== "string") return "Cross-training";
+  const map: Record<string, string> = {
+    Ride: "Ride",
+    VirtualRide: "Ride",
+    EBikeRide: "Ride",
+    Swim: "Swim",
+    Workout: "Gym",
+    WeightTraining: "Gym",
+    Yoga: "Yoga",
+    Pilates: "Pilates",
+  };
+  return map[activityType] ?? "Cross-training";
+}
+
 export function MessageBlock({ message, unread }: Props) {
   const wrapperBase = "px-5 sm:px-6";
   const unreadRail = unread
@@ -122,6 +141,42 @@ export function MessageBlock({ message, unread }: Props) {
           </p>
         </article>
       );
+
+    case "cross_training_ack":
+    case "cross_training_substitution": {
+      const label = crossTrainingLabel(
+        (message.meta as { activity_type?: unknown }).activity_type,
+      );
+      const isSubstitution = message.kind === "cross_training_substitution";
+      return (
+        <article
+          data-kind={message.kind}
+          aria-label={`Coach Casey ${label.toLowerCase()} note: ${message.body}`}
+          className={`${wrapperBase} ${unreadRail} pl-4 sm:pl-5 space-y-3 max-w-[66ch]`}
+        >
+          <div className="pt-1 space-y-2">
+            <div className="h-px w-8 bg-accent/70" aria-hidden />
+            <div
+              className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-muted"
+              suppressHydrationWarning
+              aria-hidden
+            >
+              {label} <span className="text-ink-subtle">·</span>{" "}
+              {formatDateLabel(message.created_at)}
+              {isSubstitution && (
+                <>
+                  {" "}
+                  <span className="text-ink-subtle">·</span> instead of a run
+                </>
+              )}
+            </div>
+          </div>
+          <div className="prose-serif text-ink whitespace-pre-wrap break-words">
+            {renderInlineCopy(message.body)}
+          </div>
+        </article>
+      );
+    }
 
     case "system":
       return (
