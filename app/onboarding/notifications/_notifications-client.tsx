@@ -75,8 +75,32 @@ export function NotificationsClient({ platform, configured, publicKey }: Props) 
         });
         const existing = await reg.pushManager.getSubscription();
         if (existing) {
-          if (!cancelled) setPhase("subscribed");
-          return;
+          // The browser already has a subscription, but the matching row may
+          // not exist for the *current* athlete — they could have signed in
+          // as a different account, or we may have pruned the row when the
+          // push service returned 410. Reconcile by upserting now (the
+          // server action is endpoint-keyed and idempotent). If the upsert
+          // fails for some reason, fall through to the normal subscribe
+          // flow rather than reporting a false-positive subscribed state.
+          const serialised = JSON.parse(JSON.stringify(existing)) as {
+            endpoint: string;
+            keys: { p256dh: string; auth: string };
+          };
+          const reconcile = await subscribePush(serialised);
+          if (!cancelled && reconcile.ok) {
+            setPhase("subscribed");
+            return;
+          }
+          if (!cancelled && !reconcile.ok) {
+            // Drop the stale browser sub and let the user re-subscribe.
+            try {
+              await existing.unsubscribe();
+            } catch {
+              // Best-effort; if unsubscribe itself fails, the user can still
+              // hit "Turn on notifications" and the new subscribe call will
+              // either reuse or replace.
+            }
+          }
         }
       } catch (err) {
         console.warn("service worker registration failed", err);
