@@ -1,6 +1,10 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/server";
 import { summariseActivity, type ChatContext } from "@/lib/llm/chat";
+import { classifyActivityType } from "@/lib/strava/activity-types";
+import { extractWorkoutType } from "@/lib/strava/ingest";
+import { classifyWorkout } from "@/lib/strava/workout-detect";
+import type { StravaLap } from "@/lib/strava/client";
 import type { Message } from "./types";
 
 /**
@@ -9,16 +13,25 @@ import type { Message } from "./types";
  *
  * Uses the admin client — tools and repository already gate by athleteId,
  * and the service role avoids an extra round-trip through RLS.
+ *
+ * Activity window covers the full 12-week ingest window so the athlete can
+ * ask about specific laps or sessions from any point in the picture.
+ * Per-activity rendering then varies — workouts get lap detail inlined,
+ * easy/long runs and cross-training stay one-liners.
  */
+const DEFAULT_ACTIVITY_WEEKS = 12;
+
 export async function buildChatContext(
   athleteId: string,
   threadId: string,
   {
     historyTurns = 30,
-    activityCount = 14,
-  }: { historyTurns?: number; activityCount?: number } = {},
+    activityWeeks = DEFAULT_ACTIVITY_WEEKS,
+  }: { historyTurns?: number; activityWeeks?: number } = {},
 ): Promise<ChatContext> {
   const admin = createAdminClient();
+  const since = new Date();
+  since.setDate(since.getDate() - activityWeeks * 7);
 
   const [athleteRes, historyRes, activitiesRes, memoryRes, planRes, racesRes] =
     await Promise.all([
@@ -31,10 +44,12 @@ export async function buildChatContext(
         .limit(historyTurns),
       admin
         .from("activities")
-        .select("start_date_local, name, distance_m, avg_pace_s_per_km, avg_hr")
+        .select(
+          "start_date_local, name, activity_type, distance_m, moving_time_s, avg_pace_s_per_km, avg_hr, max_hr, elevation_gain_m, laps, raw",
+        )
         .eq("athlete_id", athleteId)
-        .order("start_date_local", { ascending: false })
-        .limit(activityCount),
+        .gte("start_date_local", since.toISOString())
+        .order("start_date_local", { ascending: false }),
       admin
         .from("memory_items")
         .select("kind, content, tags")
@@ -60,8 +75,57 @@ export async function buildChatContext(
   const historyRows = (historyRes.data ?? []) as Message[];
   const recentMessages = [...historyRows].reverse();
 
-  const activityRows = (activitiesRes.data ?? []).reverse();
-  const recentActivities = activityRows.map(summariseActivity);
+  type ActivityRow = {
+    start_date_local: string;
+    name: string | null;
+    activity_type: string | null;
+    distance_m: number | null;
+    moving_time_s: number | null;
+    avg_pace_s_per_km: number | null;
+    avg_hr: number | null;
+    max_hr: number | null;
+    elevation_gain_m: number | null;
+    laps: unknown;
+    raw: unknown;
+  };
+
+  const activityRows = ((activitiesRes.data ?? []) as ActivityRow[])
+    .slice()
+    .reverse(); // chronological for the prompt
+
+  const recentActivities: ChatContext["recentActivities"] = [];
+  const recentCrossTraining: ChatContext["recentCrossTraining"] = [];
+
+  for (const row of activityRows) {
+    const cls = classifyActivityType(row.activity_type);
+    if (cls === "ambient") continue;
+
+    if (cls === "run") {
+      const laps = Array.isArray(row.laps) ? (row.laps as StravaLap[]) : null;
+      const classification = classifyWorkout({
+        laps,
+        avgPaceSPerKm: row.avg_pace_s_per_km,
+        distanceM: row.distance_m,
+        movingTimeS: row.moving_time_s,
+        stravaWorkoutType: extractWorkoutType(row.raw),
+      });
+      recentActivities.push(summariseActivity(row, classification));
+    } else {
+      // cross_training or catch_all
+      recentCrossTraining.push({
+        date: row.start_date_local.slice(0, 10),
+        activityType: row.activity_type,
+        name: row.name,
+        durationMinutes:
+          row.moving_time_s != null
+            ? Math.round(row.moving_time_s / 60)
+            : null,
+        distanceKm:
+          row.distance_m != null ? Number((row.distance_m / 1000).toFixed(2)) : null,
+        avgHr: row.avg_hr,
+      });
+    }
+  }
 
   const memoryItems = ((memoryRes.data ?? []) as {
     kind: string;
@@ -88,6 +152,7 @@ export async function buildChatContext(
     displayName: (athleteRes.data?.display_name as string | null) ?? null,
     recentMessages,
     recentActivities,
+    recentCrossTraining,
     memoryItems,
     activePlanText: (planRes.data?.raw_text as string | null) ?? null,
     goalRaces,

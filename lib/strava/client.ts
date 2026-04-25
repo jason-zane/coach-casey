@@ -132,6 +132,8 @@ export type StravaActivity = {
   average_heartrate?: number;
   max_heartrate?: number;
   total_elevation_gain?: number;
+  /** 0=default, 1=race, 2=long run, 3=workout. Athlete-set, often missing. */
+  workout_type?: number | null;
 };
 
 export async function fetchActivitiesSince(

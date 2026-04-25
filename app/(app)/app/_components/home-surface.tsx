@@ -104,6 +104,14 @@ export function HomeSurface({
   const [online, setOnline] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [pullY, setPullY] = useState(0);
+  // How many pixels of the bottom of the layout are obscured by the on-screen
+  // keyboard. iOS PWA's default `interactive-widget=overlays-content` slides
+  // the keyboard over the bottom of the viewport without resizing the page,
+  // so without this the composer would sit hidden behind the keyboard.
+  // We lift only the composer; the menu bar stays put (hidden behind the
+  // keyboard) so we don't waste vertical space above the keyboard with a nav
+  // the athlete can't tap anyway.
+  const [keyboardInset, setKeyboardInset] = useState(0);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const sentinelTopRef = useRef<HTMLDivElement | null>(null);
@@ -630,6 +638,32 @@ export function HomeSurface({
     };
   }, [pullY, doRefresh]);
 
+  // --- On-screen keyboard tracking via visualViewport. Computes the overlap
+  // between the layout viewport and the visual viewport — that's the height of
+  // the keyboard. We then translate the composer up by that amount and add
+  // matching bottom padding to the scroll container so the latest message can
+  // be scrolled into view above the floating composer.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    function update() {
+      if (!vv) return;
+      const overlap = Math.max(
+        0,
+        window.innerHeight - vv.height - vv.offsetTop,
+      );
+      setKeyboardInset(overlap);
+    }
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
+
   // --- Desktop keyboard shortcuts
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -699,7 +733,12 @@ export function HomeSurface({
         <div
           ref={scrollRef}
           className="absolute inset-0 overflow-y-auto"
-          style={{ overscrollBehaviorY: "contain" }}
+          style={{
+            overscrollBehaviorY: "contain",
+            // Reserve room for the lifted composer when the keyboard is open
+            // so the most recent message is still scrollable into view.
+            paddingBottom: keyboardInset > 0 ? `${keyboardInset}px` : undefined,
+          }}
         >
           <div
             aria-hidden
@@ -844,7 +883,18 @@ export function HomeSurface({
         )}
       </main>
 
-      <Composer onSend={send} disabled={streamText !== null || thinking} />
+      <div
+        className="relative z-10"
+        style={{
+          // Translate the composer up by the keyboard inset so it sits just
+          // above the on-screen keyboard. The MenuBar below is intentionally
+          // left in place — the keyboard hides it, which is what we want.
+          transform: keyboardInset > 0 ? `translateY(-${keyboardInset}px)` : undefined,
+          transition: "transform 120ms ease-out",
+        }}
+      >
+        <Composer onSend={send} disabled={streamText !== null || thinking} />
+      </div>
       <MenuBar
         onOpenCalendar={() => setCalendarOpen(true)}
         onOpenSearch={() => setSearchOpen(true)}

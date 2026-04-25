@@ -7,6 +7,7 @@ import {
   type StravaActivityDetail,
   type StravaLap,
 } from "./client";
+import { classifyActivityType } from "./activity-types";
 
 export async function ingestMockActivitiesForAthlete(athleteId: string) {
   const admin = createAdminClient();
@@ -63,6 +64,17 @@ function mapStravaActivity(
 }
 
 /**
+ * Pull the structured workout_type out of an activity's raw blob, when set.
+ * Strava's workout_type is athlete-tagged and frequently missing, so this
+ * just normalises the access pattern.
+ */
+export function extractWorkoutType(raw: unknown): number | null {
+  if (!raw || typeof raw !== "object") return null;
+  const wt = (raw as { workout_type?: unknown }).workout_type;
+  return typeof wt === "number" ? wt : null;
+}
+
+/**
  * Fetch detail (with laps) for each activity, with bounded concurrency so we
  * stay well inside Strava's 100-reads-per-15-minutes rate limit without
  * serialising the whole pull.
@@ -89,22 +101,38 @@ async function mapWithConcurrency<T, U>(
   return out;
 }
 
-/** Fetches the priority 8-12 week window from Strava and upserts. */
+/**
+ * Fetches the priority 8-12 week window from Strava and upserts. Pulls runs
+ * AND cross-training (Ride, Swim, gym, yoga, ...) so the chat context can
+ * reflect the full training picture, not just runs. Ambient types (Walk) are
+ * skipped — they'd just be noise.
+ *
+ * Lap detail is only fetched for runs, since laps for non-running activities
+ * don't carry meaningful workout structure for a marathon coach and the
+ * detail endpoint counts against Strava's 100/15-min read limit.
+ */
 export async function ingestLiveActivitiesForAthlete(
   athleteId: string,
   weeks = 12,
 ) {
   const afterSeconds = Math.floor(Date.now() / 1000) - weeks * 7 * 24 * 60 * 60;
   const activities = await fetchActivitiesSince(athleteId, afterSeconds);
-  const runs = activities.filter((a) => {
-    const t = (a.sport_type ?? a.type ?? "").toLowerCase();
-    return t.includes("run");
+  const kept = activities.filter((a) => {
+    const cls = classifyActivityType(a.sport_type ?? a.type);
+    return cls === "run" || cls === "cross_training" || cls === "catch_all";
   });
-  if (runs.length === 0) return 0;
+  if (kept.length === 0) return 0;
 
-  // Pull detail (including laps) in parallel, degrade gracefully per activity
-  // if any single detail call fails.
-  const details = await mapWithConcurrency<StravaActivity, StravaActivityDetail>(
+  const runs = kept.filter(
+    (a) => classifyActivityType(a.sport_type ?? a.type) === "run",
+  );
+  const nonRuns = kept.filter(
+    (a) => classifyActivityType(a.sport_type ?? a.type) !== "run",
+  );
+
+  // Pull detail (including laps) for runs only, with bounded concurrency.
+  // Degrade gracefully per activity if any single detail call fails.
+  const runDetails = await mapWithConcurrency<StravaActivity, StravaActivityDetail>(
     runs,
     5,
     async (a) => {
@@ -118,9 +146,11 @@ export async function ingestLiveActivitiesForAthlete(
   );
 
   const admin = createAdminClient();
-  const rows = details.map((d) =>
+  const runRows = runDetails.map((d) =>
     mapStravaActivity(d, athleteId, d.laps ?? null),
   );
+  const nonRunRows = nonRuns.map((a) => mapStravaActivity(a, athleteId, null));
+  const rows = [...runRows, ...nonRunRows];
   const { error } = await admin
     .from("activities")
     .upsert(rows, { onConflict: "athlete_id,strava_id" });
@@ -128,6 +158,12 @@ export async function ingestLiveActivitiesForAthlete(
   return rows.length;
 }
 
+/**
+ * Loads recent runs only. Cross-training is intentionally excluded — the two
+ * existing callers (validation onboarding observations, anything legacy)
+ * treat every row as a run for weekly volume / pace summaries. Cross-training
+ * is fetched separately by the chat context builder.
+ */
 export async function loadRecentActivities(athleteId: string, weeks = 12) {
   const supabase = await createClient();
   const since = new Date();
@@ -142,5 +178,8 @@ export async function loadRecentActivities(athleteId: string, weeks = 12) {
     .gte("start_date_local", since.toISOString())
     .order("start_date_local", { ascending: true });
   if (error) throw error;
-  return data ?? [];
+  const rows = data ?? [];
+  return rows.filter(
+    (r) => classifyActivityType(r.activity_type as string | null) === "run",
+  );
 }
