@@ -1,7 +1,7 @@
 # Coach Casey — Open Questions Log
 
 **Owner:** Jason
-**Last updated:** 2026-04-23
+**Last updated:** 2026-04-25
 **Status:** Living document. Tracks unresolved questions and design work pending across the project. Each entry has a status, a trigger for when it must be closed, and an owner. Stale items (open >30 days without movement) get flagged during review.
 
 Separate from `roadmap.md` (what's being built and when) and the various working docs (where in-progress thinking lives). Items in this log are *questions*, not *plans*. When a question gets answered, it moves out — into the relevant doc, or into the roadmap, or into the decision being implemented.
@@ -169,6 +169,40 @@ Items that need to be produced as part of the prompt engineering workstream (`v1
 ## 5. Deferred with trigger — not launch-prep
 
 Questions that don't need to be answered soon, but have been named so they don't disappear.
+
+### [2026-04-25] — Proactive prescription on convergent load and subjective signals
+
+**Question:** When training load is sustainably elevated *and* subjective signals (chat, post-run follow-ups, RPE divergence) corroborate fatigue, should Coach Casey volunteer a rest or recovery suggestion — or stay strictly interpretive and wait for the athlete to ask?
+
+**Why it matters:** This is one of the cleanest demonstrations of the moat — load math is what Strava could plausibly ship; load math *integrated with* the athlete saying *"the legs were heavy on Tuesday"* is structurally not in their data model. Done well, it's exactly what an interpretive coach does that an algorithm can't. Done badly, it's nagging, prescriptive over a number the athlete never asked about, or wrong because the convergence detection over-fires.
+
+Sits adjacent to the existing item *"Chat responsive-prescription quality bar"* in `v1-scope.md` §6. That item is about responding when asked. This is about volunteering when convergent signals warrant it — a step beyond responsive, but on-thesis if gated tightly.
+
+**Status:** Deferred — V1.1 candidate. V1 day-one stays interpretive only.
+
+**Trigger for closure:** After (1) the load model ships and produces real per-athlete history, (2) enough chat and follow-up data accumulates per athlete to ground convergence detection, and (3) prompt-engineering eval coverage exists for the prescription posture. Earliest meaningful look: 2–3 months post-V1 launch.
+
+**Notes:**
+
+Firing conditions sketched (all required to fire):
+
+- Load picture shows sustained elevation across multiple weeks, not a single spike
+- Subjective corroboration in recent chat or post-run follow-ups (athlete has named fatigue, heaviness, beat-up legs) within the last 7–10 days
+- Life context isn't contradicting — athlete saying *"big week, taper next week, I'm fine"* should suppress the fire
+- Doesn't repeat — same skip-respect discipline as RPE and follow-ups
+
+Posture, non-negotiable:
+
+- Observation, reasoning, handoff — not instruction
+- Names what's being seen across multiple signals, not the number
+- Hands the call back — athlete's call, or their coach's call
+- Lives inside existing surfaces (debrief, weekly review, chat reply) — not a new push interruption
+
+Voice anchor: *"Last two weeks have been a step up from your usual loading, and Tuesday's chat had you saying the legs were heavy. A softer day or a rest tomorrow would probably help — your call, or your coach's, but I'd flag it."*
+
+Anti-patterns to design out: *"Your ACWR is 1.42, take a rest day"* (numerical, prescriptive, contested science); *"You should rest"* (no reasoning shown); push notifications volunteering rest advice (wrong surface, interruptive).
+
+---
 
 ### [2026-04-23] — V1 Next-bucket scope
 

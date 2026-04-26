@@ -1,7 +1,7 @@
 # Coach Casey — Technical Decision Log
 
 **Owner:** Jason
-**Last updated:** 2026-04-23
+**Last updated:** 2026-04-25
 **Scope:** Engineering decisions only. Product and strategy decisions live in the project decision log.
 
 Each entry follows the pattern: **Decision** → **Reasoning** → **What would change it** → **Superseded by**. Reasoning is summarised; fuller reasoning lives in the architecture doc and conversation history.
@@ -149,6 +149,28 @@ Each entry follows the pattern: **Decision** → **Reasoning** → **What would 
 **Reasoning:** Onboarding is the first impression of Coach Casey — voice and nuance matter. Haiku isn't sharp enough for this emotional register. Prompt caching makes the long system prompt economical across the 15–30 turns of an onboarding conversation. Tool use during onboarding (`save_profile_fact`, `save_injury_niggle`, `save_training_context`, `flag_for_review`) means the profile is built as the conversation unfolds — no separate extraction step.
 
 **What would change it:** Evals indicate a specific sub-task within onboarding can be handled by Haiku without voice degradation — route that turn only.
+
+**Superseded by:** —
+
+---
+
+### [2026-04-25] — Training load model: pace-based rTSS primary, three-tier hierarchy, RPE separate
+
+**Reasoning:** Pace and duration are always available from Strava (with grade-adjusted pace covering elevation); RPE is skippable and engagement-fragile, so load can't depend on it. Pace-based rTSS, anchored on threshold pace, is the most fixed variable available without HR or power. It produces a deterministic load number for every run with no athlete-side input beyond the threshold itself.
+
+Three-tier hierarchy ensures every activity gets a number:
+
+1. **Run with threshold pace known** → pace-based rTSS, `load_au = (duration_seconds × IF²) / 36`, where `IF = threshold_pace / avg_GAP`. One hour at threshold = 100 AU.
+2. **Run with no threshold yet** (early athlete tenure) → `duration_minutes × default_IF² × constant`, default IF ~0.70 (placeholder, tunable). Marked low-confidence; replaced once threshold derives.
+3. **Cross-training** (ride, swim, gym, yoga) → `duration_minutes × activity_type_IF`. Different default per type. Pace-based doesn't transfer.
+
+RPE stays exactly where `rpe-feature-spec.md` puts it — captured per activity, fed to prompts as longitudinal context. **It is not an input to the load AU calculation.** RPE-vs-load divergence becomes the diagnostic signal: pace-based load says *"tempo intensity,"* RPE says 9 → fatigue or illness flag. Independent signals are stronger than entangled ones.
+
+Threshold pace derives via Daniels VDOT from any race-grade activity (Strava `workout_type = race`) or athlete-entered race time at onboarding. Auto-refreshes when a higher-VDOT race lands; downward revisions flag for review. Shadow threshold (fastest sustained 20-min effort in trailing 60 days) used until a real race result exists, marked as low-confidence.
+
+CTL/ATL computed on read using EWMA, uncoupled (chronic excludes the acute window). Time constants: 7-day acute, 28-day chronic. Stored values: per-activity `load_au` and `load_method` on `activity_notes`; threshold/VDOT snapshots in `profile_snapshots` (append-only). No daily load aggregation table, no scheduled job.
+
+**What would change it:** (1) A user segment where GPS pace data is unreliable enough to invalidate pace-based load — treadmill-heavy athletes without manual pace input, persistent GPS dropouts in dense-urban or mountain terrain. Tier-3 fallback covers the edge cases for now. (2) Strava stops providing grade-adjusted pace. Mitigation: compute GAP server-side from activity streams; modest implementation cost. (3) Evals show RPE-vs-load divergence is unreliable enough to be worth re-merging RPE into the load metric — no current signal.
 
 **Superseded by:** —
 
