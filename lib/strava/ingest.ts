@@ -1,14 +1,53 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { buildFixtureActivities } from "./fixture";
 import {
+  averageGapSecPerKm,
   fetchActivitiesSince,
   fetchActivityDetail,
+  fetchActivityStreams,
   type StravaActivity,
   type StravaActivityDetail,
   type StravaLap,
 } from "./client";
-import { classifyActivityType } from "./activity-types";
+import { classifyActivityType, isRunType } from "./activity-types";
 import { runPostIngestForActivity } from "@/lib/training-load/post-ingest";
+
+/**
+ * Fetch grade-adjusted average pace from a Strava streams call. Behind a
+ * feature flag (`STRAVA_FETCH_STREAMS_FLAG`) because streams calls
+ * double a run's read-budget consumption — onboarding can otherwise
+ * exceed the 100/15min limit. Default off; flip on for athletes whose
+ * load picture is materially worsened by hilly terrain.
+ */
+function streamsEnabled(): boolean {
+  const v = process.env.STRAVA_FETCH_STREAMS_FLAG;
+  if (!v) return false;
+  const lower = v.toLowerCase();
+  return lower === "on" || lower === "1" || lower === "true";
+}
+
+async function maybeFetchGap(
+  athleteId: string,
+  activity: StravaActivity,
+): Promise<number | null> {
+  if (!streamsEnabled()) return null;
+  if (!isRunType(activity.sport_type ?? activity.type)) return null;
+  if (!activity.moving_time || activity.moving_time <= 0) return null;
+  try {
+    const streams = await fetchActivityStreams(athleteId, activity.id, [
+      "grade_adjusted_distance",
+    ]);
+    return averageGapSecPerKm(streams, activity.moving_time);
+  } catch (e) {
+    // Streams sometimes 404 on very old activities or treadmill runs with
+    // no GPS. Degrade silently — the calculator falls back to raw pace.
+    console.warn("strava.streams.fetch_failed", {
+      activityId: activity.id,
+      error: e instanceof Error ? e.message : String(e),
+    });
+    return null;
+  }
+}
 
 export async function ingestMockActivitiesForAthlete(athleteId: string) {
   const admin = createAdminClient();
@@ -71,6 +110,7 @@ function mapStravaActivity(
   a: StravaActivity,
   athleteId: string,
   laps: StravaLap[] | null = null,
+  gapSecPerKm: number | null = null,
 ) {
   return {
     athlete_id: athleteId,
@@ -86,6 +126,7 @@ function mapStravaActivity(
     elevation_gain_m: a.total_elevation_gain ?? null,
     raw: a as unknown as Record<string, unknown>,
     laps,
+    gap_s_per_km: gapSecPerKm,
   };
 }
 
@@ -171,9 +212,18 @@ export async function ingestLiveActivitiesForAthlete(
     },
   );
 
+  // Streams (grade-adjusted distance) for runs, when the flag is on.
+  // Bounded concurrency identical to the detail pull. Returns a parallel
+  // array indexed against runDetails.
+  const runGaps = await mapWithConcurrency<StravaActivityDetail, number | null>(
+    runDetails,
+    5,
+    (d) => maybeFetchGap(athleteId, d),
+  );
+
   const admin = createAdminClient();
-  const runRows = runDetails.map((d) =>
-    mapStravaActivity(d, athleteId, d.laps ?? null),
+  const runRows = runDetails.map((d, i) =>
+    mapStravaActivity(d, athleteId, d.laps ?? null, runGaps[i] ?? null),
   );
   const nonRunRows = nonRuns.map((a) => mapStravaActivity(a, athleteId, null));
   const rows = [...runRows, ...nonRunRows];

@@ -22,7 +22,9 @@ export async function calculateAndPersistLoadForActivity(
   const admin = createAdminClient();
   const { data: activity, error: actErr } = await admin
     .from("activities")
-    .select("id, athlete_id, start_date_local, activity_type, distance_m, moving_time_s, avg_pace_s_per_km, raw")
+    .select(
+      "id, athlete_id, start_date_local, activity_type, distance_m, moving_time_s, avg_pace_s_per_km, gap_s_per_km, raw",
+    )
     .eq("id", activityId)
     .maybeSingle();
   if (actErr) throw actErr;
@@ -35,6 +37,7 @@ export async function calculateAndPersistLoadForActivity(
     distance_m: number | null;
     moving_time_s: number | null;
     avg_pace_s_per_km: number | null;
+    gap_s_per_km: number | null;
     raw: unknown;
   };
   if (row.athlete_id !== athleteId) {
@@ -49,7 +52,13 @@ export async function calculateAndPersistLoadForActivity(
     activityType: row.activity_type,
     movingTimeS: row.moving_time_s,
     avgPaceSPerKm: row.avg_pace_s_per_km,
-    gapSecPerKm: extractGapSecPerKm(row.raw, row.distance_m),
+    // Prefer the dedicated column (populated from streams when the
+    // STRAVA_FETCH_STREAMS_FLAG is on); fall back to the raw blob for
+    // any legacy rows ingested before the column existed.
+    gapSecPerKm:
+      row.gap_s_per_km != null
+        ? Number(row.gap_s_per_km)
+        : extractGapSecPerKm(row.raw, row.distance_m),
     stravaWorkoutType: extractWorkoutType(row.raw),
   };
 

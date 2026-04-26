@@ -4,8 +4,12 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { fetchActivityDetail } from "@/lib/strava/client";
 import { generateDebriefForActivity } from "@/app/actions/debrief";
 import { generateCrossTrainingAckForActivity } from "@/app/actions/cross-training";
-import { classifyActivityType } from "@/lib/strava/activity-types";
+import { classifyActivityType, isRunType } from "@/lib/strava/activity-types";
 import { runPostIngestForActivity } from "@/lib/training-load/post-ingest";
+import {
+  averageGapSecPerKm,
+  fetchActivityStreams,
+} from "@/lib/strava/client";
 
 export const runtime = "nodejs";
 // Webhook ACKs are tiny; the real work runs in `after()`. Keeping a tight
@@ -116,6 +120,29 @@ async function handleEvent(event: StravaWebhookEvent): Promise<void> {
   const rawType = detail.sport_type ?? detail.type ?? null;
   const activityClass = classifyActivityType(rawType);
 
+  // Streams (grade-adjusted distance) for runs, behind the same flag the
+  // ingest path uses. Best-effort — calculator falls back to raw pace if
+  // GAP isn't available.
+  const streamsOn = (process.env.STRAVA_FETCH_STREAMS_FLAG ?? "").toLowerCase();
+  let gap: number | null = null;
+  if (
+    (streamsOn === "on" || streamsOn === "1" || streamsOn === "true") &&
+    isRunType(rawType) &&
+    detail.moving_time
+  ) {
+    try {
+      const streams = await fetchActivityStreams(athleteId, detail.id, [
+        "grade_adjusted_distance",
+      ]);
+      gap = averageGapSecPerKm(streams, detail.moving_time);
+    } catch (e) {
+      console.warn("strava.streams.webhook_fetch_failed", {
+        activityId: detail.id,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
+
   const row = {
     athlete_id: athleteId,
     strava_id: detail.id,
@@ -133,6 +160,7 @@ async function handleEvent(event: StravaWebhookEvent): Promise<void> {
     elevation_gain_m: detail.total_elevation_gain ?? null,
     raw: detail as unknown as Record<string, unknown>,
     laps: detail.laps ?? null,
+    gap_s_per_km: gap,
   };
 
   const { data: upserted, error } = await admin

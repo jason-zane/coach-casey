@@ -121,17 +121,21 @@ Keep the V1 logic deliberately simple. The picker sophistication is V1.1 polish.
 - **Low RPE on hard intent:** `rpe_value <= 4` AND the activity matches a hard/workout profile → fire follow-up: *"Felt smoother than I'd have expected — what made the difference?"*
 - **No divergence:** RPE within an unremarkable band → fall through to conversational follow-up.
 
-**Easy intent detection** (V1, simple heuristic):
-- Activity matches a planned easy/recovery session in the uploaded plan, OR
-- Activity has no plan match AND average HR is in the athlete's lower band (per their rolling baseline), OR
-- Activity is shorter than the athlete's median run length AND below their median pace
+**Easy intent detection** (preferred, when load data is present per `training-load-feature-spec.md` §7.4):
+- Activity's `load_au` is in the bottom 50% of the trailing 30 days, AND
+- Activity's `load_if` is below 0.75.
 
-**Hard intent detection** (V1, simple heuristic):
-- Activity matches a planned workout/long-run/tempo/threshold session, OR
-- Activity has no plan match AND contains structured laps suggesting intervals, OR
-- Activity duration or pace places it in the athlete's top quartile for the trailing 30 days
+Both must hold — a low-IF very long run can still be high-load (long-run intent), and a short hard run can be low-load but high-IF.
 
-These heuristics are intentionally crude. The picker accuracy can improve in V1.1 once real RPE data accumulates.
+**Hard intent detection** (preferred, when load data is present):
+- Activity's `load_au` is in the top 25% of the trailing 30 days, OR
+- Activity's `load_if` exceeds 0.85.
+
+**Fallback heuristics** (when fewer than 4 trailing load samples exist):
+- *Easy:* activity matches a planned easy/recovery session in the uploaded plan, OR has no plan match AND average HR is in the athlete's lower band (per their rolling baseline), OR is shorter than the athlete's median run length AND below their median pace.
+- *Hard:* activity matches a planned workout/long-run/tempo/threshold session, OR has no plan match AND contains structured laps suggesting intervals, OR duration or pace places it in the athlete's top quartile for the trailing 30 days.
+
+The fallback heuristics are intentionally crude. The picker prefers the load-based gates because `load_au` already integrates duration, pace, and grade-adjusted intensity into a single per-activity number, sharper than HR-and-pace quartiles. Picker accuracy continues to improve in V1.1 once real RPE data accumulates.
 
 ### 7.2 Conversational follow-up
 

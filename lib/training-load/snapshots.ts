@@ -118,6 +118,81 @@ export async function getSnapshotAtDate(
   return data ? rowToSnapshot(data as SnapshotRow) : null;
 }
 
+/**
+ * Pending review snapshot, if any. Returns the most recent flagged row —
+ * downward-revision flags surface in the order they were created.
+ */
+export async function getPendingReviewSnapshot(
+  athleteId: string,
+): Promise<ProfileSnapshot | null> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("profile_snapshots")
+    .select(SNAPSHOT_COLS)
+    .eq("athlete_id", athleteId)
+    .eq("pending_review", true)
+    .order("snapshot_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? rowToSnapshot(data as SnapshotRow) : null;
+}
+
+/**
+ * Confirm a pending-review snapshot — flips `pending_review = false` so
+ * the row becomes the active threshold. Triggers recalculation of all
+ * activities since the snapshot date so the athlete's load picture
+ * reflects the new threshold.
+ *
+ * Returns the activated snapshot. Throws if the snapshot doesn't belong
+ * to the athlete or isn't pending.
+ */
+export async function confirmPendingSnapshot(
+  athleteId: string,
+  snapshotId: string,
+): Promise<ProfileSnapshot> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("profile_snapshots")
+    .update({ pending_review: false })
+    .eq("id", snapshotId)
+    .eq("athlete_id", athleteId)
+    .eq("pending_review", true)
+    .select(SNAPSHOT_COLS)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) {
+    throw new Error(
+      `confirmPendingSnapshot: ${snapshotId} not found or not pending for athlete ${athleteId}`,
+    );
+  }
+  return rowToSnapshot(data as SnapshotRow);
+}
+
+/**
+ * Reject a pending-review snapshot — deletes the row outright. The race
+ * was a blow-up; we never want it pulling on the load picture.
+ *
+ * Append-only is the discipline for "active" snapshots; rejected
+ * pending-review rows are an exception because they represent an
+ * unsuccessful candidate, not historical state. (Equivalently we could
+ * keep a `rejected_at` flag, but the simpler delete keeps the
+ * "current = latest by date where pending_review=false" lookup clean.)
+ */
+export async function rejectPendingSnapshot(
+  athleteId: string,
+  snapshotId: string,
+): Promise<void> {
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("profile_snapshots")
+    .delete()
+    .eq("id", snapshotId)
+    .eq("athlete_id", athleteId)
+    .eq("pending_review", true);
+  if (error) throw error;
+}
+
 export type AppendSnapshotInput = {
   athleteId: string;
   snapshotDate: string; // YYYY-MM-DD

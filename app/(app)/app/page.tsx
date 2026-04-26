@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ensureThread, loadRecentWindow, loadThread } from "@/lib/thread/repository";
 import { seedEmptyStateIfNeeded } from "@/app/actions/thread";
 import { HomeSurface } from "./_components/home-surface";
+import { ThresholdBanner } from "./_components/threshold-banner";
 
 export const dynamic = "force-dynamic";
 
@@ -31,13 +32,16 @@ export default async function HomePage() {
   ]);
 
   return (
-    <HomeSurface
-      threadId={threadId}
-      lastViewedAt={thread?.last_viewed_at ?? null}
-      initialMessages={window.messages}
-      initialHasMore={window.hasMore}
-      initialOldestLoaded={window.oldestLoaded}
-      athleteEmail={user.email ?? ""}
-    />
+    <>
+      <ThresholdBanner athleteId={athlete.id as string} />
+      <HomeSurface
+        threadId={threadId}
+        lastViewedAt={thread?.last_viewed_at ?? null}
+        initialMessages={window.messages}
+        initialHasMore={window.hasMore}
+        initialOldestLoaded={window.oldestLoaded}
+        athleteEmail={user.email ?? ""}
+      />
+    </>
   );
 }

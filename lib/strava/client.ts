@@ -213,3 +213,59 @@ export async function fetchActivityDetail(
   }
   return res.json();
 }
+
+export type StravaStream = {
+  type: string;
+  data: number[];
+  series_type?: string;
+  original_size?: number;
+  resolution?: string;
+};
+
+/**
+ * Fetch activity streams keyed by type. Used to compute average grade-
+ * adjusted pace for runs per `docs/training-load-feature-spec.md` §4.1.
+ * Each call counts against Strava's 100-reads-per-15-min budget; the
+ * caller is expected to gate by feature flag and bound concurrency.
+ */
+export async function fetchActivityStreams(
+  athleteId: string,
+  activityId: number,
+  keys: string[],
+): Promise<Record<string, StravaStream>> {
+  const token = await getValidAccessToken(athleteId);
+  const params = new URLSearchParams({
+    keys: keys.join(","),
+    key_by_type: "true",
+  });
+  const res = await fetch(
+    `${STRAVA_API_BASE}/activities/${activityId}/streams?${params.toString()}`,
+    { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
+  );
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(
+      `Strava streams ${activityId} failed: ${res.status} ${body}`,
+    );
+  }
+  return res.json();
+}
+
+/**
+ * Compute the average GAP from a `grade_adjusted_distance` stream. The
+ * stream is cumulative — the final value is the total grade-adjusted
+ * distance in metres. Combined with moving time, that's average GAP.
+ */
+export function averageGapSecPerKm(
+  streams: Record<string, StravaStream>,
+  movingTimeS: number,
+): number | null {
+  if (!movingTimeS || movingTimeS <= 0) return null;
+  const stream = streams.grade_adjusted_distance;
+  if (!stream || !Array.isArray(stream.data) || stream.data.length === 0) {
+    return null;
+  }
+  const totalMeters = stream.data[stream.data.length - 1];
+  if (!Number.isFinite(totalMeters) || totalMeters <= 0) return null;
+  return Math.round(movingTimeS / (totalMeters / 1000));
+}

@@ -117,10 +117,51 @@ function formatPace(secPerKm: number | null | undefined): string {
   return `${m}:${String(s).padStart(2, "0")}/km`;
 }
 
+function renderLoadPictureForChat(ctx: ChatContext): string | null {
+  // Per `training-load-feature-spec.md` §7.3 — load picture as longitudinal
+  // chat context. The prompt is instructed to translate to prose and never
+  // surface the raw values.
+  const lc = ctx.loadContext;
+  if (!lc || lc.loadPicture.isEmpty) {
+    return "# Load picture\nNo load history yet — first runs together. Don't reference loading.";
+  }
+  const lines: string[] = [];
+  lines.push(
+    `Acute (7d) load: ${lc.loadPicture.atlAu} AU. Chronic (28d) load: ${lc.loadPicture.ctlAu} AU. Ratio: ${
+      lc.loadPicture.atlCtlRatio ?? "n/a"
+    }. Trend: ${lc.loadPicture.trend4Weeks}.`,
+  );
+  if (lc.loadPicture.thisWeekVs4WkAvgPct != null) {
+    lines.push(
+      `This week vs trailing 4-week average: ${
+        lc.loadPicture.thisWeekVs4WkAvgPct >= 0 ? "+" : ""
+      }${lc.loadPicture.thisWeekVs4WkAvgPct}%.`,
+    );
+  }
+  if (lc.thresholdContext.thresholdPaceSecPerKm != null) {
+    const t = lc.thresholdContext.thresholdPaceSecPerKm;
+    const m = Math.floor(t / 60);
+    const s = Math.round(t % 60);
+    lines.push(
+      `Threshold reference: ${m}:${String(s).padStart(2, "0")}/km (VDOT ${
+        lc.thresholdContext.vdot?.toFixed(1) ?? "?"
+      }, source ${lc.thresholdContext.source}, confidence ${lc.thresholdContext.confidence}).`,
+    );
+  } else {
+    lines.push(
+      "Threshold reference: none yet. Be cautious about claiming intensity reads.",
+    );
+  }
+  return `# Load picture (longitudinal, internal use only)\n${lines.join("\n")}`;
+}
+
 function renderContext(ctx: ChatContext): string {
   const parts: string[] = [];
 
   parts.push(`# Athlete\n${ctx.displayName ?? "(unnamed)"}`);
+
+  const loadBlock = renderLoadPictureForChat(ctx);
+  if (loadBlock) parts.push(loadBlock);
 
   if (ctx.goalRaces.length > 0) {
     const lines = ctx.goalRaces

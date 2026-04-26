@@ -204,12 +204,57 @@ function renderRpeHistory(ctx: DebriefContext): string {
   return `Trailing 28-day RPE log (oldest first, this run excluded):\n${lines.join("\n")}`;
 }
 
+function renderLoadContext(ctx: DebriefContext): string {
+  // Per `training-load-feature-spec.md` §7.1 the prompt receives the
+  // load picture as longitudinal context — not numbers to surface to
+  // the athlete, but background for the interpretation. The block stays
+  // null-safe: a fresh athlete has no load history, and the prompt is
+  // instructed to handle that gracefully.
+  const ctxLoad = ctx.loadContext;
+  if (!ctxLoad || ctxLoad.loadPicture.isEmpty) {
+    return "# Load picture\nNo load history yet — first runs together. Don't reference loading; read the run on its own terms.";
+  }
+  const { loadPicture, thresholdContext, thisActivity } = ctxLoad;
+  const lines: string[] = [];
+  lines.push(
+    `Acute (7d) load: ${loadPicture.atlAu} AU. Chronic (28d) load: ${loadPicture.ctlAu} AU. Ratio: ${
+      loadPicture.atlCtlRatio ?? "n/a"
+    }. Trend: ${loadPicture.trend4Weeks}.`,
+  );
+  if (loadPicture.thisWeekVs4WkAvgPct != null) {
+    lines.push(
+      `This week vs trailing 4-week average: ${
+        loadPicture.thisWeekVs4WkAvgPct >= 0 ? "+" : ""
+      }${loadPicture.thisWeekVs4WkAvgPct}%.`,
+    );
+  }
+  if (thisActivity?.loadAu != null) {
+    lines.push(
+      `This run's load: ${thisActivity.loadAu} AU (method: ${thisActivity.loadMethod}).`,
+    );
+  }
+  if (thresholdContext.thresholdPaceSecPerKm != null) {
+    const m = Math.floor(thresholdContext.thresholdPaceSecPerKm / 60);
+    const s = Math.round(thresholdContext.thresholdPaceSecPerKm % 60);
+    lines.push(
+      `Threshold reference: ${m}:${String(s).padStart(2, "0")}/km (VDOT ${
+        thresholdContext.vdot?.toFixed(1) ?? "?"
+      }, source ${thresholdContext.source}, confidence ${thresholdContext.confidence}).`,
+    );
+  } else {
+    lines.push("Threshold reference: none yet (load uses placeholder defaults — be cautious about claiming intensity reads).");
+  }
+  return `# Load picture (longitudinal, internal use only)\n${lines.join("\n")}`;
+}
+
 function renderVolatileContext(ctx: DebriefContext): string {
   const parts: string[] = [];
 
   parts.push(`# The run being debriefed\n${renderActivity(ctx.activity)}`);
 
   parts.push(`# Recent training arc\n${renderArc(ctx.arcWeeks, ctx.arcRuns)}`);
+
+  parts.push(renderLoadContext(ctx));
 
   // Per spec §6 + §9.1: trailing RPE feeds the debrief as longitudinal
   // context; the current activity's RPE does not. Pattern recognition

@@ -1,9 +1,14 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/server";
 import { requireAthlete } from "@/app/actions/onboarding";
 import { advanceFrom } from "@/app/actions/onboarding";
-import { appendSnapshot } from "@/lib/training-load/snapshots";
+import {
+  appendSnapshot,
+  confirmPendingSnapshot,
+  rejectPendingSnapshot,
+} from "@/lib/training-load/snapshots";
 import { vdotFromRace } from "@/lib/training-load/vdot";
 import { scheduleRecalculation } from "@/lib/training-load/recalc";
 
@@ -84,17 +89,10 @@ export type SaveRecentRaceResult =
   | { ok: false; reason: "feature_disabled" | "invalid_inputs" };
 
 /**
- * Onboarding race input. Engineering surface only — spec §11 marks the
- * UX (copy, layout, skip framing) as launch-prep work. Behind a feature
- * flag (`ONBOARDING_RACE_INPUT_FLAG`) so the data path can be exercised
- * end-to-end without committing to a surface in this iteration.
- *
- * On submission: derive VDOT from race time, append a high-confidence
- * snapshot dated to the race date, and schedule recalculation for the
- * athlete's full ingested history (their existing runs were on tier-2
- * defaults and now have a real threshold to score against).
+ * Append a snapshot from a race-time input. Pure data-path; no advance.
+ * Used by both API consumers and the onboarding form below.
  */
-export async function saveRecentRace(
+async function persistRecentRace(
   formData: FormData,
 ): Promise<SaveRecentRaceResult> {
   if (!raceInputEnabled()) {
@@ -131,4 +129,64 @@ export async function saveRecentRace(
     new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString(),
   );
   return { ok: true, vdot };
+}
+
+/**
+ * Onboarding race input action. Engineering surface only — spec §11 marks
+ * the UX (copy, layout, skip framing) as launch-prep work. Behind a
+ * feature flag (`ONBOARDING_RACE_INPUT_FLAG`); the form submits to this
+ * action which persists the snapshot and advances onboarding regardless
+ * of whether the inputs were valid (to keep the athlete moving — invalid
+ * input is logged but doesn't block the flow).
+ */
+export async function saveRecentRace(formData: FormData): Promise<void> {
+  const result = await persistRecentRace(formData);
+  if (!result.ok && result.reason === "invalid_inputs") {
+    console.warn("recent-race onboarding: invalid_inputs", {
+      preset: formData.get("preset"),
+      time: formData.get("time"),
+    });
+  }
+  await advanceFrom("recent-race");
+}
+
+export async function skipRecentRace(): Promise<void> {
+  await advanceFrom("recent-race");
+}
+
+/**
+ * API-shaped variant for callers that want the result back rather than
+ * an onboarding redirect. Used by tests and any future settings surface.
+ */
+export async function saveRecentRaceApi(
+  formData: FormData,
+): Promise<SaveRecentRaceResult> {
+  return persistRecentRace(formData);
+}
+
+/**
+ * Confirm a pending-review snapshot — flips pending_review off and
+ * triggers a recalc since the snapshot date. Per spec §11 the
+ * athlete-facing surface is launch-prep work; this action is the
+ * data-path the placeholder banner submits to.
+ */
+export async function confirmRaceSnapshot(formData: FormData): Promise<void> {
+  const snapshotId = String(formData.get("snapshot_id") ?? "").trim();
+  if (!snapshotId) return;
+  const { athlete } = await requireAthlete();
+  const activated = await confirmPendingSnapshot(athlete.id, snapshotId);
+  scheduleRecalculation(athlete.id, activated.snapshotDate);
+  revalidatePath("/app");
+}
+
+/**
+ * Reject a pending-review snapshot — deletes it outright. The race was
+ * a blow-up; the existing snapshot stays active.
+ */
+export async function rejectRaceSnapshot(formData: FormData): Promise<void> {
+  const snapshotId = String(formData.get("snapshot_id") ?? "").trim();
+  if (!snapshotId) return;
+  const { athlete } = await requireAthlete();
+  await rejectPendingSnapshot(athlete.id, snapshotId);
+  revalidatePath("/app");
 }

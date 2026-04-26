@@ -1,5 +1,6 @@
 export type OnboardingStep =
   | "strava"
+  | "recent-race"
   | "validation"
   | "plan"
   | "install"
@@ -8,7 +9,33 @@ export type OnboardingStep =
   | "injury"
   | "welcome";
 
-export const ONBOARDING_STEP_ORDER_MOBILE: OnboardingStep[] = [
+/**
+ * `recent-race` is the engineering surface for the race-input step per
+ * `docs/training-load-feature-spec.md` §5.2 + §11. UX (copy, layout,
+ * skip framing) is launch-prep work; the step is included in the
+ * onboarding order only when the feature flag is on.
+ */
+function recentRaceEnabled(): boolean {
+  const v = process.env.ONBOARDING_RACE_INPUT_FLAG;
+  if (!v) return false;
+  const lower = v.toLowerCase();
+  return lower === "on" || lower === "1" || lower === "true";
+}
+
+function withRecentRace(base: OnboardingStep[]): OnboardingStep[] {
+  if (!recentRaceEnabled()) return base;
+  // Insert immediately after Strava — the race result is independent of
+  // Strava connection, but pacing-wise it sits before validation so the
+  // "look at your training" moment can already factor in the threshold.
+  const out: OnboardingStep[] = [];
+  for (const step of base) {
+    out.push(step);
+    if (step === "strava") out.push("recent-race");
+  }
+  return out;
+}
+
+const BASE_MOBILE: OnboardingStep[] = [
   "strava",
   "validation",
   "plan",
@@ -22,7 +49,7 @@ export const ONBOARDING_STEP_ORDER_MOBILE: OnboardingStep[] = [
   "welcome",
 ];
 
-export const ONBOARDING_STEP_ORDER_DESKTOP: OnboardingStep[] = [
+const BASE_DESKTOP: OnboardingStep[] = [
   "strava",
   "validation",
   "plan",
@@ -33,6 +60,9 @@ export const ONBOARDING_STEP_ORDER_DESKTOP: OnboardingStep[] = [
   "injury",
   "welcome",
 ];
+
+export const ONBOARDING_STEP_ORDER_MOBILE: OnboardingStep[] = withRecentRace(BASE_MOBILE);
+export const ONBOARDING_STEP_ORDER_DESKTOP: OnboardingStep[] = withRecentRace(BASE_DESKTOP);
 
 export function isMobileUserAgent(ua: string | null | undefined): boolean {
   if (!ua) return false;
@@ -91,6 +121,7 @@ export function nextStep(
 
 export const STEP_TITLES: Record<OnboardingStep, string> = {
   strava: "Connect Strava",
+  "recent-race": "A recent race",
   validation: "A look at your training",
   plan: "Your training plan",
   install: "Put Coach Casey on your home screen",
