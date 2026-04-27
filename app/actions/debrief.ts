@@ -2,12 +2,17 @@
 
 import { createAdminClient } from "@/lib/supabase/server";
 import { buildDebriefContext } from "@/lib/thread/debrief-context";
-import { debriefGate, generateDebrief } from "@/lib/llm/debrief";
+import {
+  debriefGate,
+  generateDebrief,
+  STRAVA_BLURB_SIGNATURE,
+} from "@/lib/llm/debrief";
 import { ensureThread } from "@/lib/thread/repository";
 import type { DebriefSkipReason } from "@/lib/llm/debrief";
 import { sendPushToAthlete } from "@/lib/push/send";
 import { leadFromBody } from "@/lib/push/lead-from-body";
 import { SONNET_MODEL } from "@/lib/llm/anthropic";
+import { updateActivityDescriptionAppend } from "@/lib/strava/client";
 
 const DEBRIEF_PROMPT_VERSION = "post-run-debrief@v1";
 const FOLLOW_UP_PROMPT_VERSION = "post-run-followup-conversational@v1";
@@ -175,6 +180,32 @@ export async function generateDebriefForActivity(
       console.warn("follow-up insert failed; debrief already persisted", followErr);
     } else {
       followUpId = (followRow as { id: string }).id;
+    }
+  }
+
+  // Best-effort Strava description append. Public-facing guerrilla
+  // marketing surface: Casey's verdict + signature land at the tail of
+  // the athlete's Strava description so anyone reading their feed sees
+  // the line. Wrapped so any failure (Strava down, scope missing,
+  // mock connection) never surfaces as a debrief failure. Idempotent
+  // via the helper's tail-check, so webhook retries and force-regen
+  // don't double-append.
+  if (outcome.stravaBlurb && ctx.activity.strava_id != null) {
+    try {
+      const appended = `${outcome.stravaBlurb}\n\n${STRAVA_BLURB_SIGNATURE}`;
+      const result = await updateActivityDescriptionAppend(
+        athleteId,
+        ctx.activity.strava_id,
+        appended,
+      );
+      if (result.kind === "error") {
+        console.warn(
+          `strava description update failed for activity ${activityId}: ${result.message}`,
+          { status: result.status },
+        );
+      }
+    } catch (err) {
+      console.warn("strava description update threw", err);
     }
   }
 

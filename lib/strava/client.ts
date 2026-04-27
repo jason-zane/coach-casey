@@ -28,7 +28,11 @@ export function stravaAuthorizeUrl(state: string): string {
     redirect_uri: redirect,
     response_type: "code",
     approval_prompt: "auto",
-    scope: "read,activity:read_all,profile:read_all",
+    // `activity:write` is required to append Casey's verdict line to the
+    // athlete's activity description after each debrief. Existing connections
+    // predating this scope keep working for read; the description-write path
+    // no-ops until the athlete reconnects with the broader scope.
+    scope: "read,activity:read_all,activity:write,profile:read_all",
     state,
   });
   return `${STRAVA_AUTH_BASE}/authorize?${params.toString()}`;
@@ -212,4 +216,84 @@ export async function fetchActivityDetail(
     );
   }
   return res.json();
+}
+
+export type UpdateActivityDescriptionResult =
+  | { kind: "ok" }
+  | { kind: "skip"; reason: "mock_connection" | "no_connection" | "missing_scope" }
+  | { kind: "error"; status: number | null; message: string };
+
+/**
+ * Append-safe Strava activity description update. Reads the current
+ * description, no-ops if our blurb is already present (idempotency under
+ * webhook retries and debrief regeneration), and otherwise PUTs the
+ * combined text.
+ *
+ * Failures are returned, not thrown, so the caller can fire-and-forget
+ * this from the debrief commit path without risking the debrief itself.
+ *
+ * Athletes connected before `activity:write` was added to our OAuth
+ * scope will see a 401 from Strava; we map that to `missing_scope` and
+ * skip silently. They'll get the description appended once they
+ * reconnect.
+ */
+export async function updateActivityDescriptionAppend(
+  athleteId: string,
+  stravaActivityId: number,
+  appended: string,
+): Promise<UpdateActivityDescriptionResult> {
+  let token: string;
+  try {
+    token = await getValidAccessToken(athleteId);
+  } catch (err) {
+    const msg = (err as Error).message ?? "";
+    if (msg.includes("Mock connection")) return { kind: "skip", reason: "mock_connection" };
+    if (msg.includes("No Strava connection")) return { kind: "skip", reason: "no_connection" };
+    return { kind: "error", status: null, message: msg };
+  }
+
+  // Read current description so we append rather than replace whatever the
+  // athlete (or another tool) wrote there.
+  const getRes = await fetch(
+    `${STRAVA_API_BASE}/activities/${stravaActivityId}?include_all_efforts=false`,
+    { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
+  );
+  if (!getRes.ok) {
+    if (getRes.status === 401) return { kind: "skip", reason: "missing_scope" };
+    return {
+      kind: "error",
+      status: getRes.status,
+      message: `Strava get-for-update ${stravaActivityId} failed`,
+    };
+  }
+  const current = (await getRes.json()) as { description?: string | null };
+  const existing = (current.description ?? "").replace(/\s+$/, "");
+
+  // Idempotency: if our exact appended block is already at the tail, skip.
+  if (existing.endsWith(appended.trim())) return { kind: "ok" };
+
+  const next = existing.length > 0 ? `${existing}\n\n${appended}` : appended;
+
+  const putRes = await fetch(
+    `${STRAVA_API_BASE}/activities/${stravaActivityId}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ description: next }),
+      cache: "no-store",
+    },
+  );
+  if (!putRes.ok) {
+    if (putRes.status === 401) return { kind: "skip", reason: "missing_scope" };
+    const body = await putRes.text();
+    return {
+      kind: "error",
+      status: putRes.status,
+      message: `Strava PUT ${stravaActivityId} failed: ${body}`,
+    };
+  }
+  return { kind: "ok" };
 }
