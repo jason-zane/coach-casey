@@ -1,7 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 import { saveAboutYou } from "@/app/actions/about-you";
+import {
+  FieldLabel,
+  Input,
+  PrimaryButton,
+  StepFooter,
+} from "@/app/onboarding/_components/form";
+import { DobInput } from "@/app/onboarding/_components/dob-input";
 
 type Sex = "M" | "F" | "X";
 
@@ -38,6 +45,7 @@ export function AboutYouForm({
   );
   const [dob, setDob] = useState<string>(initialDob ?? "");
   const [pending, startTransition] = useTransition();
+  const handleDobChange = useCallback((iso: string) => setDob(iso), []);
 
   function submit() {
     startTransition(async () => {
@@ -62,26 +70,15 @@ export function AboutYouForm({
       )}
 
       <div className="space-y-2">
-        <label
-          htmlFor="dob"
-          className="font-mono text-xs uppercase tracking-wider text-ink-subtle"
-        >
-          Date of birth
-        </label>
-        <input
-          id="dob"
-          type="date"
-          value={dob}
-          onChange={(e) => setDob(e.target.value)}
-          className="w-full rounded-md border border-rule bg-surface px-3 py-3 font-sans text-base text-ink outline-none transition-colors focus:border-accent"
-        />
+        <FieldLabel htmlFor="dob">Date of birth</FieldLabel>
+        <DobInput id="dob" value={dob} onChange={handleDobChange} />
       </div>
 
       <div className="space-y-2">
-        <p className="font-mono text-xs uppercase tracking-wider text-ink-subtle">
+        <p className="font-sans text-sm text-ink-muted">
           Sex
           {initialSex && (
-            <span className="ml-2 normal-case tracking-normal text-ink-subtle">
+            <span className="ml-2 text-ink-subtle">
               · pulled from Strava, edit if needed
             </span>
           )}
@@ -92,7 +89,7 @@ export function AboutYouForm({
               key={opt.value}
               type="button"
               onClick={() => setSex(opt.value)}
-              className={`flex-1 rounded-md border px-4 py-3 font-sans text-sm transition-colors ${
+              className={`flex-1 rounded-md border px-4 py-2.5 font-sans text-sm transition-colors ${
                 sex === opt.value
                   ? "border-accent bg-accent/10 text-ink"
                   : "border-rule text-ink hover:border-rule-strong"
@@ -105,16 +102,10 @@ export function AboutYouForm({
       </div>
 
       <div className="space-y-2">
-        <label
-          htmlFor="weight"
-          className="font-mono text-xs uppercase tracking-wider text-ink-subtle"
-        >
+        <FieldLabel htmlFor="weight" hint="· optional">
           Weight (kg)
-          <span className="ml-2 normal-case tracking-normal text-ink-subtle">
-            · optional
-          </span>
-        </label>
-        <input
+        </FieldLabel>
+        <Input
           id="weight"
           type="number"
           inputMode="decimal"
@@ -124,20 +115,21 @@ export function AboutYouForm({
           value={weightKg}
           onChange={(e) => setWeightKg(e.target.value)}
           placeholder="e.g. 75"
-          className="w-full rounded-md border border-rule bg-surface px-3 py-3 font-sans text-base text-ink placeholder:text-ink-subtle outline-none transition-colors focus:border-accent"
         />
       </div>
 
-      <div className="flex items-center justify-end pt-2">
-        <button
+      <StepFooter>
+        <span />
+        <PrimaryButton
           type="button"
           onClick={submit}
           disabled={!canSubmit}
-          className="rounded-md bg-accent px-5 py-2.5 font-sans text-sm text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50"
+          loading={pending}
+          loadingLabel="Saving…"
         >
-          {pending ? "Saving…" : "Continue"}
-        </button>
-      </div>
+          Continue
+        </PrimaryButton>
+      </StepFooter>
     </div>
   );
 }

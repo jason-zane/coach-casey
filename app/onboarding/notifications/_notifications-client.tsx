@@ -8,6 +8,10 @@ import {
   skipNotifications,
   subscribePush,
 } from "@/app/actions/push";
+import {
+  GhostButton,
+  PrimaryButton,
+} from "@/app/onboarding/_components/form";
 
 type Props = {
   platform: MobilePlatform;
@@ -263,22 +267,17 @@ function ReadyToTurnOn({
         and a weekly review on Sundays. Nothing else from me.
       </p>
       <div className="flex flex-wrap items-center gap-4">
-        <button
+        <PrimaryButton
           type="button"
           onClick={onAccept}
-          disabled={pending}
-          className="rounded-md bg-accent px-5 py-2.5 font-sans text-sm text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50"
+          loading={pending}
+          loadingLabel="Turning on…"
         >
-          {pending ? "Turning on…" : "Turn on notifications"}
-        </button>
-        <button
-          type="button"
-          onClick={onSkip}
-          disabled={pending}
-          className="font-sans text-sm text-ink-muted underline-offset-4 hover:underline"
-        >
+          Turn on notifications
+        </PrimaryButton>
+        <GhostButton type="button" onClick={onSkip} disabled={pending}>
           Not now
-        </button>
+        </GhostButton>
       </div>
     </div>
   );
@@ -297,14 +296,14 @@ function SubscribedNotice({
         You should have just felt one. That&rsquo;s the only one I&rsquo;ll send
         without something to say.
       </p>
-      <button
+      <PrimaryButton
         type="button"
         onClick={onContinue}
-        disabled={pending}
-        className="rounded-md bg-accent px-5 py-2.5 font-sans text-sm text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50"
+        loading={pending}
+        loadingLabel="Continuing…"
       >
-        {pending ? "Continuing…" : "Continue"}
-      </button>
+        Continue
+      </PrimaryButton>
     </div>
   );
 }
@@ -323,14 +322,14 @@ function BlockedNotice({
         can enable them later from your browser&rsquo;s site settings if you
         change your mind.
       </p>
-      <button
+      <PrimaryButton
         type="button"
         onClick={onSkip}
-        disabled={pending}
-        className="rounded-md bg-accent px-5 py-2.5 font-sans text-sm text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50"
+        loading={pending}
+        loadingLabel="Continuing…"
       >
-        {pending ? "Continuing…" : "Continue without"}
-      </button>
+        Continue without
+      </PrimaryButton>
     </div>
   );
 }
@@ -349,14 +348,14 @@ function UnsupportedNotice({
         Casey in a recent version of Chrome, Safari, or Firefox to turn them
         on later.
       </p>
-      <button
+      <PrimaryButton
         type="button"
         onClick={onSkip}
-        disabled={pending}
-        className="rounded-md bg-accent px-5 py-2.5 font-sans text-sm text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50"
+        loading={pending}
+        loadingLabel="Continuing…"
       >
-        {pending ? "Continuing…" : "Continue"}
-      </button>
+        Continue
+      </PrimaryButton>
     </div>
   );
 }
@@ -375,14 +374,14 @@ function IOSNeedsInstallNotice({
         screen. Add it from the previous step (or from Safari&rsquo;s share
         sheet later) and notifications will work from there.
       </p>
-      <button
+      <PrimaryButton
         type="button"
         onClick={onSkip}
-        disabled={pending}
-        className="rounded-md bg-accent px-5 py-2.5 font-sans text-sm text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50"
+        loading={pending}
+        loadingLabel="Continuing…"
       >
-        {pending ? "Continuing…" : "Continue"}
-      </button>
+        Continue
+      </PrimaryButton>
     </div>
   );
 }
@@ -399,14 +398,14 @@ function ErrorNotice({
   return (
     <div className="space-y-6">
       <p className="font-sans text-sm text-ink-muted">{message}</p>
-      <button
+      <PrimaryButton
         type="button"
         onClick={onSkip}
-        disabled={pending}
-        className="rounded-md bg-accent px-5 py-2.5 font-sans text-sm text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50"
+        loading={pending}
+        loadingLabel="Continuing…"
       >
-        {pending ? "Continuing…" : "Skip for now"}
-      </button>
+        Skip for now
+      </PrimaryButton>
     </div>
   );
 }

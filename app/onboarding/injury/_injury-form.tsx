@@ -2,6 +2,12 @@
 
 import { useRef, useState, useTransition } from "react";
 import { saveInjury, skipInjury } from "@/app/actions/injury";
+import {
+  GhostButton,
+  PrimaryButton,
+  StepFooter,
+  Textarea,
+} from "@/app/onboarding/_components/form";
 
 const CHIPS = [
   "calf",
@@ -52,13 +58,12 @@ export function InjuryForm() {
 
   return (
     <div className="space-y-5">
-      <textarea
+      <Textarea
         ref={ref}
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={6}
         placeholder="Nothing right now, or something like: tight right calf since last Sunday's long run, easing off it but not stopping."
-        className="w-full rounded-md border border-rule bg-surface px-3 py-3 font-sans text-sm text-ink placeholder:text-ink-subtle outline-none transition-colors focus:border-accent"
       />
 
       <div className="space-y-2">
@@ -83,24 +88,19 @@ export function InjuryForm() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-2">
-        <button
-          type="button"
-          onClick={skip}
-          disabled={pending}
-          className="font-sans text-sm text-ink-muted underline-offset-4 hover:underline"
-        >
+      <StepFooter>
+        <GhostButton type="button" onClick={skip} disabled={pending}>
           Nothing to report
-        </button>
-        <button
+        </GhostButton>
+        <PrimaryButton
           type="button"
           onClick={submit}
-          disabled={pending}
-          className="rounded-md bg-accent px-5 py-2.5 font-sans text-sm text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50"
+          loading={pending}
+          loadingLabel="Saving…"
         >
-          {pending ? "Saving\u2026" : "Continue"}
-        </button>
-      </div>
+          Continue
+        </PrimaryButton>
+      </StepFooter>
     </div>
   );
 }

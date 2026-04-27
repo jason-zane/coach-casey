@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { detectMobilePlatform } from "@/lib/onboarding/steps";
 import { isPushConfigured } from "@/lib/push/keys";
+import { StepHeader } from "@/app/onboarding/_components/form";
 import { NotificationsClient } from "./_notifications-client";
 
 export default async function NotificationsStepPage() {
@@ -11,19 +12,17 @@ export default async function NotificationsStepPage() {
 
   return (
     <div className="space-y-10">
-      <header className="space-y-4">
-        <p className="font-mono text-xs uppercase tracking-wider text-ink-subtle">
-          One ping when it matters
-        </p>
-        <h1 className="font-serif text-3xl leading-tight text-ink md:text-4xl">
-          A short note when a debrief lands.
-        </h1>
-        <p className="prose-serif text-ink-muted max-w-prose">
-          Finish a run. A few minutes later, your phone buzzes once. Open the
-          notification, read the debrief, get on with your day. No stream of
-          alerts, no streaks, no nudges. Just the moments that earn it.
-        </p>
-      </header>
+      <StepHeader
+        eyebrow="One ping when it matters"
+        title="A short note when a debrief lands."
+        description={
+          <>
+            Finish a run. A few minutes later, your phone buzzes once. Open the
+            notification, read the debrief, get on with your day. No stream of
+            alerts, no streaks, no nudges. Just the moments that earn it.
+          </>
+        }
+      />
 
       <NotificationsClient
         platform={platform}

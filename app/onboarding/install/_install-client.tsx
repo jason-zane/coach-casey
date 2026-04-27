@@ -3,6 +3,10 @@
 import { useEffect, useState, useTransition } from "react";
 import type { MobilePlatform } from "@/lib/onboarding/steps";
 import { markInstalledAndAdvance, skipInstall } from "@/app/actions/install";
+import {
+  GhostButton,
+  PrimaryButton,
+} from "@/app/onboarding/_components/form";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -60,35 +64,30 @@ export function InstallClient({ platform }: { platform: MobilePlatform }) {
 
       <div className="flex flex-wrap items-center gap-4">
         {platform === "android-chrome" && deferred ? (
-          <button
+          <PrimaryButton
             type="button"
             onClick={triggerNativeInstall}
-            disabled={pending}
-            className="rounded-md bg-accent px-5 py-2.5 font-sans text-sm text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50"
+            loading={pending}
+            loadingLabel="Installing\u2026"
           >
-            {pending ? "Installing\u2026" : "Install"}
-          </button>
+            Install
+          </PrimaryButton>
         ) : platform === "ios-safari" ? (
-          <button
+          <PrimaryButton
             type="button"
             onClick={assumeInstalled}
-            disabled={pending}
-            className="rounded-md bg-accent px-5 py-2.5 font-sans text-sm text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50"
+            loading={pending}
+            loadingLabel="Continuing\u2026"
           >
-            {pending ? "Continuing\u2026" : "I've added it"}
-          </button>
+            I&rsquo;ve added it
+          </PrimaryButton>
         ) : null}
 
-        <button
-          type="button"
-          onClick={skip}
-          disabled={pending}
-          className="font-sans text-sm text-ink-muted underline-offset-4 hover:underline"
-        >
+        <GhostButton type="button" onClick={skip} disabled={pending}>
           {platform === "ios-chrome" || platform === "ios-firefox"
             ? "Skip for now"
             : "Not now"}
-        </button>
+        </GhostButton>
       </div>
 
       {installed ? (
