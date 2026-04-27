@@ -886,19 +886,25 @@ export function HomeSurface({
       <div
         className="relative z-10"
         style={{
-          // Translate the composer up by the keyboard inset so it sits just
-          // above the on-screen keyboard. The MenuBar below is intentionally
-          // left in place — the keyboard hides it, which is what we want.
+          // iOS PWA's default `interactive-widget=overlays-content` slides the
+          // keyboard over the bottom of the layout without resizing it. We
+          // translate the composer up by the keyboard's height so it sits just
+          // above the keyboard, and conditionally drop the MenuBar entirely
+          // while the keyboard is open — it's hidden behind the keyboard
+          // anyway and removing it kills the visual jitter the athlete
+          // otherwise sees as the menu icons "rising" with the keyboard.
           transform: keyboardInset > 0 ? `translateY(-${keyboardInset}px)` : undefined,
           transition: "transform 120ms ease-out",
         }}
       >
         <Composer onSend={send} disabled={streamText !== null || thinking} />
       </div>
-      <MenuBar
-        onOpenCalendar={() => setCalendarOpen(true)}
-        onOpenSearch={() => setSearchOpen(true)}
-      />
+      {keyboardInset === 0 && (
+        <MenuBar
+          onOpenCalendar={() => setCalendarOpen(true)}
+          onOpenSearch={() => setSearchOpen(true)}
+        />
+      )}
 
       <CalendarPicker
         threadId={threadId}

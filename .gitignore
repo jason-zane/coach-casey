@@ -40,6 +40,9 @@ yarn-error.log*
 # claude code local skills (wizard-dropped, kept local only)
 .claude/
 
+# playwright mcp session output (local debug only)
+.playwright-mcp/
+
 # pnpm user-local config (machine-specific paths)
 .npmrc
 

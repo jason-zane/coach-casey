@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { signOut } from "@/app/actions/auth";
+import Link from "next/link";
+import { useRef, useState } from "react";
 
 type Props = {
   onOpenCalendar: () => void;
@@ -74,12 +74,16 @@ function IconSearch() {
   );
 }
 
-function IconMenu() {
+function IconAthlete() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
-      <circle cx="4.5" cy="10" r="1.3" fill="currentColor" />
-      <circle cx="10" cy="10" r="1.3" fill="currentColor" />
-      <circle cx="15.5" cy="10" r="1.3" fill="currentColor" />
+      <circle cx="10" cy="7" r="3" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M4 17c0-3 2.7-5 6-5s6 2 6 5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -118,16 +122,11 @@ function HintArrow({ direction }: { direction: "left" | "right" }) {
 }
 
 export function MenuBar({ onOpenCalendar, onOpenSearch }: Props) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  // Lazy initialiser so the SSR render and first client render both see the
-  // same "no hint history" default; we re-read from localStorage on first
-  // interaction below. Matches the set-state-in-effect guidance.
   const [hintCounts, setHintCounts] = useState<HintCounts>({
     calendar: 0,
     search: 0,
   });
   const hydratedRef = useRef(false);
-  const menuRef = useRef<HTMLDivElement | null>(null);
 
   function ensureHydrated(): HintCounts {
     if (hydratedRef.current) return hintCounts;
@@ -136,17 +135,6 @@ export function MenuBar({ onOpenCalendar, onOpenSearch }: Props) {
     setHintCounts(fromStore);
     return fromStore;
   }
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    function onDocClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
-  }, [menuOpen]);
 
   function handleCalendar() {
     const base = ensureHydrated();
@@ -188,59 +176,18 @@ export function MenuBar({ onOpenCalendar, onOpenSearch }: Props) {
         <IconSearch />
         {hintCounts.search < HINT_MAX && <HintArrow direction="right" />}
       </button>
-      <div className="relative" ref={menuRef}>
-        <button
-          type="button"
-          onClick={() => setMenuOpen((v) => !v)}
-          aria-label="Menu"
-          aria-expanded={menuOpen}
-          className="h-11 w-11 grid place-items-center text-ink-muted"
-        >
-          <IconMenu />
-        </button>
-        {menuOpen && (
-          <div
-            role="menu"
-            className="absolute right-0 bottom-12 w-48 bg-surface border border-rule rounded-md shadow-lg py-1 text-[14px]"
-          >
-            <a
-              href="/app/settings"
-              role="menuitem"
-              className="block w-full text-left px-3 py-2 hover:bg-rule/40 text-ink"
-            >
-              Settings
-            </a>
-            <form action={signOut}>
-              <button
-                type="submit"
-                role="menuitem"
-                className="w-full text-left px-3 py-2 hover:bg-rule/40 text-ink"
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
-        )}
-      </div>
+      <Link
+        href="/app/athlete"
+        aria-label="Athlete page"
+        className="h-11 w-11 grid place-items-center text-ink-muted"
+      >
+        <IconAthlete />
+      </Link>
     </nav>
   );
 }
 
 export function DesktopControls({ onOpenCalendar, onOpenSearch }: Props) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    function onDocClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
-  }, [menuOpen]);
-
   return (
     <div className="hidden sm:flex items-center gap-1">
       <button
@@ -261,40 +208,14 @@ export function DesktopControls({ onOpenCalendar, onOpenSearch }: Props) {
       >
         <IconSearch />
       </button>
-      <div className="relative" ref={menuRef}>
-        <button
-          type="button"
-          onClick={() => setMenuOpen((v) => !v)}
-          aria-label="Menu"
-          aria-expanded={menuOpen}
-          className="h-9 w-9 grid place-items-center text-ink-muted hover:text-ink rounded-sm"
-        >
-          <IconMenu />
-        </button>
-        {menuOpen && (
-          <div
-            role="menu"
-            className="absolute right-0 top-10 w-48 bg-surface border border-rule rounded-md shadow-lg py-1 text-[14px] z-10"
-          >
-            <a
-              href="/app/settings"
-              role="menuitem"
-              className="block w-full text-left px-3 py-2 hover:bg-rule/40 text-ink"
-            >
-              Settings
-            </a>
-            <form action={signOut}>
-              <button
-                type="submit"
-                role="menuitem"
-                className="w-full text-left px-3 py-2 hover:bg-rule/40 text-ink"
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
-        )}
-      </div>
+      <Link
+        href="/app/athlete"
+        aria-label="Athlete page"
+        title="Athlete page"
+        className="h-9 w-9 grid place-items-center text-ink-muted hover:text-ink rounded-sm"
+      >
+        <IconAthlete />
+      </Link>
     </div>
   );
 }
