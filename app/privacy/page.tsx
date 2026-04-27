@@ -49,11 +49,11 @@ export default function PrivacyPage() {
 
           <Section title="Who we are">
             <p>
-              Coach Casey is operated by Jason Hunt (sole trader), based in
-              Sydney, Australia. For privacy enquiries, deletion requests, or
-              questions about this policy, contact{" "}
-              <a className="link" href="mailto:privacy@coachcasey.app">
-                privacy@coachcasey.app
+              Coach Casey is operated by Jason Hunt, based in Sydney,
+              Australia. For privacy enquiries, deletion requests,
+              questions about this policy, or anything else, contact{" "}
+              <a className="link" href="mailto:hello@coachcasey.com">
+                hello@coachcasey.com
               </a>
               .
             </p>
@@ -144,9 +144,8 @@ export default function PrivacyPage() {
               <li>
                 <strong>Generate your debriefs and replies.</strong> Your
                 runs, plan, and recent conversation context are sent to a
-                large language model (Anthropic Claude, with OpenAI used for
-                some narrower tasks) to produce the response. See &ldquo;AI
-                models&rdquo; below.
+                large language model (Anthropic Claude) to produce the
+                response. See &ldquo;AI models&rdquo; below.
               </li>
               <li>
                 <strong>Operate the service.</strong> Authenticating you,
@@ -168,43 +167,27 @@ export default function PrivacyPage() {
 
           <Section title="AI models — and what we don't do">
             <p>
-              Coach Casey uses third-party large language models at inference
-              time to write debriefs and respond in chat. Specifically:
-            </p>
-            <ul>
-              <li>
-                <strong>Anthropic</strong> (Claude) — primary model for
-                debriefs and chat.
-              </li>
-              <li>
-                <strong>OpenAI</strong> — used for narrower tasks (e.g.
-                embeddings, certain classifications).
-              </li>
-            </ul>
-            <p>
-              When we call these APIs, only the data needed for that specific
-              response is included. Both providers are configured under their
-              standard zero-data-retention or short-retention enterprise
-              terms, and neither is permitted to train models on your data.
-              You can read their published policies:{" "}
+              Coach Casey uses Anthropic&apos;s Claude models at inference
+              time to write debriefs and respond in chat. When we call the
+              API, only the data needed for that specific response is
+              included. Anthropic is configured under standard
+              zero-data-retention terms, and is not permitted to train
+              models on your data. You can read their published policy at{" "}
               <a
                 className="link"
                 href="https://www.anthropic.com/privacy"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Anthropic
-              </a>
-              ,{" "}
-              <a
-                className="link"
-                href="https://openai.com/policies/api-data-usage-policies"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                OpenAI
+                anthropic.com/privacy
               </a>
               .
+            </p>
+            <p>
+              We use Langfuse to monitor and debug the AI calls (latency,
+              cost, prompt versions). Langfuse stores trace metadata
+              short-term so we can find regressions; this never includes
+              raw Strava data and is never used for model training.
             </p>
             <p>
               <strong>We never train AI models on your data.</strong> Strava
@@ -242,9 +225,8 @@ export default function PrivacyPage() {
               </a>
               . Some serverless functions may execute in regions outside
               Australia for latency reasons; the canonical store of your data
-              remains in Sydney. AI model calls are routed to the relevant
-              provider (Anthropic, OpenAI), which may process the request in
-              the United States.
+              remains in Sydney. AI model calls are routed to Anthropic,
+              which may process the request in the United States.
             </p>
             <p>
               By using Coach Casey you consent to these international
@@ -269,12 +251,14 @@ export default function PrivacyPage() {
               <li>
                 <strong>Account deletion</strong> — when you delete your
                 account, your data is soft-deleted immediately and hard-
-                deleted within 30 days. Backups are purged within 90 days.
-                Aggregated, fully de-identified statistics may be retained.
+                deleted within 30 days. Backups roll off in line with our
+                hosting provider&apos;s standard retention. Aggregated,
+                fully de-identified statistics may be retained.
               </li>
               <li>
-                <strong>Logs</strong> — operational logs are retained for up
-                to 30 days for debugging and security.
+                <strong>Logs</strong> — operational logs are kept short-term
+                for debugging and security, in line with our hosting
+                providers&apos; default retention.
               </li>
             </ul>
           </Section>
@@ -296,21 +280,25 @@ export default function PrivacyPage() {
                 compute.
               </li>
               <li>
-                <strong>Anthropic, OpenAI</strong> — AI inference (see
-                &ldquo;AI models&rdquo;).
+                <strong>Anthropic</strong> — AI inference (see &ldquo;AI
+                models&rdquo;).
               </li>
               <li>
-                <strong>Stripe</strong> — payments, if and when you
-                subscribe. Stripe is the controller of payment-method data;
-                we never see your card number.
+                <strong>Langfuse</strong> — observability for the AI
+                calls (latency, cost, prompt versions).
               </li>
               <li>
-                <strong>PostHog, Sentry</strong> — pseudonymous product
-                analytics and error monitoring.
+                <strong>PostHog</strong> — pseudonymous product analytics.
               </li>
               <li>
-                <strong>Resend / similar</strong> — transactional email
-                (sign-in, account notices).
+                <strong>Resend</strong> — transactional email (sign-in,
+                account notices).
+              </li>
+              <li>
+                <strong>Stripe</strong> (future) — when paid plans launch,
+                Stripe will process payments. The trial doesn&apos;t
+                require any payment details, so no card data is collected
+                today.
               </li>
             </ul>
             <p>
@@ -327,8 +315,8 @@ export default function PrivacyPage() {
               practical effect is the same: you can see, correct, export, or
               delete your data, and disconnect Strava, at any time. To
               exercise any of these rights, email{" "}
-              <a className="link" href="mailto:privacy@coachcasey.app">
-                privacy@coachcasey.app
+              <a className="link" href="mailto:hello@coachcasey.com">
+                hello@coachcasey.com
               </a>{" "}
               or use the controls inside Coach Casey&apos;s settings page.
             </p>
@@ -406,8 +394,8 @@ export default function PrivacyPage() {
               comprehensive privacy laws have analogous rights, which we
               honour on the same basis. To exercise any of these rights,
               email{" "}
-              <a className="link" href="mailto:privacy@coachcasey.app">
-                privacy@coachcasey.app
+              <a className="link" href="mailto:hello@coachcasey.com">
+                hello@coachcasey.com
               </a>{" "}
               with the subject line &ldquo;Privacy Request&rdquo;. We will
               verify your identity (typically by replying to the email
@@ -449,8 +437,8 @@ export default function PrivacyPage() {
             <p>
               To delete your account, use{" "}
               <strong>Settings &rsaquo; Delete account</strong>, or email{" "}
-              <a className="link" href="mailto:privacy@coachcasey.app">
-                privacy@coachcasey.app
+              <a className="link" href="mailto:hello@coachcasey.com">
+                hello@coachcasey.com
               </a>
               . We will soft-delete immediately (you&apos;re signed out and
               can no longer sign back in) and hard-delete within 30 days.
@@ -464,8 +452,8 @@ export default function PrivacyPage() {
               security policies, and least-privilege service credentials. No
               system is impenetrable, but we take this seriously. If you
               believe you&apos;ve found a vulnerability, please email{" "}
-              <a className="link" href="mailto:security@coachcasey.app">
-                security@coachcasey.app
+              <a className="link" href="mailto:hello@coachcasey.com">
+                hello@coachcasey.com
               </a>
               .
             </p>
@@ -493,20 +481,12 @@ export default function PrivacyPage() {
 
           <Section title="Contact">
             <p>
-              <strong>Privacy enquiries:</strong>{" "}
-              <a className="link" href="mailto:privacy@coachcasey.app">
-                privacy@coachcasey.app
+              For privacy enquiries, security disclosures, or anything else,
+              email{" "}
+              <a className="link" href="mailto:hello@coachcasey.com">
+                hello@coachcasey.com
               </a>
-              <br />
-              <strong>Security disclosures:</strong>{" "}
-              <a className="link" href="mailto:security@coachcasey.app">
-                security@coachcasey.app
-              </a>
-              <br />
-              <strong>General:</strong>{" "}
-              <a className="link" href="mailto:hello@coachcasey.app">
-                hello@coachcasey.app
-              </a>
+              .
             </p>
           </Section>
         </article>
