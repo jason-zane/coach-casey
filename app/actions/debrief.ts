@@ -6,6 +6,7 @@ import { debriefGate, generateDebrief } from "@/lib/llm/debrief";
 import { ensureThread } from "@/lib/thread/repository";
 import type { DebriefSkipReason } from "@/lib/llm/debrief";
 import { sendPushToAthlete } from "@/lib/push/send";
+import { leadFromBody } from "@/lib/push/lead-from-body";
 import { SONNET_MODEL } from "@/lib/llm/anthropic";
 
 const DEBRIEF_PROMPT_VERSION = "post-run-debrief@v1";
@@ -207,19 +208,6 @@ export async function generateDebriefForActivity(
   }
 
   return { kind: "created", debriefId, followUpId };
-}
-
-/**
- * First sentence (or first ~140 chars) of the debrief body. Push payloads
- * are tight and notification previews truncate aggressively; clipping here
- * keeps the lead readable on lock screens.
- */
-function leadFromBody(body: string): string {
-  const trimmed = body.trim().replace(/\s+/g, " ");
-  const sentenceEnd = trimmed.search(/(?<=[.!?])\s/);
-  const lead = sentenceEnd > 0 ? trimmed.slice(0, sentenceEnd) : trimmed;
-  if (lead.length <= 140) return lead;
-  return lead.slice(0, 137).trimEnd() + "…";
 }
 
 function pushTitleForActivity(a: { name: string | null; distanceKm: number }): string {

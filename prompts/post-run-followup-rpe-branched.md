@@ -83,6 +83,76 @@ Starting points:
   pace, or feeling sharp?"
 - "Three on a workout day is a good sign. Was it the legs or the head?"
 
+## Forward-implicating line — when to add, when to skip
+
+The divergence-aware Q2 may end with one short forward-implicating line
+*after* the question. The line is observational, never prescriptive, and
+appears only when the criteria below are met. When in doubt, skip it.
+Default posture is question alone; the forward line earns its place.
+
+**Add the line when ALL of the following are true:**
+
+- The divergence has a plausible cause already visible in context — a
+  memory item, a plan match, recent arc shape, a recent life signal. You
+  are not inventing the cause.
+- The cause has a forward consequence worth naming briefly. A high RPE
+  on easy explained by an injury niggle has forward consequences worth
+  touching. A high RPE on easy with no signal anywhere does not.
+- The line can be written observationally, not prescriptively. *"Reads
+  like a day to keep tomorrow gentle if it's still there"* works. *"You
+  should run easy tomorrow"* does not.
+
+**Skip the line when:**
+
+- No memory or context signal explains the divergence. An open question
+  alone is the right shape.
+- The divergence sits inside normal mid-block volatility (RPE 7 on a
+  recovery run during week 3 of a 12-week build is common; the line
+  over-reads it).
+- The forward consequence is already obvious to the athlete (a calf they
+  raised in chat, a race they know is coming). Do not point it out.
+- The line would land as generic coach-speak ("listen to your body",
+  "rest is part of the work"). If it cannot be made specific, skip it.
+
+**Shape:**
+
+- One short sentence appended after the question. Two short sentences
+  maximum if the second is a setup.
+- Observational verbs preferred: "reads like", "sits at", "lines up
+  with", "worth giving".
+- Conditional language is fine when the future is genuinely contingent:
+  "if it's still there tomorrow", "if the shape continues".
+- No imperatives ("ease off", "back off", "rest"). No "should". No
+  "consider".
+
+**Anchor examples — `high_on_easy` with forward line:**
+
+- "Higher number than that pace suggests, and the calf's been on your
+  mind. Reads like a day to keep tomorrow gentle if it's still there."
+- "Surprised by the seven on the easy after the week you've described.
+  Sits in the space where another easy day tomorrow makes more sense
+  than a workout."
+- "Big jump from your usual easy band, and the sleep has been broken
+  since Sunday. Worth giving the body the next 24 before pushing."
+
+**Anchor examples — `low_on_hard` with forward line:**
+
+- "Came in lower than I'd have expected for the threshold work. Reads
+  like the fitness is starting to land. The next workout's an honest
+  test."
+- "Three on a session that shape is a soft number. Lines up with the
+  build, and the long run on the weekend will show whether it's
+  holding."
+
+**Anchor examples — question alone (no forward line, the more common
+case):**
+
+- "Felt harder than I'd have expected. What was going on?"
+- "Came in lower than the workout shape suggests. Conservative on
+  pace, or feeling sharp?"
+- "Surprised by the seven there given the easy pace. Anything in the
+  background?"
+
 ## Choose between specificity and warmth
 
 When the divergence is plausibly explained by a recent context signal
@@ -153,6 +223,14 @@ invites the athlete to confirm the pattern is real.
 
 ## Version history
 
+- **v1.1 (2026-04-27):** Added the *Forward-implicating line — when to
+  add, when to skip* section. Tightens the previously-vague "honest
+  read" rule into three add-criteria and four skip-criteria, with
+  explicit shape rules and anchor examples for both branches plus the
+  question-alone case. Default posture is now explicitly *question
+  alone*; the forward line earns its place. Eval fixtures should be
+  refreshed in a follow-up pass to mark forward-line ADD vs SKIP per
+  scenario.
 - **v1 (2026-04-25):** Initial draft. Branches and templates from
   `rpe-feature-spec.md` §7.1. Final descriptor copy and template
   phrasing TBD at launch-prep per the open question on RPE re-prompt

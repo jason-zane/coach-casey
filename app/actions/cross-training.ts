@@ -10,6 +10,7 @@ import {
 import { SONNET_MODEL } from "@/lib/llm/anthropic";
 import { ensureThread } from "@/lib/thread/repository";
 import { sendPushToAthlete } from "@/lib/push/send";
+import { leadFromBody } from "@/lib/push/lead-from-body";
 import { shouldGenerateCrossTrainingAck } from "@/lib/strava/activity-types";
 
 /**
@@ -182,18 +183,6 @@ export async function generateCrossTrainingAckForActivity(
   }
 
   return { kind: "created", messageId, isSubstitution: outcome.isSubstitution };
-}
-
-/**
- * First sentence (or first ~140 chars) of the body. Push payloads are
- * tight; clipping here keeps the lead readable on lock screens.
- */
-function leadFromBody(body: string): string {
-  const trimmed = body.trim().replace(/\s+/g, " ");
-  const sentenceEnd = trimmed.search(/(?<=[.!?])\s/);
-  const lead = sentenceEnd > 0 ? trimmed.slice(0, sentenceEnd) : trimmed;
-  if (lead.length <= 140) return lead;
-  return lead.slice(0, 137).trimEnd() + "…";
 }
 
 function pushTitleForActivity(activityType: string | null): string {

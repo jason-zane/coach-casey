@@ -106,6 +106,20 @@ Items V1 will ship with, but which need specific design work closer to launch. L
 
 ---
 
+### [2026-04-26] — Pre-Casey programme ownership question (onboarding)
+
+**Question:** Onboarding doesn't currently ask who, if anyone, runs the athlete's training. Should it, and if so, what are the answer options and where in Phase 1 does it sit?
+
+**Why it matters:** This signal materially shapes how Coach Casey reads the existing arc and how the early debriefs position themselves. A human-coached athlete is being interpreted alongside someone they trust. An athlete on a static written plan needs Casey to read the plan. An athlete using another AI is comparing voices side by side. A self-directed athlete is the cleanest fit for Casey-as-primary. The opening posture of the first few debriefs and the "trust me yet?" cadence should differ across these. Without the question, every athlete is treated identically.
+
+**Status:** Open — not yet specified.
+
+**Trigger for closure:** Before Phase 1 onboarding flow is promoted from working draft to build spec.
+
+**Notes:** Candidate option set: human coach, written plan (coach-written, no live coach), generic plan (Pfitzinger / Hansons / off-the-shelf), AI assistant (Runna / similar), self-directed. Multi-select probable; "human coach" likely shifts downstream voice posture more than the others. Worth deciding alongside the "what's this race about" question above — both are Phase 1 single-shot structured questions with similar shape. Likely surfaces back as a memory item the chat and debriefs lean on ("coach has you on Pfitz 18/55, reading this through that lens").
+
+---
+
 ### [2026-04-23] — Ranked list of 10–14 structured context questions (Phase 2)
 
 **Question:** What are the specific 10–14 context questions that fire as post-run follow-ups in weeks 1–2, ranked by interpretive value?
