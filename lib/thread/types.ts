@@ -56,6 +56,46 @@ export function getMessageStravaId(message: Message): number | null {
   return null;
 }
 
+/**
+ * Activity stats mirrored onto debrief and cross-training messages so the
+ * thread renderer can show a consistent stat row (distance · time · pace ·
+ * HR) without re-querying activities on every render. All fields are
+ * optional — the renderer omits anything missing, which also means messages
+ * created before this metadata was added still render cleanly.
+ */
+export type MessageActivityStats = {
+  activityType: string | null;
+  distanceKm: number | null;
+  movingTimeS: number | null;
+  avgHr: number | null;
+};
+
+function numberOrNull(raw: unknown): number | null {
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+  return null;
+}
+
+export function getMessageActivityStats(message: Message): MessageActivityStats | null {
+  const kinds: MessageKind[] = [
+    "debrief",
+    "cross_training_ack",
+    "cross_training_substitution",
+  ];
+  if (!kinds.includes(message.kind)) return null;
+  const m = message.meta as {
+    activity_type?: unknown;
+    distance_km?: unknown;
+    moving_time_s?: unknown;
+    avg_hr?: unknown;
+  };
+  return {
+    activityType: typeof m.activity_type === "string" ? m.activity_type : null,
+    distanceKm: numberOrNull(m.distance_km),
+    movingTimeS: numberOrNull(m.moving_time_s),
+    avgHr: numberOrNull(m.avg_hr),
+  };
+}
+
 export type Thread = {
   id: string;
   athlete_id: string;

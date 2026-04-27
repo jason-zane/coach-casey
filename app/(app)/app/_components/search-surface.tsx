@@ -24,7 +24,7 @@ function labelForResult(r: SearchResult): string {
   if (r.kind === "activity") return "Run";
   switch (r.messageKind) {
     case "debrief":
-      return "Debrief";
+      return "Run";
     case "weekly_review":
       return "Weekly review";
     case "follow_up":

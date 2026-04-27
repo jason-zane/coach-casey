@@ -105,10 +105,18 @@ export async function generateDebriefForActivity(
 
   const threadId = await ensureThread(athleteId);
 
+  // Stats are mirrored into meta so the message renderer can show a
+  // consistent stat row (distance · time · pace · HR) without re-querying
+  // activities on render. Missing values are persisted as null and the
+  // renderer omits absent fields.
   const debriefMeta = {
     activity_id: activityId,
     activity_date: ctx.activity.date,
     strava_id: ctx.activity.strava_id,
+    activity_type: ctx.activity.activityType,
+    distance_km: ctx.activity.distanceKm,
+    moving_time_s: ctx.activity.movingTimeS,
+    avg_hr: ctx.activity.avgHr,
   };
 
   // Under `force`, the partial unique index would block re-inserting a

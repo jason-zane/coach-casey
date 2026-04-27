@@ -1,7 +1,8 @@
-import type { Message, MessageKind } from "@/lib/thread/types";
+import type { Message, MessageActivityStats, MessageKind } from "@/lib/thread/types";
 import {
   getDebriefActivityId,
   getDebriefRpe,
+  getMessageActivityStats,
   getMessageStravaId,
 } from "@/lib/thread/types";
 import { renderInlineCopy } from "./rich-text";
@@ -68,11 +69,17 @@ function weekOfLabel(iso: string): string {
 }
 
 // Maps the raw Strava activity_type (as stored on messages.meta.activity_type
-// for cross_training_ack / cross_training_substitution rows) to the display
-// label used in the thread eyebrow. Kept in lockstep with
-// `pushTitleForActivity` in app/actions/cross-training.ts.
-function crossTrainingLabel(activityType: unknown): string {
-  if (typeof activityType !== "string") return "Cross-training";
+// for debrief, cross_training_ack, and cross_training_substitution rows) to
+// the display label used in the thread eyebrow. Kept in lockstep with
+// `pushTitleForActivity` in app/actions/cross-training.ts. Run variants
+// (Run, TrailRun, VirtualRun) all collapse to "Run" so the eyebrow rhythm
+// stays consistent across activity types.
+function activityLabel(
+  activityType: unknown,
+  fallback: "Run" | "Cross-training" = "Cross-training",
+): string {
+  if (typeof activityType !== "string") return fallback;
+  if (/run/i.test(activityType)) return "Run";
   const map: Record<string, string> = {
     Ride: "Ride",
     VirtualRide: "Ride",
@@ -83,7 +90,106 @@ function crossTrainingLabel(activityType: unknown): string {
     Yoga: "Yoga",
     Pilates: "Pilates",
   };
-  return map[activityType] ?? "Cross-training";
+  return map[activityType] ?? fallback;
+}
+
+function formatPace(secPerKm: number): string {
+  const m = Math.floor(secPerKm / 60);
+  const s = Math.round(secPerKm % 60);
+  return `${m}:${String(s).padStart(2, "0")}/km`;
+}
+
+function formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) return `${h}h ${String(m).padStart(2, "0")}m`;
+  if (m > 0) return `${m}m`;
+  return `${Math.round(seconds)}s`;
+}
+
+function formatStatRow(stats: MessageActivityStats): string[] {
+  const parts: string[] = [];
+  const isRun = stats.activityType ? /run/i.test(stats.activityType) : false;
+  const isRide = stats.activityType
+    ? /ride/i.test(stats.activityType)
+    : false;
+
+  if (stats.distanceKm != null && stats.distanceKm >= 0.1) {
+    parts.push(`${stats.distanceKm.toFixed(1)} km`);
+  }
+  if (stats.movingTimeS != null && stats.movingTimeS > 0) {
+    parts.push(formatDuration(stats.movingTimeS));
+  }
+  if (
+    isRun &&
+    stats.distanceKm != null &&
+    stats.distanceKm > 0 &&
+    stats.movingTimeS != null &&
+    stats.movingTimeS > 0
+  ) {
+    parts.push(formatPace(stats.movingTimeS / stats.distanceKm));
+  } else if (
+    isRide &&
+    stats.distanceKm != null &&
+    stats.distanceKm > 0 &&
+    stats.movingTimeS != null &&
+    stats.movingTimeS > 0
+  ) {
+    const kmh = stats.distanceKm / (stats.movingTimeS / 3600);
+    parts.push(`${kmh.toFixed(1)} km/h`);
+  }
+  if (stats.avgHr != null && stats.avgHr > 0) {
+    parts.push(`${Math.round(stats.avgHr)} bpm`);
+  }
+  return parts;
+}
+
+/**
+ * Shared header used by debrief and cross-training rows. Renders, in order:
+ * accent line → activity label · date/time → stat row (distance · time ·
+ * pace · HR) → View on Strava attribution. The body and RPE prompt are
+ * rendered by the caller below this block so the read flows: identify →
+ * numbers → external link → Casey's reading → engagement.
+ */
+function ActivityHeader({
+  label,
+  createdAt,
+  trailing,
+  stats,
+  stravaId,
+}: {
+  label: string;
+  createdAt: string;
+  trailing?: React.ReactNode;
+  stats: MessageActivityStats | null;
+  stravaId: number | null;
+}) {
+  const statParts = stats ? formatStatRow(stats) : [];
+  return (
+    <div className="pt-1 space-y-2">
+      <div className="h-px w-8 bg-accent/70" aria-hidden />
+      <div
+        className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-muted"
+        suppressHydrationWarning
+        aria-hidden
+      >
+        {label} <span className="text-ink-subtle">·</span>{" "}
+        {formatDateLabel(createdAt)}
+        {trailing}
+      </div>
+      {statParts.length > 0 && (
+        <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-muted">
+          {statParts.map((part, i) => (
+            <span key={part}>
+              {i > 0 && <span className="text-ink-subtle"> · </span>}
+              {part}
+            </span>
+          ))}
+        </div>
+      )}
+      {stravaId !== null && <StravaAttribution stravaId={stravaId} />}
+    </div>
+  );
 }
 
 export function MessageBlock({ message, unread }: Props) {
@@ -121,33 +227,28 @@ export function MessageBlock({ message, unread }: Props) {
       const rpe = getDebriefRpe(message);
       const activityId = getDebriefActivityId(message);
       const stravaId = getMessageStravaId(message);
+      const stats = getMessageActivityStats(message);
+      // Debrief gate already restricts this kind to runs, so default the
+      // label when activity_type wasn't captured (older debriefs predate the
+      // meta field).
+      const label = activityLabel(stats?.activityType, "Run");
       return (
         <article
           data-kind={message.kind}
-          aria-label={`Coach Casey debrief: ${message.body}`}
+          aria-label={`Coach Casey ${label.toLowerCase()} debrief: ${message.body}`}
           className={`${wrapperBase} ${unreadRail} pl-4 sm:pl-5 space-y-4 max-w-[66ch]`}
         >
-          <div className="pt-1 space-y-2">
-            <div className="h-px w-8 bg-accent/70" aria-hidden />
-            <div
-              className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-muted"
-              suppressHydrationWarning
-              aria-hidden
-            >
-              Debrief <span className="text-ink-subtle">·</span>{" "}
-              {formatDateLabel(message.created_at)}
-            </div>
-          </div>
-          {rpe && activityId && (rpe.eligible || rpe.state.kind !== "unanswered") && (
-            <RpePrompt activityId={activityId} initial={rpe} />
-          )}
+          <ActivityHeader
+            label={label}
+            createdAt={message.created_at}
+            stats={stats}
+            stravaId={stravaId}
+          />
           <div className="prose-serif text-ink whitespace-pre-wrap break-words">
             {renderInlineCopy(message.body)}
           </div>
-          {stravaId !== null && (
-            <div className="pt-1">
-              <StravaAttribution stravaId={stravaId} />
-            </div>
+          {rpe && activityId && (rpe.eligible || rpe.state.kind !== "unanswered") && (
+            <RpePrompt activityId={activityId} initial={rpe} />
           )}
         </article>
       );
@@ -195,42 +296,33 @@ export function MessageBlock({ message, unread }: Props) {
 
     case "cross_training_ack":
     case "cross_training_substitution": {
-      const label = crossTrainingLabel(
-        (message.meta as { activity_type?: unknown }).activity_type,
-      );
+      const stats = getMessageActivityStats(message);
+      const label = activityLabel(stats?.activityType, "Cross-training");
       const isSubstitution = message.kind === "cross_training_substitution";
       const stravaId = getMessageStravaId(message);
       return (
         <article
           data-kind={message.kind}
           aria-label={`Coach Casey ${label.toLowerCase()} note: ${message.body}`}
-          className={`${wrapperBase} ${unreadRail} pl-4 sm:pl-5 space-y-3 max-w-[66ch]`}
+          className={`${wrapperBase} ${unreadRail} pl-4 sm:pl-5 space-y-4 max-w-[66ch]`}
         >
-          <div className="pt-1 space-y-2">
-            <div className="h-px w-8 bg-accent/70" aria-hidden />
-            <div
-              className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-muted"
-              suppressHydrationWarning
-              aria-hidden
-            >
-              {label} <span className="text-ink-subtle">·</span>{" "}
-              {formatDateLabel(message.created_at)}
-              {isSubstitution && (
+          <ActivityHeader
+            label={label}
+            createdAt={message.created_at}
+            stats={stats}
+            stravaId={stravaId}
+            trailing={
+              isSubstitution ? (
                 <>
                   {" "}
                   <span className="text-ink-subtle">·</span> instead of a run
                 </>
-              )}
-            </div>
-          </div>
+              ) : null
+            }
+          />
           <div className="prose-serif text-ink whitespace-pre-wrap break-words">
             {renderInlineCopy(message.body)}
           </div>
-          {stravaId !== null && (
-            <div className="pt-1">
-              <StravaAttribution stravaId={stravaId} />
-            </div>
-          )}
         </article>
       );
     }

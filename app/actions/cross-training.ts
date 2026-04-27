@@ -112,6 +112,10 @@ export async function generateCrossTrainingAckForActivity(
 
   const threadId = await ensureThread(athleteId);
 
+  // Stats are mirrored into meta so the message renderer can show a
+  // consistent stat row (distance · time · HR) without re-querying
+  // activities on render. Missing values are persisted as null and the
+  // renderer omits absent fields.
   const meta = {
     activity_id: activityId,
     activity_type: row.activity_type,
@@ -120,6 +124,12 @@ export async function generateCrossTrainingAckForActivity(
     pattern_description: ctx.pattern.description,
     is_substitution: outcome.isSubstitution,
     strava_id: row.strava_id,
+    distance_km: ctx.activity.distanceKm,
+    moving_time_s:
+      ctx.activity.durationMinutes != null
+        ? Math.round(ctx.activity.durationMinutes * 60)
+        : null,
+    avg_hr: ctx.activity.avgHr,
   };
 
   // Force regeneration replaces the existing row — same rule the debrief
