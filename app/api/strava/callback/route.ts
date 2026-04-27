@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { exchangeCodeForToken, isLiveMode } from "@/lib/strava/client";
+import {
+  exchangeCodeForToken,
+  fetchAthleteProfileWithToken,
+  isLiveMode,
+} from "@/lib/strava/client";
 
 export async function GET(request: Request) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
@@ -64,6 +68,49 @@ export async function GET(request: Request) {
       },
       { onConflict: "athlete_id" },
     );
+
+    // Pull sex + weight from Strava profile and seed the athlete row. The
+    // token response sometimes includes the athlete object inline, but it's
+    // not guaranteed across all Strava client versions, so do an explicit
+    // /athlete fetch. Failures here are non-fatal: we'd rather complete
+    // onboarding and pick up the data later (ingest backfill or the
+    // about-you step) than block the connect flow.
+    try {
+      const profile =
+        token.athlete && (token.athlete.sex || token.athlete.weight != null)
+          ? token.athlete
+          : await fetchAthleteProfileWithToken(token.access_token);
+
+      if (profile) {
+        const update: Record<string, unknown> = {};
+        // Only seed when our row is currently empty — never overwrite
+        // values the athlete may edit later in the about-you step.
+        const { data: current } = await admin
+          .from("athletes")
+          .select("sex, weight_kg")
+          .eq("id", athlete.id)
+          .single();
+        if (
+          !current?.sex &&
+          (profile.sex === "M" || profile.sex === "F" || profile.sex === "X")
+        ) {
+          update.sex = profile.sex;
+        }
+        if (
+          current?.weight_kg == null &&
+          typeof profile.weight === "number" &&
+          profile.weight > 20 &&
+          profile.weight < 250
+        ) {
+          update.weight_kg = profile.weight;
+        }
+        if (Object.keys(update).length > 0) {
+          await admin.from("athletes").update(update).eq("id", athlete.id);
+        }
+      }
+    } catch (e) {
+      console.warn("Strava /athlete profile seed failed (non-fatal)", e);
+    }
 
     // Don't run ingest inline — let the reading-state page do it behind
     // the designed loading moment. Keeps the callback fast so the browser

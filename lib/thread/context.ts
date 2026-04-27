@@ -5,6 +5,7 @@ import { classifyActivityType } from "@/lib/strava/activity-types";
 import { extractWorkoutType } from "@/lib/strava/ingest";
 import { classifyWorkout } from "@/lib/strava/workout-detect";
 import type { StravaLap } from "@/lib/strava/client";
+import { ageOnDate } from "./debrief-context";
 import type { Message } from "./types";
 
 /**
@@ -35,7 +36,11 @@ export async function buildChatContext(
 
   const [athleteRes, historyRes, activitiesRes, memoryRes, planRes, racesRes] =
     await Promise.all([
-      admin.from("athletes").select("id, display_name").eq("id", athleteId).single(),
+      admin
+        .from("athletes")
+        .select("id, display_name, sex, weight_kg, date_of_birth")
+        .eq("id", athleteId)
+        .single(),
       admin
         .from("messages")
         .select("id, thread_id, athlete_id, kind, body, meta, created_at")
@@ -147,9 +152,25 @@ export async function buildChatContext(
     goalTimeSeconds: r.goal_time_seconds,
   }));
 
+  const dob = (athleteRes.data?.date_of_birth as string | null) ?? null;
+  const todayIso = new Date().toISOString().slice(0, 10);
+  // Strava's enum is M/F/X; coaching norms are only calibrated for the
+  // binary split, so 'X' falls through to generic-norm prompt behaviour.
+  const rawSex = (athleteRes.data?.sex as string | null)?.toUpperCase() ?? null;
+  const rawWeight = athleteRes.data?.weight_kg as number | string | null;
+  const weightKg =
+    rawWeight == null
+      ? null
+      : typeof rawWeight === "number"
+        ? rawWeight
+        : Number(rawWeight) || null;
+
   return {
     athleteId,
     displayName: (athleteRes.data?.display_name as string | null) ?? null,
+    sex: rawSex === "M" || rawSex === "F" ? rawSex : null,
+    weightKg,
+    ageYears: dob ? ageOnDate(dob, todayIso) : null,
     recentMessages,
     recentActivities,
     recentCrossTraining,

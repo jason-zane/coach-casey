@@ -1,5 +1,6 @@
 export type OnboardingStep =
   | "strava"
+  | "about-you"
   | "validation"
   | "plan"
   | "install"
@@ -10,6 +11,10 @@ export type OnboardingStep =
 
 export const ONBOARDING_STEP_ORDER_MOBILE: OnboardingStep[] = [
   "strava",
+  // about-you sits straight after strava so we can pre-fill sex + weight
+  // from the just-completed OAuth handshake, and capture DOB (which Strava
+  // doesn't expose) before validation reads training history.
+  "about-you",
   "validation",
   "plan",
   "install",
@@ -24,6 +29,7 @@ export const ONBOARDING_STEP_ORDER_MOBILE: OnboardingStep[] = [
 
 export const ONBOARDING_STEP_ORDER_DESKTOP: OnboardingStep[] = [
   "strava",
+  "about-you",
   "validation",
   "plan",
   // Desktop browsers can subscribe to web push without install; offer it
@@ -91,6 +97,7 @@ export function nextStep(
 
 export const STEP_TITLES: Record<OnboardingStep, string> = {
   strava: "Connect Strava",
+  "about-you": "About you",
   validation: "A look at your training",
   plan: "Your training plan",
   install: "Put Coach Casey on your home screen",

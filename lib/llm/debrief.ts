@@ -151,7 +151,18 @@ ${runLines.join("\n")}`;
 
 function renderStableContext(ctx: DebriefContext): string {
   const parts: string[] = [];
-  parts.push(`# Athlete\n${ctx.displayName ?? "(unnamed)"}`);
+  const athleteLines: string[] = [];
+  athleteLines.push(`Name: ${ctx.displayName ?? "(unnamed)"}`);
+  if (ctx.sex) {
+    athleteLines.push(`Sex: ${ctx.sex === "M" ? "Male" : "Female"}`);
+  }
+  if (ctx.ageYears != null) {
+    athleteLines.push(`Age: ${ctx.ageYears}`);
+  }
+  if (ctx.weightKg != null) {
+    athleteLines.push(`Weight: ${ctx.weightKg} kg`);
+  }
+  parts.push(`# Athlete\n${athleteLines.join("\n")}`);
 
   if (ctx.goalRaces.length > 0) {
     const lines = ctx.goalRaces

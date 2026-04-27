@@ -1,6 +1,23 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/server";
 
+/**
+ * Years between two ISO dates (floor). Used to render the athlete's age
+ * at the time of an activity rather than at debrief generation time —
+ * matters for backfilled debriefs and historical cross-references.
+ */
+export function ageOnDate(dobIso: string, asOfIso: string): number | null {
+  const dob = new Date(dobIso);
+  const asOf = new Date(asOfIso);
+  if (Number.isNaN(dob.getTime()) || Number.isNaN(asOf.getTime())) return null;
+  let years = asOf.getUTCFullYear() - dob.getUTCFullYear();
+  const m = asOf.getUTCMonth() - dob.getUTCMonth();
+  if (m < 0 || (m === 0 && asOf.getUTCDate() < dob.getUTCDate())) {
+    years -= 1;
+  }
+  return years >= 0 && years < 130 ? years : null;
+}
+
 export type DebriefLap = {
   idx: number;
   km: number;
@@ -64,6 +81,16 @@ export type DebriefContext = {
   athleteId: string;
   athleteCreatedAt: string;
   displayName: string | null;
+  /** 'M' / 'F' / null. */
+  sex: "M" | "F" | null;
+  /** Bodyweight in kg, or null when unknown. */
+  weightKg: number | null;
+  /**
+   * Years since DOB at the time of the activity (floor). Null when DOB
+   * is unset (athletes who connected before the about-you step shipped
+   * and haven't backfilled yet).
+   */
+  ageYears: number | null;
   activity: DebriefActivity;
   arcWeeks: DebriefWeekAggregate[];
   arcRuns: DebriefArcRun[];
@@ -264,7 +291,7 @@ export async function buildDebriefContext(
   ] = await Promise.all([
     admin
       .from("athletes")
-      .select("id, display_name, created_at")
+      .select("id, display_name, created_at, sex, weight_kg, date_of_birth")
       .eq("id", athleteId)
       .single(),
     admin
@@ -403,10 +430,28 @@ export async function buildDebriefContext(
       };
     });
 
+  const dob = (athleteRes.data?.date_of_birth as string | null) ?? null;
+  const ageYears = dob ? ageOnDate(dob, activity.date) : null;
+  // Strava's enum is M / F / X. The coaching norms we apply (HRmax bands,
+  // pace–effort coupling) are calibrated only for the binary split, so we
+  // treat 'X' the same as null and let prompts fall back to generic norms.
+  const rawSex = (athleteRes.data?.sex as string | null)?.toUpperCase() ?? null;
+  const sex: "M" | "F" | null = rawSex === "M" || rawSex === "F" ? rawSex : null;
+  const rawWeight = athleteRes.data?.weight_kg as number | string | null;
+  const weightKg =
+    rawWeight == null
+      ? null
+      : typeof rawWeight === "number"
+        ? rawWeight
+        : Number(rawWeight) || null;
+
   return {
     athleteId,
     athleteCreatedAt: (athleteRes.data?.created_at as string) ?? activity.date,
     displayName: (athleteRes.data?.display_name as string | null) ?? null,
+    sex,
+    weightKg,
+    ageYears,
     activity,
     arcWeeks: aggregateWeeks(arcRuns),
     arcRuns,

@@ -44,9 +44,69 @@ type TokenResponse = {
   refresh_token: string;
   expires_at: number; // seconds since epoch
   expires_in: number;
-  athlete?: { id: number };
+  athlete?: StravaAthleteProfile;
   scope?: string;
 };
+
+/**
+ * Subset of Strava's `DetailedAthlete` we care about. Returned in the OAuth
+ * token exchange and from `GET /api/v3/athlete`. Strava does NOT expose date
+ * of birth via the API; that field is captured separately in onboarding.
+ */
+export type StravaAthleteProfile = {
+  id: number;
+  firstname?: string | null;
+  lastname?: string | null;
+  /** 'M' | 'F' | 'X' | null. Athlete-set in Strava profile. */
+  sex?: "M" | "F" | "X" | null;
+  /** Bodyweight in kg. Athlete-set; often null or stale. */
+  weight?: number | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+};
+
+/**
+ * Fetch the authenticated athlete's profile. Requires `profile:read_all`
+ * scope; returns null and logs if Strava 401s (athletes connected before
+ * the scope was added). Other errors throw — callers can decide whether
+ * to swallow or propagate.
+ */
+export async function fetchAthleteProfile(
+  athleteId: string,
+): Promise<StravaAthleteProfile | null> {
+  const token = await getValidAccessToken(athleteId);
+  const res = await fetch(`${STRAVA_API_BASE}/athlete`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (res.status === 401) return null;
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Strava /athlete failed: ${res.status} ${body}`);
+  }
+  return (await res.json()) as StravaAthleteProfile;
+}
+
+/**
+ * Same as `fetchAthleteProfile` but with a raw access token, for the OAuth
+ * callback path where the connection row hasn't been created yet (so
+ * `getValidAccessToken` would 404 looking it up).
+ */
+export async function fetchAthleteProfileWithToken(
+  accessToken: string,
+): Promise<StravaAthleteProfile | null> {
+  const res = await fetch(`${STRAVA_API_BASE}/athlete`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    cache: "no-store",
+  });
+  if (res.status === 401) return null;
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Strava /athlete failed: ${res.status} ${body}`);
+  }
+  return (await res.json()) as StravaAthleteProfile;
+}
 
 export async function exchangeCodeForToken(
   code: string,

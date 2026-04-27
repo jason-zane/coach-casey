@@ -3,6 +3,7 @@ import { buildFixtureActivities } from "./fixture";
 import {
   fetchActivitiesSince,
   fetchActivityDetail,
+  fetchAthleteProfile,
   type StravaActivity,
   type StravaActivityDetail,
   type StravaLap,
@@ -115,6 +116,12 @@ export async function ingestLiveActivitiesForAthlete(
   athleteId: string,
   weeks = 12,
 ) {
+  // Backfill demographics from Strava on every ingest pass when our row is
+  // still empty. This catches athletes connected before we started seeding
+  // sex/weight in the OAuth callback. Once populated, the if-null guard
+  // below short-circuits and never overwrites the athlete's edits.
+  await maybeBackfillDemographicsFromStrava(athleteId);
+
   const afterSeconds = Math.floor(Date.now() / 1000) - weeks * 7 * 24 * 60 * 60;
   const activities = await fetchActivitiesSince(athleteId, afterSeconds);
   const kept = activities.filter((a) => {
@@ -182,4 +189,52 @@ export async function loadRecentActivities(athleteId: string, weeks = 12) {
   return rows.filter(
     (r) => classifyActivityType(r.activity_type as string | null) === "run",
   );
+}
+
+/**
+ * Lazy backfill: pull sex + weight from Strava when the athlete row has
+ * neither yet. No-op once at least one of them is set, so this only fires
+ * on the first ingest after deploy for already-connected athletes.
+ *
+ * Failures are swallowed: ingest must keep working even if the profile
+ * endpoint is rate-limited or the connection is missing the
+ * `profile:read_all` scope.
+ */
+async function maybeBackfillDemographicsFromStrava(
+  athleteId: string,
+): Promise<void> {
+  const admin = createAdminClient();
+  const { data: athlete } = await admin
+    .from("athletes")
+    .select("sex, weight_kg")
+    .eq("id", athleteId)
+    .maybeSingle();
+  if (!athlete) return;
+  const a = athlete as { sex: string | null; weight_kg: number | null };
+  if (a.sex && a.weight_kg != null) return;
+
+  try {
+    const profile = await fetchAthleteProfile(athleteId);
+    if (!profile) return;
+    const update: Record<string, unknown> = {};
+    if (
+      !a.sex &&
+      (profile.sex === "M" || profile.sex === "F" || profile.sex === "X")
+    ) {
+      update.sex = profile.sex;
+    }
+    if (
+      a.weight_kg == null &&
+      typeof profile.weight === "number" &&
+      profile.weight > 20 &&
+      profile.weight < 250
+    ) {
+      update.weight_kg = profile.weight;
+    }
+    if (Object.keys(update).length > 0) {
+      await admin.from("athletes").update(update).eq("id", athleteId);
+    }
+  } catch (e) {
+    console.warn("Strava demographic backfill failed (non-fatal)", e);
+  }
 }

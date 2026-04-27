@@ -3,20 +3,26 @@
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 
 /**
- * Self-heal the athlete's timezone from a browser-detected IANA name.
+ * Sync the athlete's timezone from the browser-detected IANA name.
  *
- * Called once per session from the (app) layout when the row is missing a
- * timezone. The browser passes
+ * Called once per session from the (app) layout. The browser passes
  * `Intl.DateTimeFormat().resolvedOptions().timeZone` and we trust the
- * value to be a valid IANA name (browsers normalise these). The action
- * deliberately *only* sets when the column is null — once captured, we
- * don't keep overwriting on every page load (which would break athletes
- * who travel and want their home timezone respected).
+ * value to be a valid IANA name (browsers normalise these).
+ *
+ * Always trusts the most recent browser detection. The earlier "set once"
+ * behaviour left athletes pinned to whatever the first session reported
+ * — which was wrong for anyone who signed up via a misconfigured device,
+ * a VPN, or a locale that happened to differ from where they actually
+ * train. Travelers see local time for the trip and snap back on return,
+ * which is what most people expect from a phone-class app.
+ *
+ * Skips the write when the value is unchanged so we don't churn
+ * `updated_at` on every navigation.
  *
  * Returns the timezone now stored, or null if the user isn't signed in
  * or the input was empty.
  */
-export async function setAthleteTimezoneIfMissing(
+export async function setAthleteTimezone(
   tz: string,
 ): Promise<{ ok: boolean; timezone: string | null }> {
   if (!tz || typeof tz !== "string" || tz.length > 64) {
@@ -31,8 +37,6 @@ export async function setAthleteTimezoneIfMissing(
 
   const admin = createAdminClient();
 
-  // Fetch current value first so we only write when missing. Avoids
-  // unnecessary updates and the trigger-driven `updated_at` churn.
   const { data: athlete } = await admin
     .from("athletes")
     .select("id, timezone")
@@ -41,7 +45,7 @@ export async function setAthleteTimezoneIfMissing(
   if (!athlete) return { ok: false, timezone: null };
 
   const current = (athlete as { timezone: string | null }).timezone;
-  if (current) {
+  if (current === tz) {
     return { ok: true, timezone: current };
   }
 
