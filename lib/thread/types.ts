@@ -37,6 +37,25 @@ export function getDebriefActivityId(message: Message): string | null {
   return typeof id === "string" ? id : null;
 }
 
+/**
+ * Strava activity id (the bigint primary key Strava uses in URLs), pulled
+ * from the message's meta block. Present on debrief and cross-training
+ * messages — used to render the "View on Strava" attribution link required
+ * by Strava's brand guidelines for any UI displaying activity-derived data.
+ */
+export function getMessageStravaId(message: Message): number | null {
+  const kinds: MessageKind[] = [
+    "debrief",
+    "cross_training_ack",
+    "cross_training_substitution",
+  ];
+  if (!kinds.includes(message.kind)) return null;
+  const raw = (message.meta as { strava_id?: unknown }).strava_id;
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+  if (typeof raw === "string" && /^\d+$/.test(raw)) return Number(raw);
+  return null;
+}
+
 export type Thread = {
   id: string;
   athlete_id: string;

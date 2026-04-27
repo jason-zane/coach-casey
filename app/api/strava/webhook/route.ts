@@ -86,9 +86,27 @@ export async function POST(request: Request) {
 }
 
 async function handleEvent(event: StravaWebhookEvent): Promise<void> {
-  if (event.object_type !== "activity") return; // Athlete deauth events are a separate concern.
-
   const admin = createAdminClient();
+
+  // Athlete deauthorisation. Strava emits this when the athlete revokes
+  // Coach Casey from strava.com/settings/apps. Payload shape:
+  //   { object_type: "athlete", aspect_type: "update",
+  //     updates: { authorized: "false" }, owner_id: <strava_athlete_id> }
+  // Required by Strava's developer guidelines: clean up the local
+  // connection so we stop attempting to sync.
+  if (event.object_type === "athlete") {
+    const authorized = event.updates?.authorized;
+    if (authorized === "false" || authorized === false) {
+      await admin
+        .from("strava_connections")
+        .delete()
+        .eq("strava_athlete_id", event.owner_id);
+    }
+    return;
+  }
+
+  if (event.object_type !== "activity") return;
+
   const { data: conn } = await admin
     .from("strava_connections")
     .select("athlete_id")

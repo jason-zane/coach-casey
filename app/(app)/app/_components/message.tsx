@@ -1,7 +1,44 @@
 import type { Message, MessageKind } from "@/lib/thread/types";
-import { getDebriefActivityId, getDebriefRpe } from "@/lib/thread/types";
+import {
+  getDebriefActivityId,
+  getDebriefRpe,
+  getMessageStravaId,
+} from "@/lib/thread/types";
 import { renderInlineCopy } from "./rich-text";
 import { RpePrompt } from "./rpe-prompt";
+
+/**
+ * Subtle attribution link to the underlying Strava activity. Required by
+ * Strava's brand guidelines wherever activity data is displayed; rendered
+ * in muted ink (not Strava orange) so it sits in the eyebrow rhythm rather
+ * than competing with the body.
+ */
+function StravaAttribution({ stravaId }: { stravaId: number }) {
+  return (
+    <a
+      href={`https://www.strava.com/activities/${stravaId}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-subtle hover:text-ink-muted transition-colors duration-150"
+      aria-label="View this activity on Strava"
+    >
+      <span>View on Strava</span>
+      <svg
+        viewBox="0 0 10 10"
+        width="9"
+        height="9"
+        aria-hidden
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M3 7l4-4M3.5 3h3.5v3.5" />
+      </svg>
+    </a>
+  );
+}
 
 type Props = { message: Message; unread?: boolean };
 
@@ -83,6 +120,7 @@ export function MessageBlock({ message, unread }: Props) {
     case "debrief": {
       const rpe = getDebriefRpe(message);
       const activityId = getDebriefActivityId(message);
+      const stravaId = getMessageStravaId(message);
       return (
         <article
           data-kind={message.kind}
@@ -106,6 +144,11 @@ export function MessageBlock({ message, unread }: Props) {
           <div className="prose-serif text-ink whitespace-pre-wrap break-words">
             {renderInlineCopy(message.body)}
           </div>
+          {stravaId !== null && (
+            <div className="pt-1">
+              <StravaAttribution stravaId={stravaId} />
+            </div>
+          )}
         </article>
       );
     }
@@ -156,6 +199,7 @@ export function MessageBlock({ message, unread }: Props) {
         (message.meta as { activity_type?: unknown }).activity_type,
       );
       const isSubstitution = message.kind === "cross_training_substitution";
+      const stravaId = getMessageStravaId(message);
       return (
         <article
           data-kind={message.kind}
@@ -182,6 +226,11 @@ export function MessageBlock({ message, unread }: Props) {
           <div className="prose-serif text-ink whitespace-pre-wrap break-words">
             {renderInlineCopy(message.body)}
           </div>
+          {stravaId !== null && (
+            <div className="pt-1">
+              <StravaAttribution stravaId={stravaId} />
+            </div>
+          )}
         </article>
       );
     }

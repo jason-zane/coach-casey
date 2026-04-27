@@ -203,6 +203,13 @@ export function MenuBar({ onOpenCalendar, onOpenSearch }: Props) {
             role="menu"
             className="absolute right-0 bottom-12 w-48 bg-surface border border-rule rounded-md shadow-lg py-1 text-[14px]"
           >
+            <a
+              href="/app/settings"
+              role="menuitem"
+              className="block w-full text-left px-3 py-2 hover:bg-rule/40 text-ink"
+            >
+              Settings
+            </a>
             <form action={signOut}>
               <button
                 type="submit"
@@ -269,6 +276,13 @@ export function DesktopControls({ onOpenCalendar, onOpenSearch }: Props) {
             role="menu"
             className="absolute right-0 top-10 w-48 bg-surface border border-rule rounded-md shadow-lg py-1 text-[14px] z-10"
           >
+            <a
+              href="/app/settings"
+              role="menuitem"
+              className="block w-full text-left px-3 py-2 hover:bg-rule/40 text-ink"
+            >
+              Settings
+            </a>
             <form action={signOut}>
               <button
                 type="submit"

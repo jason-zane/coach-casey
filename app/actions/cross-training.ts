@@ -31,6 +31,7 @@ type ActivityRow = {
   athlete_id: string;
   activity_type: string | null;
   start_date_local: string;
+  strava_id: number | null;
 };
 
 async function findExistingAck(
@@ -74,7 +75,7 @@ export async function generateCrossTrainingAckForActivity(
 
   const { data: row } = await admin
     .from("activities")
-    .select("id, athlete_id, activity_type, start_date_local")
+    .select("id, athlete_id, activity_type, start_date_local, strava_id")
     .eq("id", activityId)
     .maybeSingle<ActivityRow>();
   if (!row || row.athlete_id !== athleteId) {
@@ -118,6 +119,7 @@ export async function generateCrossTrainingAckForActivity(
     is_pattern: ctx.pattern.isPattern,
     pattern_description: ctx.pattern.description,
     is_substitution: outcome.isSubstitution,
+    strava_id: row.strava_id,
   };
 
   // Force regeneration replaces the existing row — same rule the debrief

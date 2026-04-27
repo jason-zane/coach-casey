@@ -12,10 +12,14 @@ export default async function OnboardingIndex() {
 
   const { data: athlete } = await supabase
     .from("athletes")
-    .select("onboarding_current_step, onboarding_completed_at")
+    .select("onboarding_current_step, onboarding_completed_at, deleted_at")
     .eq("user_id", user.id)
     .maybeSingle();
 
+  if (athlete?.deleted_at) {
+    await supabase.auth.signOut();
+    redirect("/?deleted=1");
+  }
   if (athlete?.onboarding_completed_at) redirect("/app");
   redirect(`/onboarding/${athlete?.onboarding_current_step ?? "strava"}`);
 }

@@ -19,11 +19,18 @@ export async function requireAthlete() {
 
   const { data: athlete } = await supabase
     .from("athletes")
-    .select("id, onboarding_current_step, onboarding_completed_at")
+    .select("id, onboarding_current_step, onboarding_completed_at, deleted_at")
     .eq("user_id", user.id)
     .maybeSingle();
 
   if (!athlete) redirect("/signin");
+  // Soft-deleted accounts are signed out and cannot sign back in. The row
+  // hangs around for the 30-day window before /api/cron/account-purge
+  // calls auth.admin.deleteUser and the cascade removes everything.
+  if (athlete.deleted_at) {
+    await supabase.auth.signOut();
+    redirect("/?deleted=1");
+  }
   return { supabase, user, athlete };
 }
 

@@ -6,6 +6,8 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { requireAthlete } from "@/app/actions/onboarding";
 import { isDevMode, isLiveMode } from "@/lib/strava/client";
 
+const STRAVA_DEAUTHORIZE_URL = "https://www.strava.com/oauth/deauthorize";
+
 /**
  * Strava connect entry point. Writes the connection record quickly, then
  * redirects to /onboarding/reading which runs the activity pull behind a
@@ -49,6 +51,45 @@ async function connectStravaDev() {
 
   revalidatePath("/onboarding", "layout");
   redirect("/onboarding/reading");
+}
+
+/**
+ * Disconnect the athlete's Strava account. Calls Strava's OAuth deauthorize
+ * endpoint with the access token (Strava's required revocation path), then
+ * deletes our `strava_connections` row. The activity history we already
+ * ingested is left in place — the thread is append-only and reading it
+ * doesn't require Strava access.
+ */
+export async function disconnectStrava() {
+  const { athlete } = await requireAthlete();
+  const admin = createAdminClient();
+
+  const { data: conn } = await admin
+    .from("strava_connections")
+    .select("access_token, is_mock")
+    .eq("athlete_id", athlete.id)
+    .maybeSingle();
+
+  const token = (conn as { access_token?: string | null; is_mock?: boolean } | null)
+    ?.access_token;
+  const isMock = (conn as { is_mock?: boolean } | null)?.is_mock ?? false;
+
+  if (token && !isMock) {
+    try {
+      await fetch(STRAVA_DEAUTHORIZE_URL, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      });
+    } catch (err) {
+      console.warn("strava deauthorize call failed", err);
+    }
+  }
+
+  await admin.from("strava_connections").delete().eq("athlete_id", athlete.id);
+
+  revalidatePath("/app", "layout");
+  revalidatePath("/app/settings");
 }
 
 async function connectStravaMock() {
