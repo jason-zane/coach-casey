@@ -15,11 +15,15 @@ export default async function HomePage() {
 
   const { data: athlete } = await supabase
     .from("athletes")
-    .select("id, display_name, onboarding_completed_at")
+    .select("id, display_name, onboarding_completed_at, deleted_at")
     .eq("user_id", user.id)
     .maybeSingle();
 
   if (!athlete) redirect("/signin");
+  if (athlete.deleted_at) {
+    await supabase.auth.signOut();
+    redirect("/?deleted=1");
+  }
   if (!athlete.onboarding_completed_at) redirect("/onboarding");
 
   const threadId = await ensureThread(athlete.id as string);

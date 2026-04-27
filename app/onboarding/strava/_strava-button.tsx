@@ -2,34 +2,39 @@
 
 import { useFormStatus } from "react-dom";
 
+/**
+ * Official "Connect with Strava" button. Asset taken from Strava's brand
+ * guidelines bundle (1.1-Connect-with-Strava-Buttons.zip), self-hosted at
+ * /public/strava/. The SVG is 237 × 48, 6px corner radius, Strava
+ * orange #FC5200. Don't recolour, don't add shadows, don't crop.
+ */
 export function StravaButton() {
   const { pending } = useFormStatus();
   return (
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex items-center gap-3 rounded-md bg-[#FC4C02] px-5 py-3 font-sans text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-80"
+      aria-label="Connect with Strava"
+      className="group relative inline-block transition-opacity hover:opacity-90 disabled:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FC5200] rounded-[6px]"
     >
-      {pending ? (
-        <Spinner className="h-4 w-4 text-white/90" />
-      ) : (
-        <StravaMark className="h-4 w-4" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/strava/btn_strava_connect_with_orange.svg"
+        alt=""
+        width={237}
+        height={48}
+        className="block h-12 w-auto select-none"
+        draggable={false}
+      />
+      {pending && (
+        <span
+          aria-hidden
+          className="absolute inset-0 flex items-center justify-center rounded-[6px] bg-[#FC5200]/85"
+        >
+          <Spinner className="h-5 w-5 text-white" />
+        </span>
       )}
-      {pending ? "Opening your training\u2026" : "Connect with Strava"}
     </button>
-  );
-}
-
-function StravaMark({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={className}
-      aria-hidden="true"
-      fill="currentColor"
-    >
-      <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.599h4.172L10.463 0l-7 13.828h4.172" />
-    </svg>
   );
 }
 
