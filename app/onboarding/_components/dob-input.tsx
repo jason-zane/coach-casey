@@ -43,6 +43,13 @@ function partsFromIso(iso: string | null): {
   return { y: match[1], m: match[2], d: match[3] };
 }
 
+function focusEnd(el: HTMLInputElement | null) {
+  if (!el) return;
+  el.focus();
+  const v = el.value;
+  el.setSelectionRange(v.length, v.length);
+}
+
 export function DobInput({ value, onChange, id }: Props) {
   const initial = partsFromIso(value);
   const [d, setD] = useState(initial.d);
@@ -58,34 +65,6 @@ export function DobInput({ value, onChange, id }: Props) {
     onChange(isoFromParts(d, m, y));
   }, [d, m, y, onChange]);
 
-  function handle(
-    setter: (v: string) => void,
-    max: number,
-    nextRef: React.RefObject<HTMLInputElement | null> | null,
-  ) {
-    return (e: React.ChangeEvent<HTMLInputElement>) => {
-      const stripped = e.target.value.replace(/\D/g, "").slice(0, max);
-      setter(stripped);
-      if (stripped.length === max && nextRef?.current) {
-        nextRef.current.focus();
-        nextRef.current.select();
-      }
-    };
-  }
-
-  function handleBackspace(
-    current: string,
-    prevRef: React.RefObject<HTMLInputElement | null> | null,
-  ) {
-    return (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Backspace" && current.length === 0 && prevRef?.current) {
-        prevRef.current.focus();
-        const v = prevRef.current.value;
-        prevRef.current.setSelectionRange(v.length, v.length);
-      }
-    };
-  }
-
   return (
     <div className="flex items-center gap-2" id={id}>
       <input
@@ -96,9 +75,15 @@ export function DobInput({ value, onChange, id }: Props) {
         placeholder="DD"
         aria-label="Day"
         value={d}
-        onChange={handle(setD, 2, mRef)}
+        onChange={(e) => {
+          const stripped = e.target.value.replace(/\D/g, "").slice(0, 2);
+          setD(stripped);
+          if (stripped.length === 2) {
+            mRef.current?.focus();
+            mRef.current?.select();
+          }
+        }}
         onFocus={(e) => e.currentTarget.select()}
-        onKeyDown={handleBackspace(d, null)}
         className={`${FIELD} w-14`}
       />
       <span className="font-sans text-ink-subtle">/</span>
@@ -110,9 +95,20 @@ export function DobInput({ value, onChange, id }: Props) {
         placeholder="MM"
         aria-label="Month"
         value={m}
-        onChange={handle(setM, 2, yRef)}
+        onChange={(e) => {
+          const stripped = e.target.value.replace(/\D/g, "").slice(0, 2);
+          setM(stripped);
+          if (stripped.length === 2) {
+            yRef.current?.focus();
+            yRef.current?.select();
+          }
+        }}
         onFocus={(e) => e.currentTarget.select()}
-        onKeyDown={handleBackspace(m, dRef)}
+        onKeyDown={(e) => {
+          if (e.key === "Backspace" && m.length === 0) {
+            focusEnd(dRef.current);
+          }
+        }}
         className={`${FIELD} w-14`}
       />
       <span className="font-sans text-ink-subtle">/</span>
@@ -124,9 +120,16 @@ export function DobInput({ value, onChange, id }: Props) {
         placeholder="YYYY"
         aria-label="Year"
         value={y}
-        onChange={handle(setY, 4, null)}
+        onChange={(e) => {
+          const stripped = e.target.value.replace(/\D/g, "").slice(0, 4);
+          setY(stripped);
+        }}
         onFocus={(e) => e.currentTarget.select()}
-        onKeyDown={handleBackspace(y, mRef)}
+        onKeyDown={(e) => {
+          if (e.key === "Backspace" && y.length === 0) {
+            focusEnd(mRef.current);
+          }
+        }}
         className={`${FIELD} w-20`}
       />
     </div>
