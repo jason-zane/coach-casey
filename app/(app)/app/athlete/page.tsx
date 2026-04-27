@@ -153,16 +153,15 @@ export default async function AthletePage() {
                 id: n.id,
                 content: n.content,
                 tags: n.tags,
-                recordedAt: n.firstMentionedAt,
-              }))}
-              dateLabelFormatter={(iso) =>
-                `First mentioned ${new Date(iso).toLocaleDateString(undefined, {
+                dateLabel: `First mentioned ${new Date(
+                  n.firstMentionedAt,
+                ).toLocaleDateString(undefined, {
                   month: "short",
                   day: "numeric",
                   year: "numeric",
-                })}`
-              }
-              itemHeader={(item) => formatNiggleHeader({ ...item, firstMentionedAt: item.recordedAt })}
+                })}`,
+                header: formatNiggleHeader(n),
+              }))}
             />
           </div>
 
@@ -183,15 +182,12 @@ export default async function AthletePage() {
                 id: c.id,
                 content: c.content,
                 tags: c.tags,
-                recordedAt: c.recordedAt,
-              }))}
-              dateLabelFormatter={(iso) =>
-                new Date(iso).toLocaleDateString(undefined, {
+                dateLabel: new Date(c.recordedAt).toLocaleDateString(undefined, {
                   month: "short",
                   day: "numeric",
-                })
-              }
-              itemHeader={() => null}
+                }),
+                header: null,
+              }))}
             />
           </div>
         </Section>
