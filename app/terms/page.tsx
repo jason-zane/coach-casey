@@ -48,11 +48,11 @@ export default function TermsPage() {
 
           <Section title="Who we are">
             <p>
-              Coach Casey is operated by Jason Hunt (sole trader), based in
-              Sydney, Australia. In these terms, &ldquo;Coach
-              Casey&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo; and{" "}
-              &ldquo;our&rdquo; refer to that operating entity. &ldquo;You&rdquo;
-              means the person using the service.
+              Coach Casey is operated by Jason Hunt, based in Sydney,
+              Australia. In these terms, &ldquo;Coach Casey&rdquo;,
+              &ldquo;we&rdquo;, &ldquo;us&rdquo; and &ldquo;our&rdquo;
+              refer to that operating entity. &ldquo;You&rdquo; means the
+              person using the service.
             </p>
           </Section>
 
@@ -77,21 +77,23 @@ export default function TermsPage() {
 
           <Section title="Trial and subscription">
             <p>
-              Coach Casey is offered with a free trial period (currently 14
-              days, no card required). After the trial, continued use
-              requires a paid subscription. Pricing is shown on the website
-              before you subscribe; we&apos;ll always confirm before
-              charging you.
+              Coach Casey is currently offered as a free trial (14 days, no
+              card required). After the trial we&apos;ll move to a paid
+              subscription model; we&apos;re not collecting payments yet,
+              and we&apos;ll communicate well in advance before any
+              account is charged. Pricing will be shown on the website
+              before you subscribe.
             </p>
             <p>
-              Subscriptions renew automatically until cancelled. You can
-              cancel at any time; cancellation takes effect at the end of
-              your current billing period and you keep access until then. We
-              don&apos;t pro-rate refunds for partial periods, except where
-              required by law.
+              When paid subscriptions launch, they&apos;ll renew
+              automatically until cancelled. You&apos;ll be able to cancel
+              at any time from inside the app; cancellation will take
+              effect at the end of the current billing period. We
+              don&apos;t pro-rate refunds for partial periods, except
+              where required by law.
             </p>
             <p>
-              Payments are processed by{" "}
+              When payments do start, they&apos;ll be processed by{" "}
               <a
                 className="link"
                 href="https://stripe.com"
@@ -100,7 +102,7 @@ export default function TermsPage() {
               >
                 Stripe
               </a>
-              . We don&apos;t store your card details.
+              . We won&apos;t store card details ourselves.
             </p>
           </Section>
 
@@ -200,10 +202,10 @@ export default function TermsPage() {
 
           <Section title="AI-generated content">
             <p>
-              Coach Casey uses third-party large language models to generate
+              Coach Casey uses Anthropic&apos;s Claude models to generate
               debriefs and chat replies. Output may occasionally be
-              inaccurate, incomplete, or outdated. Don&apos;t rely on it for
-              decisions where accuracy is critical (medical, legal,
+              inaccurate, incomplete, or outdated. Don&apos;t rely on it
+              for decisions where accuracy is critical (medical, legal,
               financial). You&apos;re responsible for how you use the
               output.
             </p>
@@ -266,8 +268,8 @@ export default function TermsPage() {
               time from{" "}
               <strong>Settings &rsaquo; Delete account</strong> or by
               emailing{" "}
-              <a className="link" href="mailto:hello@coachcasey.app">
-                hello@coachcasey.app
+              <a className="link" href="mailto:hello@coachcasey.com">
+                hello@coachcasey.com
               </a>
               .
             </p>
@@ -309,20 +311,12 @@ export default function TermsPage() {
 
           <Section title="Contact">
             <p>
-              <strong>General:</strong>{" "}
-              <a className="link" href="mailto:hello@coachcasey.app">
-                hello@coachcasey.app
+              For anything — questions about these terms, privacy, or
+              security — email{" "}
+              <a className="link" href="mailto:hello@coachcasey.com">
+                hello@coachcasey.com
               </a>
-              <br />
-              <strong>Privacy:</strong>{" "}
-              <a className="link" href="mailto:privacy@coachcasey.app">
-                privacy@coachcasey.app
-              </a>
-              <br />
-              <strong>Security:</strong>{" "}
-              <a className="link" href="mailto:security@coachcasey.app">
-                security@coachcasey.app
-              </a>
+              .
             </p>
           </Section>
         </article>
