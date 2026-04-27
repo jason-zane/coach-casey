@@ -28,7 +28,11 @@ export function stravaAuthorizeUrl(state: string): string {
     redirect_uri: redirect,
     response_type: "code",
     approval_prompt: "auto",
-    scope: "read,activity:read_all,profile:read_all",
+    // `activity:write` is required to append Casey's verdict line to the
+    // athlete's activity description after each debrief. Existing connections
+    // predating this scope keep working for read; the description-write path
+    // no-ops until the athlete reconnects with the broader scope.
+    scope: "read,activity:read_all,activity:write,profile:read_all",
     state,
   });
   return `${STRAVA_AUTH_BASE}/authorize?${params.toString()}`;
@@ -212,4 +216,123 @@ export async function fetchActivityDetail(
     );
   }
   return res.json();
+}
+
+export type UpdateActivityDescriptionResult =
+  | { kind: "ok" }
+  | { kind: "skip"; reason: "mock_connection" | "no_connection" | "missing_scope" }
+  | { kind: "error"; status: number | null; message: string };
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Strip a previously-appended Casey block from the tail of a description.
+ *
+ * The block we write is `${verdict}\n\n${signature}`, joined to any prior
+ * description with `\n\n`. To handle force-regen cleanly we remove the
+ * prior block before computing the next description, so re-runs replace
+ * rather than stack.
+ *
+ * Match shape, anchored to end of string:
+ *   (^|\n\n) [non-newline verdict] \n\n SIGNATURE \s*$
+ *
+ * If the user added content *after* the signature (manual edit), the
+ * regex won't match and we leave the description alone — they wanted
+ * that content there.
+ */
+export function stripPriorCaseyBlock(
+  description: string,
+  signature: string,
+): string {
+  const re = new RegExp(
+    `(?:\\n\\n|^)[^\\n]+\\n\\n${escapeRegex(signature)}\\s*$`,
+  );
+  return description.replace(re, "").replace(/\s+$/, "");
+}
+
+/**
+ * Append-safe Strava activity description update.
+ *
+ * Reads the current description, strips any previously-appended Casey
+ * block (so force-regen replaces rather than stacks), and PUTs the
+ * combined text. No-ops when the description already exactly matches
+ * what we'd write, so webhook retries and equivalent regenerations
+ * don't churn Strava.
+ *
+ * Failures are returned, not thrown, so the caller can fire-and-forget
+ * this from the debrief commit path without risking the debrief itself.
+ *
+ * Athletes connected before `activity:write` was added to our OAuth
+ * scope will see a 401 from Strava; we map that to `missing_scope` and
+ * skip silently. They'll get the description appended once they
+ * reconnect.
+ */
+export async function updateActivityDescriptionAppend(
+  athleteId: string,
+  stravaActivityId: number,
+  appended: string,
+  signature: string,
+): Promise<UpdateActivityDescriptionResult> {
+  let token: string;
+  try {
+    token = await getValidAccessToken(athleteId);
+  } catch (err) {
+    const msg = (err as Error).message ?? "";
+    if (msg.includes("Mock connection")) return { kind: "skip", reason: "mock_connection" };
+    if (msg.includes("No Strava connection")) return { kind: "skip", reason: "no_connection" };
+    return { kind: "error", status: null, message: msg };
+  }
+
+  // Read current description so we append rather than replace whatever the
+  // athlete (or another tool) wrote there.
+  const getRes = await fetch(
+    `${STRAVA_API_BASE}/activities/${stravaActivityId}?include_all_efforts=false`,
+    { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
+  );
+  if (!getRes.ok) {
+    if (getRes.status === 401) return { kind: "skip", reason: "missing_scope" };
+    return {
+      kind: "error",
+      status: getRes.status,
+      message: `Strava get-for-update ${stravaActivityId} failed`,
+    };
+  }
+  const current = (await getRes.json()) as { description?: string | null };
+  const existing = current.description ?? "";
+
+  // Strip any previously-appended Casey block so force-regen / re-writes
+  // replace rather than stack. The user's own text (anything outside our
+  // block) is preserved.
+  const userText = stripPriorCaseyBlock(existing, signature);
+  const next = userText.length > 0 ? `${userText}\n\n${appended}` : appended;
+
+  // Idempotency: if the description is already exactly what we'd write,
+  // skip the PUT. Catches webhook retries and re-runs that produce the
+  // same verdict.
+  if (existing === next) return { kind: "ok" };
+
+  const putRes = await fetch(
+    `${STRAVA_API_BASE}/activities/${stravaActivityId}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ description: next }),
+      cache: "no-store",
+    },
+  );
+  if (!putRes.ok) {
+    if (putRes.status === 401) return { kind: "skip", reason: "missing_scope" };
+    const body = await putRes.text();
+    return {
+      kind: "error",
+      status: putRes.status,
+      message: `Strava PUT ${stravaActivityId} failed: ${body}`,
+    };
+  }
+  return { kind: "ok" };
 }

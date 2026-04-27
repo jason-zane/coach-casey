@@ -23,8 +23,21 @@ export type DebriefSkipReason =
   | "duplicate_activity";
 
 export type DebriefOutcome =
-  | { kind: "debrief"; body: string; followUp: string | null }
+  | {
+      kind: "debrief";
+      body: string;
+      followUp: string | null;
+      stravaBlurb: string | null;
+    }
   | { kind: "skip"; reason: DebriefSkipReason };
+
+export const STRAVA_BLURB_SIGNATURE =
+  "— coached by Coach Casey · coachcasey.app";
+
+// Verdict cap is 140 chars per prompt spec. Allow some slack for the model
+// occasionally going slightly long; reject anything past this absolute cap
+// rather than silently posting it to the athlete's public Strava feed.
+const STRAVA_BLURB_MAX_CHARS = 200;
 
 const ABORTED_NAME_TOKENS = ["abort", "dnf", "stopped", "cut short"];
 
@@ -236,6 +249,7 @@ function renderVolatileContext(ctx: DebriefContext): string {
 let cachedDebriefPrompt: string | null = null;
 let cachedConversationalPrompt: string | null = null;
 let cachedStructuredPrompt: string | null = null;
+let cachedStravaBlurbPrompt: string | null = null;
 
 async function loadDebriefPrompt(): Promise<string> {
   if (!cachedDebriefPrompt) {
@@ -261,13 +275,23 @@ async function loadStructuredPrompt(): Promise<string> {
   return cachedStructuredPrompt;
 }
 
+async function loadStravaBlurbPrompt(): Promise<string> {
+  if (!cachedStravaBlurbPrompt) {
+    const p = path.join(process.cwd(), "prompts/strava-blurb.md");
+    cachedStravaBlurbPrompt = await readFile(p, "utf8");
+  }
+  return cachedStravaBlurbPrompt;
+}
+
 function mockMode(): boolean {
   if (process.env.LLM_MODE === "mock") return true;
   if (process.env.LLM_MODE === "real") return false;
   return !process.env.ANTHROPIC_API_KEY;
 }
 
-function mockDebrief(ctx: DebriefContext): { body: string; followUp: string | null } {
+function mockDebrief(
+  ctx: DebriefContext,
+): { body: string; followUp: string | null; stravaBlurb: string | null } {
   const a = ctx.activity;
   const first = ctx.isFirstDebrief
     ? "First one I've read for you, so take this as a starting point rather than a full reading."
@@ -293,7 +317,11 @@ function mockDebrief(ctx: DebriefContext): { body: string; followUp: string | nu
       ? "Calf still holding up alright after that one?"
       : null;
 
-  return { body, followUp };
+  const stravaBlurb = a.hasWorkoutShape
+    ? "Three reps, three of the same pace. That's not luck, that's pacing."
+    : "An easy run that stayed easy. Underrated.";
+
+  return { body, followUp, stravaBlurb };
 }
 
 type CallWithRetryOpts = { attempts?: number; baseDelayMs?: number };
@@ -489,12 +517,94 @@ export async function generateFollowUp(
 }
 
 /**
- * Full debrief generation: gate, body, follow-up. Does not persist — the
- * server action layer handles persistence and idempotency. The follow-up
- * is generated via the picker; at sync time the picker has no RPE
- * answer to consider, so it resolves to structured (weeks 1–2) or
- * conversational. RPE-branched follow-ups arrive later via
- * `regenerateFollowUpForRpeAnswer` when the athlete submits their RPE.
+ * Strava blurb — one dry sentence appended to the athlete's Strava
+ * activity description. Public-facing; the prompt enforces the voice and
+ * the 140-char target. We hard-cap at `STRAVA_BLURB_MAX_CHARS` here as a
+ * backstop — anything longer is dropped rather than posted.
+ *
+ * Returns `null` on any failure or if the model produces empty/oversized
+ * text. The caller treats `null` as "skip the description update" so a
+ * blurb miss never blocks the debrief itself.
+ */
+export async function generateStravaBlurb(ctx: DebriefContext): Promise<string | null> {
+  if (mockMode()) return mockDebrief(ctx).stravaBlurb;
+
+  const system = await loadStravaBlurbPrompt();
+  const stable = renderStableContext(ctx);
+  const volatile = renderVolatileContext(ctx);
+
+  const response = await callWithRetry(() =>
+    anthropic().messages.create({
+      model: SONNET_MODEL,
+      max_tokens: 120,
+      temperature: 1.0,
+      system: [
+        { type: "text", text: system, cache_control: { type: "ephemeral" } },
+        { type: "text", text: stable, cache_control: { type: "ephemeral" } },
+      ],
+      messages: [
+        {
+          role: "user",
+          content: `${volatile}\n\n# Task\n\nWrite the one-sentence Verdict for the run described above. Output the verdict text only, no signature.`,
+        },
+      ],
+    }),
+  );
+
+  const raw =
+    response.content
+      .filter((b): b is Anthropic.TextBlock => b.type === "text")
+      .map((b) => b.text)
+      .join("\n")
+      .trim() || "";
+
+  // Models occasionally wrap output in quotes despite the prompt;
+  // strip a single matched pair if present.
+  const unquoted = raw.replace(/^[\"'“‘]+|[\"'”’]+$/g, "").trim();
+  if (!unquoted) return null;
+  if (unquoted.length > STRAVA_BLURB_MAX_CHARS) return null;
+  if (!passesStravaBlurbVoiceCheck(unquoted)) return null;
+  return unquoted;
+}
+
+/**
+ * Hard tripwire on voice failures the prompt shouldn't produce but
+ * occasionally will. This output lands on the athlete's *public* Strava
+ * feed, so a single hype line slipping through is materially worse than
+ * a missed blurb. On any tripwire we drop the blurb entirely (the caller
+ * treats `null` as skip-the-Strava-write) and the next debrief gets
+ * another shot.
+ *
+ * Filters: exclamation points, hashtags, emoji (Extended_Pictographic),
+ * a few canonical hype phrases, and the meta-leaks `Verdict:` or
+ * `Output:` prefixes that occasionally bleed in from the prompt.
+ */
+function passesStravaBlurbVoiceCheck(text: string): boolean {
+  if (/[!]/.test(text)) return false;
+  if (/#\w/.test(text)) return false;
+  if (/^\s*(verdict|output|response)\s*[:\-]/i.test(text)) return false;
+  if (/\p{Extended_Pictographic}/u.test(text)) return false;
+  if (
+    /\b(crushed it|smashed it|killed it|nailed it|let'?s go|great job|amazing|awesome|legend|champion)\b/i.test(
+      text,
+    )
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Full debrief generation: gate, body, follow-up, Strava blurb. Does not
+ * persist — the server action layer handles persistence, idempotency,
+ * and the Strava description update. The follow-up is generated via the
+ * picker; at sync time the picker has no RPE answer to consider, so it
+ * resolves to structured (weeks 1–2) or conversational. RPE-branched
+ * follow-ups arrive later via `regenerateFollowUpForRpeAnswer` when the
+ * athlete submits their RPE.
+ *
+ * Both the follow-up and Strava blurb are best-effort — a failure in
+ * either does not block the debrief from shipping.
  */
 export async function generateDebrief(ctx: DebriefContext): Promise<DebriefOutcome> {
   const skip = debriefGate(ctx.activity);
@@ -512,5 +622,14 @@ export async function generateDebrief(ctx: DebriefContext): Promise<DebriefOutco
     console.warn("follow-up generation failed, debrief will ship without one", e);
   }
 
-  return { kind: "debrief", body, followUp };
+  // Strava blurb runs independently as well — a missing blurb just means
+  // we don't update the Strava description for this activity.
+  let stravaBlurb: string | null = null;
+  try {
+    stravaBlurb = await generateStravaBlurb(ctx);
+  } catch (e) {
+    console.warn("strava blurb generation failed, debrief will ship without one", e);
+  }
+
+  return { kind: "debrief", body, followUp, stravaBlurb };
 }
