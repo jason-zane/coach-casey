@@ -7,7 +7,7 @@ import { ensureThread } from "@/lib/thread/repository";
 import type { DebriefSkipReason } from "@/lib/llm/debrief";
 import { sendPushToAthlete } from "@/lib/push/send";
 import { leadFromBody } from "@/lib/push/lead-from-body";
-import { SONNET_MODEL } from "@/lib/llm/anthropic";
+import { SONNET_MODEL, HAIKU_MODEL } from "@/lib/llm/anthropic";
 
 const DEBRIEF_PROMPT_VERSION = "post-run-debrief@v1";
 const FOLLOW_UP_PROMPT_VERSION = "post-run-followup-conversational@v1";
@@ -164,7 +164,7 @@ export async function generateDebriefForActivity(
           activity_id: activityId,
           parent_id: debriefId,
         },
-        model_version: SONNET_MODEL,
+        model_version: HAIKU_MODEL,
         prompt_version: FOLLOW_UP_PROMPT_VERSION,
       })
       .select("id")

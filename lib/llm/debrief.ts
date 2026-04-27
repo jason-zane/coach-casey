@@ -2,7 +2,7 @@ import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type Anthropic from "@anthropic-ai/sdk";
-import { anthropic, SONNET_MODEL } from "./anthropic";
+import { anthropic, SONNET_MODEL, HAIKU_MODEL } from "./anthropic";
 import type {
   DebriefActivity,
   DebriefArcRun,
@@ -377,7 +377,7 @@ export async function generateConversationalFollowUp(
 
   const response = await callWithRetry(() =>
     anthropic().messages.create({
-      model: SONNET_MODEL,
+      model: HAIKU_MODEL,
       max_tokens: 160,
       temperature: 0.9,
       system: [
@@ -422,7 +422,7 @@ export async function generateStructuredFollowUp(
 
   const response = await callWithRetry(() =>
     anthropic().messages.create({
-      model: SONNET_MODEL,
+      model: HAIKU_MODEL,
       max_tokens: 160,
       temperature: 0.7,
       system: [
