@@ -6,8 +6,7 @@ export type OnboardingStep =
   | "install"
   | "notifications"
   | "goal-race"
-  | "injury"
-  | "welcome";
+  | "injury";
 
 export const ONBOARDING_STEP_ORDER_MOBILE: OnboardingStep[] = [
   "strava",
@@ -24,7 +23,6 @@ export const ONBOARDING_STEP_ORDER_MOBILE: OnboardingStep[] = [
   "notifications",
   "goal-race",
   "injury",
-  "welcome",
 ];
 
 export const ONBOARDING_STEP_ORDER_DESKTOP: OnboardingStep[] = [
@@ -37,7 +35,6 @@ export const ONBOARDING_STEP_ORDER_DESKTOP: OnboardingStep[] = [
   "notifications",
   "goal-race",
   "injury",
-  "welcome",
 ];
 
 export function isMobileUserAgent(ua: string | null | undefined): boolean {
@@ -104,5 +101,4 @@ export const STEP_TITLES: Record<OnboardingStep, string> = {
   notifications: "Stay in the loop",
   "goal-race": "Your next race",
   injury: "Anything to know",
-  welcome: "What to expect",
 };

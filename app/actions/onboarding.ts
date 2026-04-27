@@ -65,7 +65,7 @@ export async function completeOnboarding() {
     .from("athletes")
     .update({
       onboarding_completed_at: new Date().toISOString(),
-      onboarding_current_step: "welcome",
+      onboarding_current_step: "injury",
     })
     .eq("id", athlete.id);
 

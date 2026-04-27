@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { StepHeader } from "@/app/onboarding/_components/form";
 import { AboutYouForm } from "./_about-you-form";
 
 function normalizeSex(s: string | null | undefined): "M" | "F" | "X" | null {
@@ -31,21 +32,19 @@ export default async function AboutYouPage({
 
   return (
     <div className="space-y-10">
-      <header className="space-y-4">
-        <p className="font-mono text-xs uppercase tracking-wider text-ink-subtle">
-          {backfill ? "One quick thing" : "About you"}
-        </p>
-        <h1 className="font-serif text-3xl leading-tight text-ink md:text-4xl">
-          {backfill
-            ? "I need a couple more details"
-            : "A few details about you"}
-        </h1>
-        <p className="prose-serif text-ink-muted max-w-prose">
-          Coaching that ignores age, sex, and bodyweight is coaching that
-          ignores you. These shape heart-rate ranges, fueling, and how I read
-          your easy days. Strava gives me some of this, but not your birthday.
-        </p>
-      </header>
+      <StepHeader
+        eyebrow={backfill ? "One quick thing" : "About you"}
+        title={
+          backfill ? "I need a couple more details" : "A few details about you"
+        }
+        description={
+          <>
+            Coaching that ignores age, sex, and bodyweight is coaching that
+            ignores you. These shape heart-rate ranges, fueling, and how I read
+            your easy days. Strava gives me some of this, but not your birthday.
+          </>
+        }
+      />
 
       <AboutYouForm
         initialSex={normalizeSex(athlete?.sex as string | null | undefined)}

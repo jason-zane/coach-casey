@@ -1,4 +1,5 @@
 import { connectStrava } from "@/app/actions/strava";
+import { StepHeader } from "@/app/onboarding/_components/form";
 import { StravaButton } from "./_strava-button";
 
 const ERROR_COPY: Record<string, string> = {
@@ -34,16 +35,17 @@ export default async function StravaStepPage({
 
   return (
     <div className="space-y-10">
-      <header className="space-y-4">
-        <h1 className="font-serif text-3xl leading-tight text-ink md:text-4xl">
-          Now the setup.
-        </h1>
-        <p className="prose-serif text-ink-muted max-w-prose">
-          Three or four minutes. Starts with Strava so I can see what
-          you&rsquo;ve been running. The rest is a few short questions so I
-          can tune in from the first run.
-        </p>
-      </header>
+      <StepHeader
+        eyebrow="Let’s get started"
+        title="Now the setup."
+        description={
+          <>
+            Three or four minutes. Starts with Strava so I can see what
+            you&rsquo;ve been running. The rest is a few short questions so I
+            can tune in from the first run.
+          </>
+        }
+      />
 
       {errorMessage ? (
         <div
@@ -79,4 +81,3 @@ export default async function StravaStepPage({
     </div>
   );
 }
-
