@@ -42,7 +42,7 @@ function paceSPerKm(distance_m: number, moving_time_s: number): number | null {
   return Math.round(moving_time_s / km);
 }
 
-function mapStravaActivity(
+export function mapStravaActivity(
   a: StravaActivity,
   athleteId: string,
   laps: StravaLap[] | null = null,
@@ -206,17 +206,25 @@ async function maybeBackfillDemographicsFromStrava(
   const admin = createAdminClient();
   const { data: athlete } = await admin
     .from("athletes")
-    .select("sex, weight_kg")
+    .select("display_name, sex, weight_kg")
     .eq("id", athleteId)
     .maybeSingle();
   if (!athlete) return;
-  const a = athlete as { sex: string | null; weight_kg: number | null };
-  if (a.sex && a.weight_kg != null) return;
+  const a = athlete as {
+    display_name: string | null;
+    sex: string | null;
+    weight_kg: number | null;
+  };
+  if (a.display_name && a.sex && a.weight_kg != null) return;
 
   try {
     const profile = await fetchAthleteProfile(athleteId);
     if (!profile) return;
     const update: Record<string, unknown> = {};
+    if (!a.display_name && profile.firstname) {
+      const trimmed = profile.firstname.trim();
+      if (trimmed.length > 0) update.display_name = trimmed;
+    }
     if (
       !a.sex &&
       (profile.sex === "M" || profile.sex === "F" || profile.sex === "X")

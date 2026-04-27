@@ -26,7 +26,7 @@ export default async function AboutYouPage({
   const admin = createAdminClient();
   const { data: athlete } = await admin
     .from("athletes")
-    .select("sex, weight_kg, date_of_birth")
+    .select("display_name, sex, weight_kg, date_of_birth")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -39,14 +39,16 @@ export default async function AboutYouPage({
         }
         description={
           <>
-            Coaching that ignores age, sex, and bodyweight is coaching that
-            ignores you. These shape heart-rate ranges, fueling, and how I read
-            your easy days. Strava gives me some of this, but not your birthday.
+            What I should call you, and the basics that shape how I read your
+            training. Coaching that ignores age, sex, and bodyweight is
+            coaching that ignores you. Strava gives me some of this, but not
+            your birthday.
           </>
         }
       />
 
       <AboutYouForm
+        initialName={(athlete?.display_name as string | null) ?? null}
         initialSex={normalizeSex(athlete?.sex as string | null | undefined)}
         initialWeightKg={(athlete?.weight_kg as number | null) ?? null}
         initialDob={(athlete?.date_of_birth as string | null) ?? null}

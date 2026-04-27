@@ -87,9 +87,13 @@ export async function GET(request: Request) {
         // values the athlete may edit later in the about-you step.
         const { data: current } = await admin
           .from("athletes")
-          .select("sex, weight_kg")
+          .select("display_name, sex, weight_kg")
           .eq("id", athlete.id)
           .single();
+        if (!current?.display_name && profile.firstname) {
+          const trimmed = profile.firstname.trim();
+          if (trimmed.length > 0) update.display_name = trimmed;
+        }
         if (
           !current?.sex &&
           (profile.sex === "M" || profile.sex === "F" || profile.sex === "X")

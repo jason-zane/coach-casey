@@ -6,6 +6,10 @@
       "schedule": "*/30 * * * *"
     },
     {
+      "path": "/api/cron/history-backfill",
+      "schedule": "15 * * * *"
+    },
+    {
       "path": "/api/cron/account-purge",
       "schedule": "30 3 * * *"
     }
