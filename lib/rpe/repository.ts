@@ -2,11 +2,13 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/server";
 import { countConsecutiveSkips } from "./skip-count";
 import {
+  bucketFromActivityType,
   PAUSE_DURATION_MS,
   PAUSE_THRESHOLD_SKIPS,
   RPE_MAX,
   RPE_MIN,
   type DebriefRpeMeta,
+  type RpeBucket,
   type RpeState,
 } from "./types";
 import { isEligibleActivity, type EligibilityActivity } from "./eligibility";
@@ -17,6 +19,17 @@ type ActivityNoteRow = {
   rpe_prompted_at: string | null;
   rpe_answered_at: string | null;
   rpe_skipped_at: string | null;
+  bucket: RpeBucket;
+};
+
+type BucketPauseState = {
+  pausedUntil: string | null;
+  anchorAt: string | null;
+};
+
+type AthletePauseState = {
+  run: BucketPauseState;
+  xtrain: BucketPauseState;
 };
 
 /**
@@ -28,7 +41,7 @@ type ActivityNoteRow = {
 async function assertActivityOwnership(
   athleteId: string,
   activityId: string,
-): Promise<EligibilityActivity> {
+): Promise<EligibilityActivity & { bucket: RpeBucket }> {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("activities")
@@ -45,24 +58,44 @@ async function assertActivityOwnership(
   if (row.athlete_id !== athleteId) {
     throw new Error(`activity ${activityId} not owned by athlete ${athleteId}`);
   }
-  return { activityType: row.activity_type, movingTimeS: row.moving_time_s };
+  return {
+    activityType: row.activity_type,
+    movingTimeS: row.moving_time_s,
+    bucket: bucketFromActivityType(row.activity_type),
+  };
 }
 
-async function loadAthletePauseState(
-  athleteId: string,
-): Promise<{ pausedUntil: string | null; anchorAt: string | null }> {
+/**
+ * Load both bucket pause states from the athletes row in one round-trip.
+ * Pause checks happen on every prompt eligibility evaluation and every
+ * RPE write, so pre-fetching all four columns once is cheaper than two
+ * sequential bucket-specific reads.
+ */
+async function loadAthletePauseState(athleteId: string): Promise<AthletePauseState> {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("athletes")
-    .select("rpe_prompts_paused_until, rpe_skip_count_anchor_at")
+    .select(
+      "rpe_prompts_paused_until_run, rpe_skip_count_anchor_at_run, rpe_prompts_paused_until_xtrain, rpe_skip_count_anchor_at_xtrain",
+    )
     .eq("id", athleteId)
     .single();
   if (error) throw error;
+  const row = data as {
+    rpe_prompts_paused_until_run: string | null;
+    rpe_skip_count_anchor_at_run: string | null;
+    rpe_prompts_paused_until_xtrain: string | null;
+    rpe_skip_count_anchor_at_xtrain: string | null;
+  };
   return {
-    pausedUntil:
-      (data as { rpe_prompts_paused_until: string | null }).rpe_prompts_paused_until,
-    anchorAt:
-      (data as { rpe_skip_count_anchor_at: string | null }).rpe_skip_count_anchor_at,
+    run: {
+      pausedUntil: row.rpe_prompts_paused_until_run,
+      anchorAt: row.rpe_skip_count_anchor_at_run,
+    },
+    xtrain: {
+      pausedUntil: row.rpe_prompts_paused_until_xtrain,
+      anchorAt: row.rpe_skip_count_anchor_at_xtrain,
+    },
   };
 }
 
@@ -84,25 +117,31 @@ function rowToState(row: ActivityNoteRow | null): RpeState {
 
 /**
  * Fetch (or create-if-missing) the activity_notes row for an activity.
- * Used as a building block — does not enforce ownership; callers do that
- * one level up so the check happens once per server-action call.
+ * The bucket is denormalised onto the row at insert and never changes.
+ * Used as a building block — does not enforce ownership; callers do
+ * that one level up so the check happens once per server-action call.
  */
 async function ensureActivityNote(
   athleteId: string,
   activityId: string,
+  bucket: RpeBucket,
 ): Promise<ActivityNoteRow> {
   const admin = createAdminClient();
   const { data: existing } = await admin
     .from("activity_notes")
-    .select("activity_id, rpe_value, rpe_prompted_at, rpe_answered_at, rpe_skipped_at")
+    .select(
+      "activity_id, rpe_value, rpe_prompted_at, rpe_answered_at, rpe_skipped_at, bucket",
+    )
     .eq("activity_id", activityId)
     .maybeSingle();
   if (existing) return existing as ActivityNoteRow;
 
   const { data: inserted, error: insertErr } = await admin
     .from("activity_notes")
-    .insert({ activity_id: activityId, athlete_id: athleteId })
-    .select("activity_id, rpe_value, rpe_prompted_at, rpe_answered_at, rpe_skipped_at")
+    .insert({ activity_id: activityId, athlete_id: athleteId, bucket })
+    .select(
+      "activity_id, rpe_value, rpe_prompted_at, rpe_answered_at, rpe_skipped_at, bucket",
+    )
     .single();
   if (insertErr) {
     // 23505 = unique_violation — a parallel insert won the race; fetch
@@ -111,7 +150,7 @@ async function ensureActivityNote(
       const { data: race } = await admin
         .from("activity_notes")
         .select(
-          "activity_id, rpe_value, rpe_prompted_at, rpe_answered_at, rpe_skipped_at",
+          "activity_id, rpe_value, rpe_prompted_at, rpe_answered_at, rpe_skipped_at, bucket",
         )
         .eq("activity_id", activityId)
         .single();
@@ -125,7 +164,8 @@ async function ensureActivityNote(
 /**
  * Look up RPE meta for a batch of debrief messages keyed by activity_id.
  * Used by the thread fetch path to enrich each debrief message with
- * eligibility + state in one round-trip.
+ * eligibility + state in one round-trip. Pause state is read for both
+ * buckets up front and applied per-row by the row's bucket.
  */
 export async function loadDebriefRpeMetaBatch(
   athleteId: string,
@@ -134,7 +174,7 @@ export async function loadDebriefRpeMetaBatch(
   if (activityIds.length === 0) return new Map();
 
   const admin = createAdminClient();
-  const [activitiesRes, notesRes, pauseRes] = await Promise.all([
+  const [activitiesRes, notesRes, pauseState] = await Promise.all([
     admin
       .from("activities")
       .select("id, activity_type, moving_time_s")
@@ -142,7 +182,9 @@ export async function loadDebriefRpeMetaBatch(
       .in("id", activityIds),
     admin
       .from("activity_notes")
-      .select("activity_id, rpe_value, rpe_prompted_at, rpe_answered_at, rpe_skipped_at")
+      .select(
+        "activity_id, rpe_value, rpe_prompted_at, rpe_answered_at, rpe_skipped_at, bucket",
+      )
       .eq("athlete_id", athleteId)
       .in("activity_id", activityIds),
     loadAthletePauseState(athleteId),
@@ -150,15 +192,25 @@ export async function loadDebriefRpeMetaBatch(
   if (activitiesRes.error) throw activitiesRes.error;
   if (notesRes.error) throw notesRes.error;
 
-  const paused = isPaused(pauseRes.pausedUntil);
+  const pausedByBucket: Record<RpeBucket, boolean> = {
+    run: isPaused(pauseState.run.pausedUntil),
+    xtrain: isPaused(pauseState.xtrain.pausedUntil),
+  };
 
-  const activities = new Map<string, EligibilityActivity>();
+  const activities = new Map<
+    string,
+    EligibilityActivity & { bucket: RpeBucket }
+  >();
   for (const a of (activitiesRes.data ?? []) as Array<{
     id: string;
     activity_type: string | null;
     moving_time_s: number | null;
   }>) {
-    activities.set(a.id, { activityType: a.activity_type, movingTimeS: a.moving_time_s });
+    activities.set(a.id, {
+      activityType: a.activity_type,
+      movingTimeS: a.moving_time_s,
+      bucket: bucketFromActivityType(a.activity_type),
+    });
   }
 
   const notes = new Map<string, ActivityNoteRow>();
@@ -172,11 +224,12 @@ export async function loadDebriefRpeMetaBatch(
     if (!activity) continue; // ownership filtered out.
     const note = notes.get(id) ?? null;
     const state = rowToState(note);
-    // Eligibility: shape gate, plus the pause flag (only suppresses the
-    // initial prompt — once a row has been answered/skipped, it stays
-    // visible in its terminal state).
+    // Eligibility: shape gate, plus the pause flag for the activity's
+    // bucket (only suppresses the initial prompt — once a row has been
+    // answered/skipped, it stays visible in its terminal state).
     const shapeOk = isEligibleActivity(activity);
-    const eligible = shapeOk && (state.kind !== "unanswered" || !paused);
+    const eligible =
+      shapeOk && (state.kind !== "unanswered" || !pausedByBucket[activity.bucket]);
     out.set(id, { eligible, state });
   }
   return out;
@@ -192,8 +245,8 @@ export async function markRpePrompted(
   athleteId: string,
   activityId: string,
 ): Promise<void> {
-  await assertActivityOwnership(athleteId, activityId);
-  const note = await ensureActivityNote(athleteId, activityId);
+  const activity = await assertActivityOwnership(athleteId, activityId);
+  const note = await ensureActivityNote(athleteId, activityId, activity.bucket);
   if (note.rpe_prompted_at) return;
   if (note.rpe_answered_at || note.rpe_skipped_at) return;
 
@@ -217,7 +270,7 @@ export type RpeSubmitResult = {
  * so an out-of-range value fails fast even if a request is hand-crafted.
  *
  * Server-side enforces the same gates the UI applies (eligibility +
- * athlete pause). The client's eligibility/pause state can drift —
+ * bucket pause). The client's eligibility/pause state can drift —
  * stale tab across a deploy, hand-crafted request, race with a pause
  * trigger — and without these checks an ineligible or paused write
  * would silently corrupt the eligibility/skip-count history. Errors
@@ -237,10 +290,12 @@ export async function submitRpe(
     throw new Error(`activity ${activityId} is not eligible for RPE`);
   }
   const pauseState = await loadAthletePauseState(athleteId);
-  if (isPaused(pauseState.pausedUntil)) {
-    throw new Error(`RPE prompts paused for athlete ${athleteId}`);
+  if (isPaused(pauseState[activity.bucket].pausedUntil)) {
+    throw new Error(
+      `RPE prompts paused for athlete ${athleteId} (${activity.bucket} bucket)`,
+    );
   }
-  const note = await ensureActivityNote(athleteId, activityId);
+  const note = await ensureActivityNote(athleteId, activityId, activity.bucket);
 
   if (note.rpe_value !== null) {
     return { state: rowToState(note) };
@@ -266,12 +321,14 @@ export async function submitRpe(
     .eq("activity_id", activityId)
     .is("rpe_answered_at", null)
     .is("rpe_skipped_at", null)
-    .select("activity_id, rpe_value, rpe_prompted_at, rpe_answered_at, rpe_skipped_at")
+    .select(
+      "activity_id, rpe_value, rpe_prompted_at, rpe_answered_at, rpe_skipped_at, bucket",
+    )
     .maybeSingle();
   if (error) throw error;
   if (!data) {
     // Lost the optimistic-concurrency check — re-read state.
-    const fresh = await ensureActivityNote(athleteId, activityId);
+    const fresh = await ensureActivityNote(athleteId, activityId, activity.bucket);
     return { state: rowToState(fresh) };
   }
   return { state: rowToState(data as ActivityNoteRow) };
@@ -283,14 +340,15 @@ export type RpeSkipResult = {
 };
 
 /**
- * Record an explicit skip and, if this skip pushes the consecutive count
- * to the threshold, set the pause flag. Returns whether the pause was
- * just applied so the client can surface a confirmation if it wants to.
+ * Record an explicit skip and, if this skip pushes the consecutive
+ * count to the threshold within the activity's bucket, set the
+ * bucket-specific pause flag. Returns whether the pause was just
+ * applied so the client can surface a confirmation if it wants to.
  *
- * Same defensive gates as `submitRpe` — eligibility and pause are
- * re-checked server-side. A paused athlete can't accumulate further
- * skips (would corrupt the threshold counter); an ineligible activity
- * can't enter the skip pool at all.
+ * Same defensive gates as `submitRpe` — eligibility and bucket pause
+ * are re-checked server-side. A paused athlete can't accumulate further
+ * skips in that bucket; an ineligible activity can't enter the skip
+ * pool at all.
  */
 export async function skipRpe(
   athleteId: string,
@@ -301,10 +359,12 @@ export async function skipRpe(
     throw new Error(`activity ${activityId} is not eligible for RPE`);
   }
   const initialPauseState = await loadAthletePauseState(athleteId);
-  if (isPaused(initialPauseState.pausedUntil)) {
-    throw new Error(`RPE prompts paused for athlete ${athleteId}`);
+  if (isPaused(initialPauseState[activity.bucket].pausedUntil)) {
+    throw new Error(
+      `RPE prompts paused for athlete ${athleteId} (${activity.bucket} bucket)`,
+    );
   }
-  const note = await ensureActivityNote(athleteId, activityId);
+  const note = await ensureActivityNote(athleteId, activityId, activity.bucket);
 
   if (note.rpe_value !== null || note.rpe_skipped_at !== null) {
     return { state: rowToState(note), paused: false };
@@ -321,26 +381,43 @@ export async function skipRpe(
     .eq("activity_id", activityId)
     .is("rpe_answered_at", null)
     .is("rpe_skipped_at", null)
-    .select("activity_id, rpe_value, rpe_prompted_at, rpe_answered_at, rpe_skipped_at")
+    .select(
+      "activity_id, rpe_value, rpe_prompted_at, rpe_answered_at, rpe_skipped_at, bucket",
+    )
     .maybeSingle();
   if (error) throw error;
   if (!data) {
-    const fresh = await ensureActivityNote(athleteId, activityId);
+    const fresh = await ensureActivityNote(athleteId, activityId, activity.bucket);
     return { state: rowToState(fresh), paused: false };
   }
 
+  // Re-load pause state and count consecutive skips within this bucket.
+  // The pause check was done up front; the count below is the threshold
+  // evaluation post-write.
   const pause = await loadAthletePauseState(athleteId);
-  const consecutive = await countConsecutiveSkips(athleteId, pause.anchorAt);
+  const consecutive = await countConsecutiveSkips(
+    athleteId,
+    activity.bucket,
+    pause[activity.bucket].anchorAt,
+  );
   if (consecutive >= PAUSE_THRESHOLD_SKIPS) {
     const pausedUntil = new Date(Date.now() + PAUSE_DURATION_MS).toISOString();
+    const pausedCol =
+      activity.bucket === "run"
+        ? "rpe_prompts_paused_until_run"
+        : "rpe_prompts_paused_until_xtrain";
+    const anchorCol =
+      activity.bucket === "run"
+        ? "rpe_skip_count_anchor_at_run"
+        : "rpe_skip_count_anchor_at_xtrain";
     const { error: pauseErr } = await admin
       .from("athletes")
       .update({
-        rpe_prompts_paused_until: pausedUntil,
-        // Anchor counting forward of right now — the skips that triggered
-        // this pause are consumed and shouldn't re-trigger immediately
-        // when the pause expires.
-        rpe_skip_count_anchor_at: now,
+        [pausedCol]: pausedUntil,
+        // Anchor counting forward of right now — the skips that
+        // triggered this pause are consumed and shouldn't re-trigger
+        // immediately when the pause expires.
+        [anchorCol]: now,
       })
       .eq("id", athleteId);
     if (pauseErr) {

@@ -1,13 +1,6 @@
 import "server-only";
+import { classifyActivityType } from "@/lib/strava/activity-types";
 import { MIN_ACTIVITY_SECONDS } from "./types";
-
-/**
- * Activity types we capture RPE for. Per spec §10, RPE is valid for any
- * aerobic activity — runs, rides, swims. The current product only ingests
- * runs from Strava, but the gate is permissive so the same surface works
- * if/when ride/swim ingest comes online.
- */
-const ELIGIBLE_TYPE_TOKENS = ["run", "ride", "cycle", "swim"];
 
 export type EligibilityActivity = {
   activityType: string | null;
@@ -18,10 +11,15 @@ export type EligibilityActivity = {
  * Pure activity-shape eligibility. Does not consider per-athlete pause —
  * that check sits in the server action / fetcher path so it can read
  * fresh state from the athletes row.
+ *
+ * RPE fires on any activity the product generates a thread message for —
+ * runs (debrief pipeline), cross-training (ack pipeline), and the
+ * catch-all path. Ambient-only activities (walks) are excluded: they
+ * generate no thread message, so there's nothing to attach an RPE
+ * picker to. See docs/post-run-debrief-moment.md §4 and §7.
  */
 export function isEligibleActivity(a: EligibilityActivity): boolean {
   if (!a.movingTimeS || a.movingTimeS < MIN_ACTIVITY_SECONDS) return false;
-  const type = (a.activityType ?? "").toLowerCase();
-  if (!type) return true; // Manual / no-type activities still get prompted.
-  return ELIGIBLE_TYPE_TOKENS.some((t) => type.includes(t));
+  const cls = classifyActivityType(a.activityType);
+  return cls === "run" || cls === "cross_training" || cls === "catch_all";
 }
