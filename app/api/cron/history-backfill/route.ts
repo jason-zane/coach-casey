@@ -56,14 +56,18 @@ export async function GET(request: Request) {
 
   const results: Array<{
     athleteId: string;
-    status: "done" | "error";
+    status: "ok" | "error";
+    complete: boolean;
     rowsUpserted: number;
     error?: string;
   }> = [];
 
   for (const a of athletes) {
     const r = await runHistoryBackfillForAthlete(a.id);
-    if (r.status === "done") {
+    // Only announce when the full backfill finishes — partial slices that
+    // hit the page cap continue across cron passes and shouldn't trigger
+    // the "I've now read…" message until everything is in.
+    if (r.status === "ok" && r.complete) {
       await announceBackfillComplete(a.id, r.rowsUpserted);
     }
     results.push({ athleteId: a.id, ...r });
@@ -72,7 +76,8 @@ export async function GET(request: Request) {
   return NextResponse.json({
     ok: true,
     processed: results.length,
-    succeeded: results.filter((r) => r.status === "done").length,
+    succeeded: results.filter((r) => r.status === "ok" && r.complete).length,
+    progressed: results.filter((r) => r.status === "ok" && !r.complete).length,
     failed: results.filter((r) => r.status === "error").length,
     results,
   });

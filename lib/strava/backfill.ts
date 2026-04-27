@@ -22,6 +22,8 @@ import { mapStravaActivity } from "./ingest";
  */
 
 const RECENT_WINDOW_WEEKS = 12;
+const MAX_PAGES_PER_SLICE = 30;
+const PAGE_SIZE = 100;
 
 type BackfillFloor = "two_years" | "all_time";
 
@@ -35,10 +37,16 @@ function floorIsoFor(floor: BackfillFloor): string | null {
   return d.toISOString();
 }
 
-function recentBoundarySeconds(): number {
+/**
+ * Anchored at kickoff time so it doesn't drift on subsequent cron passes.
+ * Without this anchor, a cron pass running a day after onboarding would push
+ * the boundary forward by a day, causing summary upserts to overwrite lap
+ * detail the foreground ingest already pulled for that overlap.
+ */
+function initialBeforeIso(): string {
   const d = new Date();
   d.setDate(d.getDate() - RECENT_WINDOW_WEEKS * 7);
-  return Math.floor(d.getTime() / 1000);
+  return d.toISOString();
 }
 
 /**
@@ -79,6 +87,7 @@ export async function kickOffHistoryBackfill(
     .update({
       history_backfill_status: "pending",
       history_backfill_floor_iso: desiredFloor,
+      history_backfill_before_iso: initialBeforeIso(),
       history_backfill_started_at: null,
       history_backfill_completed_at: null,
       history_backfill_last_error: null,
@@ -88,23 +97,48 @@ export async function kickOffHistoryBackfill(
 
 /**
  * Run one slice of the backfill for a single athlete. Idempotent — the
- * upsert on (athlete_id, strava_id) prevents duplicates, and the before-
- * boundary keeps it from overlapping the foreground ingest window.
+ * upsert on (athlete_id, strava_id) prevents duplicates.
  *
- * Returns the number of rows upserted.
+ * The before-cursor anchored at kickoff (history_backfill_before_iso) keeps
+ * each slice cleanly inside its own window. When a slice hits the page cap
+ * (= more activities exist further back), the cursor is advanced backwards
+ * to the oldest activity in the batch and status stays 'pending' so the
+ * next cron pass continues where this one left off. Only when a slice
+ * returns a non-full last page do we mark 'done'. Migrated rows that
+ * predate the before-cursor column treat NULL as "use the recent
+ * boundary" so legacy backfills are still resumable.
+ *
+ * Returns the number of rows upserted in this slice.
  */
+export type BackfillSliceResult =
+  | { status: "ok"; complete: boolean; rowsUpserted: number }
+  | { status: "error"; complete: false; rowsUpserted: 0; error: string };
+
 export async function runHistoryBackfillForAthlete(
   athleteId: string,
-): Promise<{ status: "done" | "error"; rowsUpserted: number; error?: string }> {
+): Promise<BackfillSliceResult> {
   const admin = createAdminClient();
   const { data: row } = await admin
     .from("athletes")
-    .select("history_backfill_floor_iso")
+    .select("history_backfill_floor_iso, history_backfill_before_iso")
     .eq("id", athleteId)
     .maybeSingle();
-  if (!row) return { status: "error", rowsUpserted: 0, error: "no athlete" };
-  const floorIso = (row as { history_backfill_floor_iso: string | null })
-    .history_backfill_floor_iso;
+  if (!row)
+    return {
+      status: "error",
+      complete: false,
+      rowsUpserted: 0,
+      error: "no athlete",
+    };
+  const r = row as {
+    history_backfill_floor_iso: string | null;
+    history_backfill_before_iso: string | null;
+  };
+  const floorIso = r.history_backfill_floor_iso;
+  // NULL before_iso happens for rows kicked off before the column existed
+  // (legacy/preview/dev). Fall back to the recent boundary so they still
+  // make progress. Subsequent slices will use the value we persist below.
+  const beforeIso = r.history_backfill_before_iso ?? initialBeforeIso();
 
   await admin
     .from("athletes")
@@ -118,17 +152,17 @@ export async function runHistoryBackfillForAthlete(
     const afterSeconds = floorIso
       ? Math.floor(new Date(floorIso).getTime() / 1000)
       : undefined;
-    const beforeSeconds = recentBoundarySeconds();
+    const beforeSeconds = Math.floor(new Date(beforeIso).getTime() / 1000);
 
     const activities = await fetchActivitiesWindow(athleteId, {
       afterSeconds,
       beforeSeconds,
       // 30 pages × 100 = 3000 activities. Two years of dedicated
       // marathoner training tops out around 700; this covers it
-      // comfortably. All-time backfills for very long-tenured athletes
-      // may exceed this — the cron will simply re-fire on the next pass
-      // since the resulting upsert is idempotent.
-      maxPages: 30,
+      // comfortably. Larger histories (all_time, very long-tenured
+      // athletes) continue across cron passes via the before-cursor
+      // walk-back below.
+      maxPages: MAX_PAGES_PER_SLICE,
     });
 
     // Drop ambient types (Walk, etc.) — same filter the foreground ingest
@@ -146,6 +180,29 @@ export async function runHistoryBackfillForAthlete(
       if (error) throw error;
     }
 
+    // Hit the page cap → there's more older history beyond this slice.
+    // Advance the cursor to the oldest activity in this batch (using the
+    // *unfiltered* list so we don't skip a noise-only page) and leave
+    // status as 'pending' so the next cron pass continues the walk.
+    const hitCap = activities.length >= MAX_PAGES_PER_SLICE * PAGE_SIZE;
+    if (hitCap) {
+      // Strava returns activities most-recent-first within a paginated
+      // window, so the *last* item is the oldest. Defensive sort in case
+      // that ever changes.
+      const oldest = [...activities].sort((a, b) =>
+        a.start_date_local.localeCompare(b.start_date_local),
+      )[0];
+      await admin
+        .from("athletes")
+        .update({
+          history_backfill_status: "pending",
+          history_backfill_before_iso: oldest.start_date_local,
+          history_backfill_last_error: null,
+        })
+        .eq("id", athleteId);
+      return { status: "ok", complete: false, rowsUpserted: kept.length };
+    }
+
     await admin
       .from("athletes")
       .update({
@@ -155,7 +212,7 @@ export async function runHistoryBackfillForAthlete(
       })
       .eq("id", athleteId);
 
-    return { status: "done", rowsUpserted: kept.length };
+    return { status: "ok", complete: true, rowsUpserted: kept.length };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Backfill failed.";
     await admin
@@ -165,7 +222,12 @@ export async function runHistoryBackfillForAthlete(
         history_backfill_last_error: msg.slice(0, 500),
       })
       .eq("id", athleteId);
-    return { status: "error", rowsUpserted: 0, error: msg };
+    return {
+      status: "error",
+      complete: false,
+      rowsUpserted: 0,
+      error: msg,
+    };
   }
 }
 
