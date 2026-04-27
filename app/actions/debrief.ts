@@ -187,9 +187,10 @@ export async function generateDebriefForActivity(
   // marketing surface: Casey's verdict + signature land at the tail of
   // the athlete's Strava description so anyone reading their feed sees
   // the line. Wrapped so any failure (Strava down, scope missing,
-  // mock connection) never surfaces as a debrief failure. Idempotent
-  // via the helper's tail-check, so webhook retries and force-regen
-  // don't double-append.
+  // mock connection) never surfaces as a debrief failure. The helper
+  // strips any previously-appended Casey block before re-writing, so
+  // force-regen replaces rather than stacks; webhook retries that
+  // produce identical text no-op via an exact-match check.
   if (outcome.stravaBlurb && ctx.activity.strava_id != null) {
     try {
       const appended = `${outcome.stravaBlurb}\n\n${STRAVA_BLURB_SIGNATURE}`;
@@ -197,6 +198,7 @@ export async function generateDebriefForActivity(
         athleteId,
         ctx.activity.strava_id,
         appended,
+        STRAVA_BLURB_SIGNATURE,
       );
       if (result.kind === "error") {
         console.warn(

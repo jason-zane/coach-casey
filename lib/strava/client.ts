@@ -223,11 +223,43 @@ export type UpdateActivityDescriptionResult =
   | { kind: "skip"; reason: "mock_connection" | "no_connection" | "missing_scope" }
   | { kind: "error"; status: number | null; message: string };
 
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 /**
- * Append-safe Strava activity description update. Reads the current
- * description, no-ops if our blurb is already present (idempotency under
- * webhook retries and debrief regeneration), and otherwise PUTs the
- * combined text.
+ * Strip a previously-appended Casey block from the tail of a description.
+ *
+ * The block we write is `${verdict}\n\n${signature}`, joined to any prior
+ * description with `\n\n`. To handle force-regen cleanly we remove the
+ * prior block before computing the next description, so re-runs replace
+ * rather than stack.
+ *
+ * Match shape, anchored to end of string:
+ *   (^|\n\n) [non-newline verdict] \n\n SIGNATURE \s*$
+ *
+ * If the user added content *after* the signature (manual edit), the
+ * regex won't match and we leave the description alone — they wanted
+ * that content there.
+ */
+export function stripPriorCaseyBlock(
+  description: string,
+  signature: string,
+): string {
+  const re = new RegExp(
+    `(?:\\n\\n|^)[^\\n]+\\n\\n${escapeRegex(signature)}\\s*$`,
+  );
+  return description.replace(re, "").replace(/\s+$/, "");
+}
+
+/**
+ * Append-safe Strava activity description update.
+ *
+ * Reads the current description, strips any previously-appended Casey
+ * block (so force-regen replaces rather than stacks), and PUTs the
+ * combined text. No-ops when the description already exactly matches
+ * what we'd write, so webhook retries and equivalent regenerations
+ * don't churn Strava.
  *
  * Failures are returned, not thrown, so the caller can fire-and-forget
  * this from the debrief commit path without risking the debrief itself.
@@ -241,6 +273,7 @@ export async function updateActivityDescriptionAppend(
   athleteId: string,
   stravaActivityId: number,
   appended: string,
+  signature: string,
 ): Promise<UpdateActivityDescriptionResult> {
   let token: string;
   try {
@@ -267,12 +300,18 @@ export async function updateActivityDescriptionAppend(
     };
   }
   const current = (await getRes.json()) as { description?: string | null };
-  const existing = (current.description ?? "").replace(/\s+$/, "");
+  const existing = current.description ?? "";
 
-  // Idempotency: if our exact appended block is already at the tail, skip.
-  if (existing.endsWith(appended.trim())) return { kind: "ok" };
+  // Strip any previously-appended Casey block so force-regen / re-writes
+  // replace rather than stack. The user's own text (anything outside our
+  // block) is preserved.
+  const userText = stripPriorCaseyBlock(existing, signature);
+  const next = userText.length > 0 ? `${userText}\n\n${appended}` : appended;
 
-  const next = existing.length > 0 ? `${existing}\n\n${appended}` : appended;
+  // Idempotency: if the description is already exactly what we'd write,
+  // skip the PUT. Catches webhook retries and re-runs that produce the
+  // same verdict.
+  if (existing === next) return { kind: "ok" };
 
   const putRes = await fetch(
     `${STRAVA_API_BASE}/activities/${stravaActivityId}`,

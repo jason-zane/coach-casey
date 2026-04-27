@@ -563,7 +563,35 @@ export async function generateStravaBlurb(ctx: DebriefContext): Promise<string |
   const unquoted = raw.replace(/^[\"'“‘]+|[\"'”’]+$/g, "").trim();
   if (!unquoted) return null;
   if (unquoted.length > STRAVA_BLURB_MAX_CHARS) return null;
+  if (!passesStravaBlurbVoiceCheck(unquoted)) return null;
   return unquoted;
+}
+
+/**
+ * Hard tripwire on voice failures the prompt shouldn't produce but
+ * occasionally will. This output lands on the athlete's *public* Strava
+ * feed, so a single hype line slipping through is materially worse than
+ * a missed blurb. On any tripwire we drop the blurb entirely (the caller
+ * treats `null` as skip-the-Strava-write) and the next debrief gets
+ * another shot.
+ *
+ * Filters: exclamation points, hashtags, emoji (Extended_Pictographic),
+ * a few canonical hype phrases, and the meta-leaks `Verdict:` or
+ * `Output:` prefixes that occasionally bleed in from the prompt.
+ */
+function passesStravaBlurbVoiceCheck(text: string): boolean {
+  if (/[!]/.test(text)) return false;
+  if (/#\w/.test(text)) return false;
+  if (/^\s*(verdict|output|response)\s*[:\-]/i.test(text)) return false;
+  if (/\p{Extended_Pictographic}/u.test(text)) return false;
+  if (
+    /\b(crushed it|smashed it|killed it|nailed it|let'?s go|great job|amazing|awesome|legend|champion)\b/i.test(
+      text,
+    )
+  ) {
+    return false;
+  }
+  return true;
 }
 
 /**
