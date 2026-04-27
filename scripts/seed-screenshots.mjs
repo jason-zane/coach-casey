@@ -43,11 +43,19 @@ const admin = createClient(
 // ---------- helpers ----------
 const TODAY = new Date("2026-04-28T07:30:00+10:00"); // Tuesday, Sydney time
 
+// Build a Sydney-local timestamp for a given offset from TODAY, independent
+// of the runtime's local timezone. `setDate` / `setHours` would interpret
+// the field changes against the host's local zone, which silently shifts
+// every seeded date when the script is run outside +10.
 function dayAt(daysAgo, hour = 6, minute = 30) {
-  const d = new Date(TODAY);
-  d.setDate(d.getDate() - daysAgo);
-  d.setHours(hour, minute, 0, 0);
-  return d;
+  const base = new Date(TODAY);
+  base.setUTCDate(base.getUTCDate() - daysAgo);
+  const yyyy = base.getUTCFullYear();
+  const mm = String(base.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(base.getUTCDate()).padStart(2, "0");
+  const hh = String(hour).padStart(2, "0");
+  const min = String(minute).padStart(2, "0");
+  return new Date(`${yyyy}-${mm}-${dd}T${hh}:${min}:00+10:00`);
 }
 
 function paceSPerKm(km, seconds) {
