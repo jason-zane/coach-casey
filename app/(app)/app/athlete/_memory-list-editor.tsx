@@ -11,7 +11,10 @@ type Item = {
   id: string;
   content: string;
   tags: string[];
-  recordedAt: string;
+  /** Pre-formatted date label, e.g. "First mentioned Apr 12, 2026". */
+  dateLabel: string;
+  /** Pre-formatted header line. Null when the item shouldn't render a header (life context). */
+  header: string | null;
 };
 
 type Props = {
@@ -23,10 +26,6 @@ type Props = {
   contentPlaceholder: string;
   /** Whether to render the tags field. Niggles use it (body part); life context skips it. */
   showTags: boolean;
-  /** Format for the "first mentioned" / date label per item. */
-  dateLabelFormatter: (iso: string) => string;
-  /** Display header for an individual item — niggles render tags as the header. */
-  itemHeader: (item: Item) => string | null;
 };
 
 export function MemoryListEditor({
@@ -35,8 +34,6 @@ export function MemoryListEditor({
   addLabel,
   contentPlaceholder,
   showTags,
-  dateLabelFormatter,
-  itemHeader,
 }: Props) {
   const [adding, setAdding] = useState(false);
 
@@ -49,8 +46,6 @@ export function MemoryListEditor({
               key={item.id}
               item={item}
               showTags={showTags}
-              dateLabelFormatter={dateLabelFormatter}
-              itemHeader={itemHeader}
             />
           ))}
         </ul>
@@ -79,13 +74,9 @@ export function MemoryListEditor({
 function MemoryRow({
   item,
   showTags,
-  dateLabelFormatter,
-  itemHeader,
 }: {
   item: Item;
   showTags: boolean;
-  dateLabelFormatter: (iso: string) => string;
-  itemHeader: (item: Item) => string | null;
 }) {
   const [editing, setEditing] = useState(false);
   const [armed, setArmed] = useState(false);
@@ -181,14 +172,14 @@ function MemoryRow({
     );
   }
 
-  const header = itemHeader(item);
-
   return (
     <li className="text-[14px] leading-[1.55]">
-      {header && <div className="text-ink font-medium">{header}</div>}
+      {item.header && (
+        <div className="text-ink font-medium">{item.header}</div>
+      )}
       <div className="text-ink-muted">{item.content}</div>
       <div className="font-mono text-[10px] uppercase tracking-wider text-ink-subtle pt-0.5">
-        {dateLabelFormatter(item.recordedAt)}
+        {item.dateLabel}
       </div>
       {error && (
         <p className="text-[13px] text-red-700 pt-1" role="alert">
