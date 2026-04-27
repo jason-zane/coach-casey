@@ -2,7 +2,7 @@ import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type Anthropic from "@anthropic-ai/sdk";
-import { anthropic, SONNET_MODEL } from "./anthropic";
+import { anthropic, HAIKU_MODEL } from "./anthropic";
 import type { DebriefContext } from "@/lib/thread/debrief-context";
 import type { RpeBranch } from "./followup-picker";
 
@@ -84,7 +84,7 @@ export async function generateRpeBranchedFollowUp(
   ].join("\n");
 
   const response = await anthropic().messages.create({
-    model: SONNET_MODEL,
+    model: HAIKU_MODEL,
     max_tokens: 160,
     temperature: 0.85,
     system: [
