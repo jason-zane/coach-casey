@@ -18,10 +18,19 @@ import { requireAthlete, advanceFrom } from "@/app/actions/onboarding";
  * send them to /app.
  */
 export async function saveAboutYou(formData: FormData) {
+  const displayName = String(formData.get("display_name") ?? "").trim();
   const dob = String(formData.get("date_of_birth") ?? "").trim();
   const sex = String(formData.get("sex") ?? "").trim();
   const weightRaw = String(formData.get("weight_kg") ?? "").trim();
   const backfill = String(formData.get("backfill") ?? "") === "1";
+
+  // Name: at least one non-whitespace character. Capped at 60 chars to match
+  // the form's maxLength. Empty rejects with a field error.
+  if (displayName.length === 0 || displayName.length > 60) {
+    redirect(
+      `/onboarding/about-you?error=name${backfill ? "&backfill=1" : ""}`,
+    );
+  }
 
   // DOB validation: ISO yyyy-mm-dd, plausible age window. We don't show
   // field-level errors in the form yet — bad input falls through to a
@@ -67,6 +76,7 @@ export async function saveAboutYou(formData: FormData) {
   await admin
     .from("athletes")
     .update({
+      display_name: displayName,
       date_of_birth: dob,
       sex,
       weight_kg,

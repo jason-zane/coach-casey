@@ -13,6 +13,7 @@ import { DobInput } from "@/app/onboarding/_components/dob-input";
 type Sex = "M" | "F" | "X";
 
 type Props = {
+  initialName: string | null;
   initialSex: Sex | null;
   initialWeightKg: number | null;
   initialDob: string | null;
@@ -27,18 +28,21 @@ const SEX_OPTIONS: { value: Sex; label: string }[] = [
 ];
 
 const ERROR_TEXT: Record<string, string> = {
+  name: "Please enter a name.",
   dob: "Please enter a valid date of birth.",
   sex: "Please select an option.",
   weight: "Weight should be between 20 and 250 kg.",
 };
 
 export function AboutYouForm({
+  initialName,
   initialSex,
   initialWeightKg,
   initialDob,
   backfill,
   error,
 }: Props) {
+  const [name, setName] = useState<string>(initialName ?? "");
   const [sex, setSex] = useState<Sex | "">(initialSex ?? "");
   const [weightKg, setWeightKg] = useState<string>(
     initialWeightKg != null ? String(initialWeightKg) : "",
@@ -50,6 +54,7 @@ export function AboutYouForm({
   function submit() {
     startTransition(async () => {
       const fd = new FormData();
+      fd.set("display_name", name);
       fd.set("date_of_birth", dob);
       fd.set("sex", sex);
       fd.set("weight_kg", weightKg);
@@ -59,7 +64,10 @@ export function AboutYouForm({
   }
 
   const canSubmit =
-    dob && (sex === "M" || sex === "F" || sex === "X") && !pending;
+    name.trim().length > 0 &&
+    dob &&
+    (sex === "M" || sex === "F" || sex === "X") &&
+    !pending;
 
   return (
     <div className="space-y-7">
@@ -68,6 +76,24 @@ export function AboutYouForm({
           {ERROR_TEXT[error]}
         </div>
       )}
+
+      <div className="space-y-2">
+        <FieldLabel
+          htmlFor="display_name"
+          hint={initialName ? "· pulled from Strava, edit if needed" : undefined}
+        >
+          What should I call you?
+        </FieldLabel>
+        <Input
+          id="display_name"
+          type="text"
+          autoComplete="given-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g. Jason"
+          maxLength={60}
+        />
+      </div>
 
       <div className="space-y-2">
         <FieldLabel htmlFor="dob">Date of birth</FieldLabel>

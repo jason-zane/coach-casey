@@ -9,6 +9,7 @@ import {
   nextStep,
   stepOrderFor,
 } from "@/lib/onboarding/steps";
+import { kickOffHistoryBackfill } from "@/lib/strava/backfill";
 
 export async function requireAthlete() {
   const supabase = await createClient();
@@ -72,6 +73,19 @@ export async function completeOnboarding() {
   await admin
     .from("trials")
     .insert({ athlete_id: athlete.id, ends_at: endsAt.toISOString() });
+
+  // Queue the long-history backfill. Cron picks it up and pulls up to two
+  // years of activity summaries asynchronously, so onboarding completes
+  // immediately and the deeper picture builds in the background. Mock
+  // connections (preview mode) skip — there's no live Strava to call.
+  const { data: conn } = await admin
+    .from("strava_connections")
+    .select("is_mock")
+    .eq("athlete_id", athlete.id)
+    .maybeSingle();
+  if (conn && !(conn as { is_mock: boolean }).is_mock) {
+    await kickOffHistoryBackfill(athlete.id, "two_years");
+  }
 
   revalidatePath("/", "layout");
   redirect("/app");

@@ -204,15 +204,38 @@ export async function fetchActivitiesSince(
   athleteId: string,
   afterIsoOrSeconds: number,
 ): Promise<StravaActivity[]> {
+  return fetchActivitiesWindow(athleteId, {
+    afterSeconds: afterIsoOrSeconds,
+  });
+}
+
+/**
+ * Paginate Strava's /athlete/activities with optional after/before bounds.
+ * Both bounds are inclusive seconds-since-epoch. `before` is used by the
+ * long-history backfill to avoid overlapping the recent foreground ingest
+ * window — keeps the backfill cleanly disjoint so it never overwrites lap
+ * detail we already pulled.
+ *
+ * Safety caps at 30 pages × 100 = 3000 activities per call. Two years of
+ * a heavy training load (~520 activities) is well under that. Larger
+ * histories (all-time) require multiple invocations across cron passes.
+ */
+export async function fetchActivitiesWindow(
+  athleteId: string,
+  bounds: { afterSeconds?: number; beforeSeconds?: number; maxPages?: number },
+): Promise<StravaActivity[]> {
   const token = await getValidAccessToken(athleteId);
   const all: StravaActivity[] = [];
   let page = 1;
+  const maxPages = bounds.maxPages ?? 30;
   while (true) {
-    const params = new URLSearchParams({
-      after: String(afterIsoOrSeconds),
-      per_page: "100",
-      page: String(page),
-    });
+    const params = new URLSearchParams({ per_page: "100", page: String(page) });
+    if (bounds.afterSeconds != null) {
+      params.set("after", String(bounds.afterSeconds));
+    }
+    if (bounds.beforeSeconds != null) {
+      params.set("before", String(bounds.beforeSeconds));
+    }
     const res = await fetch(
       `${STRAVA_API_BASE}/athlete/activities?${params.toString()}`,
       {
@@ -228,7 +251,7 @@ export async function fetchActivitiesSince(
     all.push(...batch);
     if (batch.length < 100) break;
     page += 1;
-    if (page > 20) break; // safety
+    if (page > maxPages) break;
   }
   return all;
 }
