@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { fetchActivitiesWindow } from "./client";
 import { classifyActivityType } from "./activity-types";
 import { mapStravaActivity } from "./ingest";
+import { computeAndPersistMonthlyRollup } from "./history-rollup";
 
 /**
  * Long-history Strava backfill. Distinct from the foreground ingest in
@@ -212,6 +213,16 @@ export async function runHistoryBackfillForAthlete(
       })
       .eq("id", athleteId);
 
+    // Compute the cached monthly rollup now that we have the full long-history
+    // window in the activities table. Fire-and-forget at the call site (cron
+    // already serialises per-athlete), and a failure here doesn't unwind the
+    // backfill itself.
+    try {
+      await computeAndPersistMonthlyRollup(athleteId);
+    } catch (e) {
+      console.warn("monthly rollup compute failed (non-fatal)", athleteId, e);
+    }
+
     return { status: "ok", complete: true, rowsUpserted: kept.length };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Backfill failed.";
@@ -271,31 +282,39 @@ export async function announceBackfillComplete(
       .eq("athlete_id", athleteId)
       .order("start_date_local", { ascending: true })
       .limit(1);
-    const oldest = agg && agg.length > 0 ? new Date(agg[0].start_date_local as string) : null;
-    const monthsBack = oldest
-      ? Math.max(1, Math.round((Date.now() - oldest.getTime()) / (30.44 * 24 * 60 * 60 * 1000)))
-      : null;
+    const oldest =
+      agg && agg.length > 0 ? new Date(agg[0].start_date_local as string) : null;
+    const horizon = oldest ? formatHorizon(oldest) : "your earlier history";
 
-    const horizon = monthsBack
-      ? monthsBack >= 22
-        ? "the last two years"
-        : monthsBack >= 12
-          ? `the last ${Math.round(monthsBack / 12 * 10) / 10} years`
-          : `the last ${monthsBack} months`
-      : "your history";
-
+    // Honest framing: summaries only for the deep history, full lap detail
+    // for the recent window, and a clear handle for older runs ("ask me and
+    // I can pull the detail fresh"). No more overclaiming knowledge Casey
+    // does not yet have inside the chat context.
     const body =
-      `I&rsquo;ve now read ${horizon} of your training. ` +
-      `That gives me a fuller picture, peaks, blocks, gaps, the shape of how you build.`;
+      `Backfill is in. I’ve got summaries going back to ${horizon}, ` +
+      `enough to read volume, frequency, and the shape of how you build. ` +
+      `For the last twelve weeks I have full lap detail. ` +
+      `Anything older, ask me and I can pull the detail from Strava if it matters.`;
 
     await admin.from("messages").insert({
       thread_id: thread.id,
       athlete_id: athleteId,
       kind: "chat_casey",
-      body: body.replace(/&rsquo;/g, "’"),
+      body,
       meta: { backfill: true },
     });
   } catch (e) {
     console.warn("backfill announcement failed (non-fatal)", e);
   }
+}
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+function formatHorizon(oldest: Date): string {
+  // Reads as "August 2024" style. Specific is more credible than vague
+  // ("the last X years") and matches the rollup card the prompt sees.
+  return `${MONTHS[oldest.getMonth()]} ${oldest.getFullYear()}`;
 }

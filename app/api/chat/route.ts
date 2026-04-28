@@ -78,10 +78,16 @@ export async function POST(req: NextRequest) {
             accumulated += ev.value;
             send({ type: "text", value: ev.value });
           } else if (ev.type === "tool_use") {
-            pendingTools.push({
-              name: ev.name,
-              input: ev.input as Record<string, unknown>,
-            });
+            // Lookup tools (query_training_history, fetch_run_detail) are
+            // executed inside streamChat's loop and feed their results back
+            // to the model directly. Only memory side-effect tools land in
+            // pendingTools for post-stream persistence.
+            if (ev.name === "remember_context" || ev.name === "remember_injury") {
+              pendingTools.push({
+                name: ev.name,
+                input: ev.input as Record<string, unknown>,
+              });
+            }
           } else if (ev.type === "done") {
             accumulated = ev.fullText || accumulated;
           }
