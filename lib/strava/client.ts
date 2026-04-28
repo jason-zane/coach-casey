@@ -329,8 +329,15 @@ export function stripPriorCaseyBlock(
   description: string,
   signature: string,
 ): string {
+  // Anchor on the stable marker text ("coached by Coach Casey · coachcasey.app")
+  // so we still strip blocks posted under the previous signature variant
+  // (which had a leading em dash). Anything within the same logical line as
+  // the marker is allowed to vary, including punctuation we have since
+  // dropped.
+  const markerMatch = signature.match(/coached by Coach Casey[^\n]*$/);
+  const marker = markerMatch ? markerMatch[0] : signature.trim();
   const re = new RegExp(
-    `(?:\\n\\n|^)[^\\n]+\\n\\n${escapeRegex(signature)}\\s*$`,
+    `(?:\\n\\n|^)[^\\n]+\\n\\n[^\\n]*${escapeRegex(marker)}\\s*$`,
   );
   return description.replace(re, "").replace(/\s+$/, "");
 }

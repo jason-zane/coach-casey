@@ -32,7 +32,7 @@ export type DebriefOutcome =
   | { kind: "skip"; reason: DebriefSkipReason };
 
 export const STRAVA_BLURB_SIGNATURE =
-  " coached by Coach Casey · coachcasey.app";
+  "coached by Coach Casey · coachcasey.app";
 
 // Verdict cap is 140 chars per prompt spec. Allow some slack for the model
 // occasionally going slightly long; reject anything past this absolute cap
