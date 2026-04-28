@@ -79,6 +79,10 @@ export async function updateAthleteProfile(
   const { athlete } = await requireAthlete();
   const admin = createAdminClient();
 
+  // Validate every input field FIRST. We split persistence across two
+  // tables (athletes + preferences); validating up-front prevents a
+  // partial write where the athletes-table update lands but a later
+  // coachingMode validation throws and leaves the request half-applied.
   const update: Record<string, unknown> = {};
 
   if (Object.prototype.hasOwnProperty.call(input, "displayName")) {
@@ -128,14 +132,12 @@ export async function updateAthleteProfile(
     }
   }
 
-  if (Object.keys(update).length > 0) {
-    await admin.from("athletes").update(update).eq("id", athlete.id);
-  }
-
-  // Coaching mode lives on preferences (alongside plan_follower_status).
-  // Handled separately so the athletes.update doesn't carry an invalid
-  // column name.
-  if (Object.prototype.hasOwnProperty.call(input, "coachingMode")) {
+  // Validate coachingMode ahead of any DB writes.
+  const hasCoachingMode = Object.prototype.hasOwnProperty.call(
+    input,
+    "coachingMode",
+  );
+  if (hasCoachingMode) {
     if (
       input.coachingMode != null &&
       input.coachingMode !== "coach" &&
@@ -143,6 +145,17 @@ export async function updateAthleteProfile(
     ) {
       throw new Error("Invalid coaching mode");
     }
+  }
+
+  if (Object.keys(update).length === 0 && !hasCoachingMode) return;
+
+  if (Object.keys(update).length > 0) {
+    await admin.from("athletes").update(update).eq("id", athlete.id);
+  }
+
+  // Coaching mode lives on preferences (alongside plan_follower_status).
+  // Already validated above, so the upsert is the only thing left to do.
+  if (hasCoachingMode) {
     await admin
       .from("preferences")
       .upsert(
@@ -151,12 +164,6 @@ export async function updateAthleteProfile(
       );
   }
 
-  if (
-    Object.keys(update).length === 0 &&
-    !Object.prototype.hasOwnProperty.call(input, "coachingMode")
-  ) {
-    return;
-  }
   revalidatePath("/app/athlete");
 }
 
