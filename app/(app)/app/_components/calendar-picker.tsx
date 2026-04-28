@@ -160,7 +160,7 @@ export function CalendarPicker({ threadId, open, onClose, onPick }: Props) {
                           ? "text-ink"
                           : "text-ink-muted"
                     } hover:bg-rule/40`}
-                    aria-label={`${iso}${hasActivity ? " — has activity" : ""}`}
+                    aria-label={`${iso}${hasActivity ? ", has activity" : ""}`}
                   >
                     {Number(iso.slice(8, 10))}
                     {hasActivity && !isToday && (

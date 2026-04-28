@@ -1,4 +1,4 @@
-// Dev-only helper — flips the signed-in test user's onboarding state so the
+// Dev-only helper, flips the signed-in test user's onboarding state so the
 // home surface can be exercised without clicking through onboarding.
 // Usage: node scripts/dev-onboarding-toggle.mjs <email> complete|reset
 import { createClient } from "@supabase/supabase-js";

@@ -4,16 +4,16 @@ import { generateCrossTrainingAckForActivity } from "@/app/actions/cross-trainin
 
 /**
  * Dev trigger for the cross-training acknowledgement pipeline. Mirrors
- * `/api/dev/debrief` — webhooks cannot reach localhost so this is the
+ * `/api/dev/debrief`, webhooks cannot reach localhost so this is the
  * path for exercising the pipeline end-to-end during development and
  * prompt iteration.
  *
  * Modes:
- *   GET /api/dev/cross-training?activity_id=<uuid>     — ack that activity
- *   GET /api/dev/cross-training?strava_id=<int>        — resolve by strava id
- *   GET /api/dev/cross-training?latest_non_run=1       — ack the most recent
+ *   GET /api/dev/cross-training?activity_id=<uuid>    , ack that activity
+ *   GET /api/dev/cross-training?strava_id=<int>       , resolve by strava id
+ *   GET /api/dev/cross-training?latest_non_run=1      , ack the most recent
  *                                                        non-run activity
- *   GET /api/dev/cross-training?...&force=1            — regenerate even if
+ *   GET /api/dev/cross-training?...&force=1           , regenerate even if
  *                                                        one already exists
  *
  * Disabled in production.

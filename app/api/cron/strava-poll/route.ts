@@ -9,7 +9,7 @@ export const maxDuration = 300; // give a full 5 minutes for the whole sweep
 
 /**
  * Safety-net cron. The primary trigger for debriefs is the Strava webhook;
- * this endpoint catches debriefs the webhook missed — outage, dropped
+ * this endpoint catches debriefs the webhook missed, outage, dropped
  * retry, deploy bounced. It does NOT re-ingest activities: the webhook is
  * the single source of truth for ingest, and a missed ingest self-heals
  * on the next webhook event or when the user next opens the app.
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
   } else if (process.env.NODE_ENV === "production") {
-    // Fail closed in production if no secret is configured — better to
+    // Fail closed in production if no secret is configured, better to
     // surface "not configured" than to expose a trigger.
     return NextResponse.json(
       { error: "CRON_SECRET not configured" },

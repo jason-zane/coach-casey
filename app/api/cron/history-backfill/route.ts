@@ -64,7 +64,7 @@ export async function GET(request: Request) {
 
   for (const a of athletes) {
     const r = await runHistoryBackfillForAthlete(a.id);
-    // Only announce when the full backfill finishes — partial slices that
+    // Only announce when the full backfill finishes, partial slices that
     // hit the page cap continue across cron passes and shouldn't trigger
     // the "I've now read…" message until everything is in.
     if (r.status === "ok" && r.complete) {

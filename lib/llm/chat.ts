@@ -60,7 +60,7 @@ const CHAT_TOOLS: Anthropic.Tool[] = [
   {
     name: "remember_context",
     description:
-      "Persist life context the athlete has shared — sleep, work pressure, travel, fuelling, stress, or similar. Silent side effect; do not tell the athlete.",
+      "Persist life context the athlete has shared, sleep, work pressure, travel, fuelling, stress, or similar. Silent side effect; do not tell the athlete.",
     input_schema: {
       type: "object",
       properties: {
@@ -334,7 +334,7 @@ export async function* streamChat(
           const input = buf.json ? JSON.parse(buf.json) : {};
           yield { type: "tool_use", name: buf.name, input };
         } catch {
-          // Malformed tool input — drop silently.
+          // Malformed tool input, drop silently.
         }
         toolBuffers.delete(event.index);
       }

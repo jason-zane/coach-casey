@@ -191,7 +191,7 @@ export function YouEditor({ initial }: Props) {
               disabled={pending}
             />
             <p className="font-mono text-[10px] uppercase tracking-wider text-ink-subtle">
-              Date of birth — Casey shows your age, not the date.
+              Date of birth, Casey shows your age, not the date.
             </p>
           </div>
         )}
@@ -363,7 +363,7 @@ function ProfileRow({
   return (
     <Row label={label}>
       <span className={value ? "text-ink" : "text-ink-subtle"}>
-        {value ?? "—"}
+        {value ?? ""}
       </span>
       <button
         type="button"

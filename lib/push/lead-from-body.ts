@@ -6,7 +6,7 @@ const DEFAULT_CAP = 140;
  * Extract the opening sentence of a generated body for use as a push
  * notification body. Per docs/post-run-debrief-moment.md §8, the push
  * body is the verbatim opening sentence of the debrief or cross-training
- * acknowledgement — the notification IS the opening of the moment, not
+ * acknowledgement, the notification IS the opening of the moment, not
  * a teaser. Truncation, when it fires, lands at a clause or word
  * boundary; never appends an ellipsis (an ellipsis reads as "open the
  * app for the rest" which is the teaser frame the design rejects).
@@ -32,7 +32,7 @@ export function leadFromBody(body: string, cap: number = DEFAULT_CAP): string {
   //   1. Last clause boundary (comma / colon / semicolon) past the
   //      halfway mark, so the resulting fragment has substance.
   //   2. Last word boundary before cap.
-  //   3. Hard cut at cap (logged — voice rules make this rare; frequent
+  //   3. Hard cut at cap (logged, voice rules make this rare; frequent
   //      hard cuts mean a prompt has drifted long).
   const slice = sentenceOne.slice(0, cap);
 

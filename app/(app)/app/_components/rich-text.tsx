@@ -1,7 +1,7 @@
 import { Fragment, type ReactNode } from "react";
 
 /**
- * Render chat copy with a minimal subset of Markdown — only what the model
+ * Render chat copy with a minimal subset of Markdown, only what the model
  * is likely to emit despite being told not to, and what's safe to surface
  * inline. Not a full Markdown parser; this is a safety net over prompt
  * guidance in `prompts/chat-system.md`.
@@ -14,7 +14,7 @@ import { Fragment, type ReactNode } from "react";
  * Deliberately skipped: block-level headings, lists, links, images, single-
  * asterisk italic (too ambiguous against literal asterisks).
  *
- * Safe by construction — we only return React elements; no raw HTML is ever
+ * Safe by construction, we only return React elements; no raw HTML is ever
  * injected, so nothing the model emits can break out into markup.
  */
 export function renderInlineCopy(text: string): ReactNode {

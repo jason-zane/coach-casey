@@ -26,7 +26,7 @@ export type CrossTrainingOutcome =
  * Per-activity knowledge base. Drawn from `docs/cross-training.md §5`.
  * Passed into the prompt as substrate, not parroted in output. Kept out of
  * the system prompt itself so a knowledge base edit doesn't bump the prompt
- * version — the system prompt teaches *how* to use the knowledge base; the
+ * version, the system prompt teaches *how* to use the knowledge base; the
  * knowledge base itself is variable input.
  *
  * First-pass content; expected to be rewritten in Jason's coaching voice
@@ -53,7 +53,7 @@ const KNOWLEDGE_BASE: Record<
   VirtualRide: {
     typeLabel: "ride (Zwift / indoor)",
     loadProfile:
-      "Same as outdoor ride but typically more controlled — Zwift sessions tend to be either deliberately easy or structured intervals, less middle-ground noodling.",
+      "Same as outdoor ride but typically more controlled, Zwift sessions tend to be either deliberately easy or structured intervals, less middle-ground noodling.",
     typicalUseCases: "Same as outdoor ride. Often the chosen format when weather or time is tight.",
     interpretationPatterns:
       "Read the same way as outdoor rides. Title often carries more signal (workout names, FTP %).",
@@ -73,7 +73,7 @@ const KNOWLEDGE_BASE: Record<
     typicalUseCases:
       "Active recovery. Aerobic supplement. Substitute for a run when impact-loaded injuries (calf, foot, shin) flare.",
     interpretationPatterns:
-      "Swim on a recovery day is low cost. Swim replacing a planned run almost always means impact is being managed — flag and ask, with calf/shin/foot history making the question pointed. Long open-water swims are real cardiovascular load.",
+      "Swim on a recovery day is low cost. Swim replacing a planned run almost always means impact is being managed, flag and ask, with calf/shin/foot history making the question pointed. Long open-water swims are real cardiovascular load.",
   },
   Workout: {
     typeLabel: "gym",
@@ -82,7 +82,7 @@ const KNOWLEDGE_BASE: Record<
     typicalUseCases:
       "Strength supplement (typical for serious marathon runners). Injury prevention or rehab. Sometimes pure habit unrelated to running.",
     interpretationPatterns:
-      "Day before a key session is worth asking about (heavy legs the day before tempo matters). Pattern session — don't over-interrogate. Unusually long or HR-elevated session is worth flagging.",
+      "Day before a key session is worth asking about (heavy legs the day before tempo matters). Pattern session, don't over-interrogate. Unusually long or HR-elevated session is worth flagging.",
   },
   WeightTraining: {
     typeLabel: "gym",
@@ -98,12 +98,12 @@ const KNOWLEDGE_BASE: Record<
     typicalUseCases:
       "Mobility, recovery, stress management. Sometimes prescribed for injury prevention.",
     interpretationPatterns:
-      "Pattern session — acknowledge, ask what they're working on if context is thin. After a hard run is recovery-positive. Replacing a run often signals dialling back — niggle, fatigue, or life stress.",
+      "Pattern session, acknowledge, ask what they're working on if context is thin. After a hard run is recovery-positive. Replacing a run often signals dialling back, niggle, fatigue, or life stress.",
   },
   Pilates: {
     typeLabel: "pilates",
     loadProfile:
-      "Similar to yoga — low to moderate, depending on style. Reformer pilates can be more loading than mat. Generally low impact, focused on core and stabilisers.",
+      "Similar to yoga, low to moderate, depending on style. Reformer pilates can be more loading than mat. Generally low impact, focused on core and stabilisers.",
     typicalUseCases: "Core work, injury prevention, rehab. Often prescribed by physios.",
     interpretationPatterns:
       "Same shape as yoga. Acknowledge, ask if context is thin, watch for substitution patterns.",
@@ -113,7 +113,7 @@ const KNOWLEDGE_BASE: Record<
 const CATCH_ALL_ENTRY = {
   typeLabel: "non-run activity",
   loadProfile:
-    "Unknown to the marathon coach lens. Treat honestly — this is not a discipline you coach, and the relationship to running may not be readable from this data alone.",
+    "Unknown to the marathon coach lens. Treat honestly, this is not a discipline you coach, and the relationship to running may not be readable from this data alone.",
   typicalUseCases: "Variable. Could be sport, hobby, social activity, recovery.",
   interpretationPatterns:
     "Acknowledge the activity. Note honestly when the running connection is unclear. Do not invent interpretation. Light question is fine; over-interpreting is not.",
@@ -227,7 +227,7 @@ function renderVolatileContext(
   const kb = knowledgeFor(ctx.activity.activityType);
   parts.push(
     [
-      `# Knowledge base entry — ${kb.typeLabel}`,
+      `# Knowledge base entry, ${kb.typeLabel}`,
       `Load profile: ${kb.loadProfile}`,
       `Typical use cases: ${kb.typicalUseCases}`,
       `Interpretation patterns: ${kb.interpretationPatterns}`,
@@ -237,8 +237,8 @@ function renderVolatileContext(
   parts.push(
     `# Variant\n${
       isSubstitution
-        ? "SUBSTITUTION — a run was planned for this day. Apply the substitution-aware shape from the system prompt."
-        : "STANDARD — no planned run is being substituted. Apply the standard shape from the system prompt."
+        ? "SUBSTITUTION, a run was planned for this day. Apply the substitution-aware shape from the system prompt."
+        : "STANDARD, no planned run is being substituted. Apply the standard shape from the system prompt."
     }`,
   );
 
@@ -307,7 +307,7 @@ async function callWithRetry<T>(
 
 /**
  * Generate a cross-training acknowledgement body. Does not persist.
- * `isSubstitution` is decided upstream — the prompt branches on it via
+ * `isSubstitution` is decided upstream, the prompt branches on it via
  * the variant marker injected into the volatile context block.
  *
  * Substitution detection is dormant in V1 (no structured planned_sessions
@@ -342,7 +342,7 @@ export async function generateCrossTrainingAck(
       messages: [
         {
           role: "user",
-          content: `${volatile}\n\n# Task\n\nWrite the acknowledgement for the cross-training session described above. Output the body only, plain prose, with no follow-up question on a separate line. Length per the system prompt — short.`,
+          content: `${volatile}\n\n# Task\n\nWrite the acknowledgement for the cross-training session described above. Output the body only, plain prose, with no follow-up question on a separate line. Length per the system prompt, short.`,
         },
       ],
     }),

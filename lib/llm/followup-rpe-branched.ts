@@ -23,7 +23,7 @@ function mockMode(): boolean {
 }
 
 /**
- * Mock copy that satisfies voice rules — no em-dashes, no exclamation
+ * Mock copy that satisfies voice rules, no em-dashes, no exclamation
  * marks. Lets dev iteration on the picker/UI proceed without burning
  * dev credits or requiring an API key.
  */
@@ -37,7 +37,7 @@ function mockBranched(branch: RpeBranch, rpeValue: number): string {
 /**
  * Render the same volatile + stable context the debrief saw, plus a
  * small task block naming the branch and the RPE value. The prompt's
- * job is to read the divergence specifically — naming it inline keeps
+ * job is to read the divergence specifically, naming it inline keeps
  * the prompt's branch logic out of code.
  */
 export async function generateRpeBranchedFollowUp(

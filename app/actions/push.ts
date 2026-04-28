@@ -22,7 +22,7 @@ export type SubscribeResult =
 
 /**
  * Persist a browser push subscription against the signed-in athlete and flip
- * the push_enabled preference. Idempotent — re-subscribing the same endpoint
+ * the push_enabled preference. Idempotent, re-subscribing the same endpoint
  * (e.g. after browser cache clear) updates rather than duplicates.
  */
 export async function subscribePush(
@@ -69,7 +69,7 @@ export async function subscribePush(
 
 /**
  * Removes the subscription for the given endpoint and flips push_enabled off
- * if no other endpoints remain. Endpoint-scoped — unsubscribing one device
+ * if no other endpoints remain. Endpoint-scoped, unsubscribing one device
  * doesn't kill others.
  */
 export async function unsubscribePush(endpoint: string): Promise<void> {

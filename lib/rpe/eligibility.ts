@@ -8,11 +8,11 @@ export type EligibilityActivity = {
 };
 
 /**
- * Pure activity-shape eligibility. Does not consider per-athlete pause —
+ * Pure activity-shape eligibility. Does not consider per-athlete pause 
  * that check sits in the server action / fetcher path so it can read
  * fresh state from the athletes row.
  *
- * RPE fires on any activity the product generates a thread message for —
+ * RPE fires on any activity the product generates a thread message for 
  * runs (debrief pipeline), cross-training (ack pipeline), and the
  * catch-all path. Ambient-only activities (walks) are excluded: they
  * generate no thread message, so there's nothing to attach an RPE

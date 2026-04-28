@@ -1,10 +1,10 @@
 -- Foundation migration: required extensions and shared helper functions.
--- No tables yet — the data model is intentionally deferred. This migration
+-- No tables yet, the data model is intentionally deferred. This migration
 -- only sets up what every future migration will depend on.
 
 -- Extensions -----------------------------------------------------------------
 
--- gen_random_uuid() — preferred over uuid-ossp for new code.
+-- gen_random_uuid(), preferred over uuid-ossp for new code.
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- Legacy uuid_generate_v4() support. Supabase enables this by default;

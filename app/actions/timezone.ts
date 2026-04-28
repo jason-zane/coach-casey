@@ -11,7 +11,7 @@ import { createAdminClient, createClient } from "@/lib/supabase/server";
  *
  * Always trusts the most recent browser detection. The earlier "set once"
  * behaviour left athletes pinned to whatever the first session reported
- * — which was wrong for anyone who signed up via a misconfigured device,
+ *, which was wrong for anyone who signed up via a misconfigured device,
  * a VPN, or a locale that happened to differ from where they actually
  * train. Travelers see local time for the trip and snap back on return,
  * which is what most people expect from a phone-class app.

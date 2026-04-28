@@ -5,14 +5,14 @@ import { generateFollowUp } from "./debrief";
 import { pickerEnabled } from "./followup-picker";
 
 /**
- * Triggered from the RPE submit server action. If the picker — re-run
- * with the just-submitted RPE value — selects an `rpe_branched`
+ * Triggered from the RPE submit server action. If the picker, re-run
+ * with the just-submitted RPE value, selects an `rpe_branched`
  * follow-up, replace the existing sync-time Question 2 with the new
  * branched one. Otherwise leave the existing follow-up alone.
  *
  * Replacement (delete + insert) is the simplest path that satisfies the
  * spec's "one Q2 per run" rule. The new follow-up appears on the next
- * thread refresh — the existing app pattern for new messages.
+ * thread refresh, the existing app pattern for new messages.
  */
 export async function regenerateFollowUpForRpeAnswer(
   athleteId: string,
@@ -30,7 +30,7 @@ export async function regenerateFollowUpForRpeAnswer(
   const admin = createAdminClient();
 
   // Find the parent debrief for this activity. If the debrief hasn't
-  // been written yet (RPE answer somehow beat the debrief generation —
+  // been written yet (RPE answer somehow beat the debrief generation 
   // unusual) we have nothing to attach a replacement to; bail.
   const { data: debriefRow } = await admin
     .from("messages")
@@ -46,7 +46,7 @@ export async function regenerateFollowUpForRpeAnswer(
   // Delete the existing follow-up (if any) tied to this debrief, then
   // insert the branched one. Doing it in this order means a failure
   // mid-flight leaves the athlete with no follow-up rather than a
-  // duplicate — a kinder degradation than two competing questions.
+  // duplicate, a kinder degradation than two competing questions.
   await admin
     .from("messages")
     .delete()

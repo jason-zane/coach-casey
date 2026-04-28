@@ -28,7 +28,7 @@ async function requireAthlete(): Promise<{ athleteId: string; userId: string }> 
 }
 
 function safeCapture(distinctId: string, event: string, props: Record<string, unknown>) {
-  // PostHog capture is best-effort observability — never let an analytics
+  // PostHog capture is best-effort observability, never let an analytics
   // failure break the user-visible action.
   try {
     getPostHogClient().capture({ distinctId, event, properties: props });
@@ -56,7 +56,7 @@ export async function submitRpeValue(
   safeCapture(userId, "rpe_answered", { activity_id: activityId, rpe_value: value });
 
   // Same-session RPE-aware Question 2 (spec §6/§7). Only regenerate on a
-  // fresh answer — if the row was already in a terminal state, the
+  // fresh answer, if the row was already in a terminal state, the
   // submit was a no-op and there's nothing to revisit. Errors here are
   // logged but never surfaced; the RPE answer itself has already been
   // persisted, which is the contract this action commits to.

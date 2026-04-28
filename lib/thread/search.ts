@@ -45,7 +45,7 @@ export async function searchThread(
     .order("created_at", { ascending: false })
     .limit(limit);
 
-  // Match activity names/notes via ilike — no FTS column there yet and
+  // Match activity names/notes via ilike, no FTS column there yet and
   // activity names are short enough that pattern match is fine.
   const pattern = `%${q.replace(/[%_]/g, "\\$&")}%`;
   const activitiesPromise = supabase

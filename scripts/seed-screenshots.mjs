@@ -91,7 +91,7 @@ const PLAN = [
     elev: 35,
     rpe: "unanswered",
     body:
-      "Easy by pace, easy by HR — this is the shape Tuesdays are supposed to have, and it landed there cleanly the day after the long run.\n\n" +
+      "Easy by pace, easy by HR, this is the shape Tuesdays are supposed to have, and it landed there cleanly the day after the long run.\n\n" +
       "142 average sits in the same easy band as the rest of the week's easy runs, so the legs are not paying interest yet on Sunday's 22km. That's the read worth keeping.",
     followUp: "How did the legs feel in the first kilometre versus the last?",
   },
@@ -110,7 +110,7 @@ const PLAN = [
     rpe: "answered:7",
     body:
       "Four reps at threshold, and the shape held: 4:02, 4:04, 4:05, 4:08. The drift on rep four is small enough to read as honest fatigue rather than a session that came apart.\n\n" +
-      "HR climbed two beats per rep across the set, which lines up with what the work-stress note from Friday would predict. The session got done at the cost it should cost — no need to read it as anything sharper than that.",
+      "HR climbed two beats per rep across the set, which lines up with what the work-stress note from Friday would predict. The session got done at the cost it should cost, no need to read it as anything sharper than that.",
     followUp: "Was the last rep a discipline call or did the legs make it for you?",
   },
   {
@@ -185,7 +185,7 @@ const PLAN = [
     elev: 75,
     rpe: "answered:5",
     body:
-      "Steady fourteen at the pace where aerobic ends and tempo begins. 5:13/km is a click quicker than your usual mid-week, and HR followed honestly — 148 is a fair price for that pace right now.\n\n" +
+      "Steady fourteen at the pace where aerobic ends and tempo begins. 5:13/km is a click quicker than your usual mid-week, and HR followed honestly, 148 is a fair price for that pace right now.\n\n" +
       "This sits inside the plan's progression: the mid-week is supposed to climb gently across the block, and it has. Nothing to interpret beyond that.",
     followUp: "Did you go in with a pace target or did it find itself?",
   },
@@ -233,7 +233,7 @@ const PLAN = [
     elev: 180,
     rpe: "answered:7",
     body:
-      "Twenty-six kilometres at 5:28/km, HR averaging 152. That's the longest one of the block so far, and the HR drift is well-behaved — eight beats from first 5km to last 5km is what a clean long run looks like.\n\n" +
+      "Twenty-six kilometres at 5:28/km, HR averaging 152. That's the longest one of the block so far, and the HR drift is well-behaved, eight beats from first 5km to last 5km is what a clean long run looks like.\n\n" +
       "Sitting on the calf you mentioned ten days ago: no signs in the late-run pacing, no slowdown. Reads like that one's behind you.",
     followUp: "How was the calf at the 20km mark?",
   },
@@ -314,7 +314,7 @@ const PLAN = [
     workout: true,
     rpe: "answered:6",
     body:
-      "Three kilometres at tempo inside an eleven-kilometre run, sandwiched the right way. Splits were 4:08, 4:10, 4:12 — small drift, clean shape.\n\n" +
+      "Three kilometres at tempo inside an eleven-kilometre run, sandwiched the right way. Splits were 4:08, 4:10, 4:12, small drift, clean shape.\n\n" +
       "First proper tempo since the calf eased off, and it held without protest. That's the answer the prior two weeks were asking.",
     followUp: "How did the calf hold up through the tempo block?",
   },
@@ -441,7 +441,7 @@ async function main() {
   const threadId = typeof threadRow === "string" ? threadRow : threadRow?.id ?? threadRow;
   console.log(`→ Thread ${threadId}`);
 
-  // Goal race — clear any active rows, insert one.
+  // Goal race, clear any active rows, insert one.
   console.log("→ Setting goal race (Sydney Marathon)…");
   await admin
     .from("goal_races")

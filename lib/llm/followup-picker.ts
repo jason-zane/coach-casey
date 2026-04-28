@@ -8,9 +8,9 @@ import type {
  * Picker output for the post-run Question 2. Per `rpe-feature-spec.md`
  * §7, three priority types share one slot:
  *
- *   1. structured       — weeks 1–2 onboarding context-fill
- *   2. rpe_branched     — RPE answered AND divergent from run shape
- *   3. conversational   — fallback, generated per-run
+ *   1. structured      , weeks 1–2 onboarding context-fill
+ *   2. rpe_branched    , RPE answered AND divergent from run shape
+ *   3. conversational  , fallback, generated per-run
  *
  * The picker function is feature-flagged (env: `RPE_FOLLOWUP_PICKER_FLAG`)
  * so the heuristics can evolve without redeploys.
@@ -30,14 +30,14 @@ export type PickFollowUpArgs = {
   athleteCreatedAt: string;
   /**
    * The RPE value just submitted for *this* activity. Null at debrief
-   * sync time (no RPE answer yet) — the picker will then never select
+   * sync time (no RPE answer yet), the picker will then never select
    * `rpe_branched`. Populated when the picker is re-run on RPE submit.
    */
   rpeValue: number | null;
   /**
    * Whether the structured-question backlog still has unanswered items
    * for this athlete. The detailed structured-tracker is a launch-prep
-   * item — at V1 day-1 we approximate with athlete tenure (weeks 1–2)
+   * item, at V1 day-1 we approximate with athlete tenure (weeks 1–2)
    * unless the caller passes a more accurate signal.
    */
   structuredBacklogRemaining?: boolean;
@@ -48,7 +48,7 @@ const HIGH_RPE_FLOOR = 7;
 const LOW_RPE_CEIL = 4;
 
 /**
- * V1 picker logic. Deliberately simple per spec §7.1 — heuristics are
+ * V1 picker logic. Deliberately simple per spec §7.1, heuristics are
  * crude on purpose; tuning happens once real RPE data accumulates.
  */
 export function pickFollowUp(args: PickFollowUpArgs): FollowUpPick {
@@ -57,12 +57,12 @@ export function pickFollowUp(args: PickFollowUpArgs): FollowUpPick {
   const inEarlyWeeks = tenureDays <= TENURE_WEEKS_FOR_STRUCTURED * 7;
   const backlog = args.structuredBacklogRemaining ?? inEarlyWeeks;
 
-  // Priority 1 — structured. Only when both tenure and backlog allow.
+  // Priority 1, structured. Only when both tenure and backlog allow.
   if (inEarlyWeeks && backlog) {
     return { type: "structured" };
   }
 
-  // Priority 2 — RPE-branched on divergence. Reachable only when the
+  // Priority 2, RPE-branched on divergence. Reachable only when the
   // caller has an RPE value to evaluate against.
   if (args.rpeValue !== null) {
     if (args.rpeValue >= HIGH_RPE_FLOOR && hasEasyIntent(args.activity, args.arcRuns)) {
@@ -73,12 +73,12 @@ export function pickFollowUp(args: PickFollowUpArgs): FollowUpPick {
     }
   }
 
-  // Priority 3 — conversational fallback.
+  // Priority 3, conversational fallback.
   return { type: "conversational" };
 }
 
 /**
- * V1 heuristic per spec §7.1. Crude on purpose — picker accuracy
+ * V1 heuristic per spec §7.1. Crude on purpose, picker accuracy
  * improves in V1.1 once real RPE data exposes where the heuristics
  * underfit (e.g. activities the picker misclassifies as easy when the
  * athlete intended hard).
@@ -94,7 +94,7 @@ export function hasEasyIntent(
   if (activity.hasWorkoutShape) return false;
   if (arc.length < 3) {
     // Too thin a baseline to call. Default to easy when the run also
-    // has no workout shape and is sub-10km — reasonable for the V1
+    // has no workout shape and is sub-10km, reasonable for the V1
     // first-fortnight where divergence detection isn't yet sharp.
     return activity.distanceKm < 10;
   }

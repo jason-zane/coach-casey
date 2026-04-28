@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   const { data, error } = await resend.emails.send({
     from: "onboarding@resend.dev",
     to,
-    subject: "Coach Casey — Resend wiring works",
+    subject: "Coach Casey, Resend wiring works",
     html: "<p>If you're reading this, <strong>lib/resend.ts</strong> is wired correctly.</p>",
   });
 

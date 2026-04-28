@@ -14,7 +14,7 @@ import { requireAthlete, advanceFrom } from "@/app/actions/onboarding";
  *
  * `backfill` indicates the athlete is hitting this step after onboarding
  * was already completed (gated by the (app) layout when DOB is missing).
- * In that case we don't advance the onboarding cursor — we just save and
+ * In that case we don't advance the onboarding cursor, we just save and
  * send them to /app.
  */
 export async function saveAboutYou(formData: FormData) {
@@ -33,7 +33,7 @@ export async function saveAboutYou(formData: FormData) {
   }
 
   // DOB validation: ISO yyyy-mm-dd, plausible age window. We don't show
-  // field-level errors in the form yet — bad input falls through to a
+  // field-level errors in the form yet, bad input falls through to a
   // server-side reject by re-rendering the page (handled by the redirect
   // back to itself with an `?error` flag).
   const dobOk = /^\d{4}-\d{2}-\d{2}$/.test(dob);
@@ -50,8 +50,8 @@ export async function saveAboutYou(formData: FormData) {
   }
 
   // Sex matches Strava's enum: 'M' | 'F' | 'X'. We don't gate-block on sex
-  // for coaching purposes — 'X' falls through to sex-agnostic prompt
-  // calibration — but we still require the athlete to make an explicit
+  // for coaching purposes, 'X' falls through to sex-agnostic prompt
+  // calibration, but we still require the athlete to make an explicit
   // choice rather than leaving it null at onboarding time.
   if (sex !== "M" && sex !== "F" && sex !== "X") {
     redirect(

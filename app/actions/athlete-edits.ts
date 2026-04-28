@@ -25,7 +25,7 @@ export async function saveGoalRace(input: GoalRaceInput): Promise<void> {
   if (!name) throw new Error("Goal race name is required");
 
   // Deactivate any prior active rows. We don't update-in-place because the
-  // historical row is a different intent than "the current goal" — keeping
+  // historical row is a different intent than "the current goal", keeping
   // them separate preserves "races Casey has known about" for later use.
   await admin
     .from("goal_races")
@@ -224,7 +224,7 @@ export async function updateMemoryItem(
     .slice(0, 8);
 
   // Scope the update to the athlete's own rows. RLS would catch this on the
-  // anon client but we're using admin — the explicit eq is the guard.
+  // anon client but we're using admin, the explicit eq is the guard.
   await admin
     .from("memory_items")
     .update({ content, tags })

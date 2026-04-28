@@ -94,7 +94,7 @@ function activityLabel(
 }
 
 function formatPace(secPerKm: number): string {
-  // Round total seconds first, then split — a naive `Math.round(secPerKm % 60)`
+  // Round total seconds first, then split, a naive `Math.round(secPerKm % 60)`
   // can produce `:60` for paces that round up across a minute boundary
   // (e.g. 5:59.6/km would render as 5:60/km).
   const rounded = Math.round(secPerKm);

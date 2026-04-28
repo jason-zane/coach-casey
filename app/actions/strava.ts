@@ -57,7 +57,7 @@ async function connectStravaDev() {
  * Disconnect the athlete's Strava account. Calls Strava's OAuth deauthorize
  * endpoint with the access token (Strava's required revocation path), then
  * deletes our `strava_connections` row. The activity history we already
- * ingested is left in place — the thread is append-only and reading it
+ * ingested is left in place, the thread is append-only and reading it
  * doesn't require Strava access.
  */
 export async function disconnectStrava() {

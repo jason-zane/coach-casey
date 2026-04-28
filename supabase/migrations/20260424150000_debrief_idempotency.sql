@@ -16,7 +16,7 @@ CREATE UNIQUE INDEX messages_debrief_per_activity_uniq
 -- Already covered by the UNIQUE (athlete_id, strava_id) constraint, no
 -- separate index needed.
 
--- Athlete lookup by strava_athlete_id — the webhook's first resolution
+-- Athlete lookup by strava_athlete_id, the webhook's first resolution
 -- step (owner_id → athlete_id). Without this index the webhook scans
 -- strava_connections on every event.
 CREATE INDEX IF NOT EXISTS strava_connections_strava_athlete_id_idx

@@ -1,4 +1,4 @@
-# Post-run follow-up — conversational prompt
+# Post-run follow-up, conversational prompt
 
 **Status:** v1. Quality bar: **GOOD** (see `prompt-engineering-principles.md`).
 
@@ -24,7 +24,7 @@ The question is attached to the end of the debrief as a separate message
 
 Output plain prose. One sentence. No preamble, no lead-in, no sign-off.
 
-## Structural shape — non-negotiable
+## Structural shape, non-negotiable
 
 1. **One sentence.** Occasionally two short sentences if the second is a
    setup for the question. Never more.
@@ -40,7 +40,7 @@ Output plain prose. One sentence. No preamble, no lead-in, no sign-off.
    question should feel like an invitation, not a prompt the product is
    waiting on.
 
-## Voice — hard rules (same as debrief)
+## Voice, hard rules (same as debrief)
 
 - No em-dashes anywhere.
 - No exclamation marks, no emoji.
@@ -87,13 +87,13 @@ than a generic one.
 
 ## Bad follow-up examples (reject)
 
-- "How do you feel?" — too generic, too open.
-- "Tell me about your week." — too open, not answerable in one sentence.
-- "Should we adjust the plan?" — prescriptive. Not this surface's job.
-- "Great session! What did you think?" — sycophancy, exclamation.
-- "Did you enjoy the run?" — sentiment-fishing, no useful signal.
-- "Any pain or discomfort you'd like me to note?" — clinical, over-formal.
-- "What are you thinking for tomorrow?" — forward-looking, not this
+- "How do you feel?", too generic, too open.
+- "Tell me about your week.", too open, not answerable in one sentence.
+- "Should we adjust the plan?", prescriptive. Not this surface's job.
+- "Great session! What did you think?", sycophancy, exclamation.
+- "Did you enjoy the run?", sentiment-fishing, no useful signal.
+- "Any pain or discomfort you'd like me to note?", clinical, over-formal.
+- "What are you thinking for tomorrow?", forward-looking, not this
   surface's job.
 
 ## Ephemeral context the athlete has already answered
@@ -114,7 +114,7 @@ ones. No preamble, no sign-off. No Markdown. Or the literal string `SKIP`.
 Inputs the prompt must handle. Outputs are graded against the follow-up
 quality bar in `prompt-engineering-principles.md`.
 
-### Fixture A — threshold workout with a cracked final rep
+### Fixture A, threshold workout with a cracked final rep
 
 **Context:** Same as `post-run-debrief.md` Fixture 2. Lap 3 opened up;
 work stress was mentioned Monday; no follow-up has been asked this week
@@ -123,23 +123,23 @@ yet.
 **Expected shape:** Asks either how the last rep felt, or about the work
 pressure showing up. Specific to the run's shape. One sentence.
 
-### Fixture B — calf-recovery easy run
+### Fixture B, calf-recovery easy run
 
 **Context:** Same as `post-run-debrief.md` Fixture 3. Calf mentioned
 Monday, Tuesday run was 6km easy.
 
 **Expected shape:** Checks in on the calf. Short, specific.
 
-### Fixture C — hot long run, HR drift
+### Fixture C, hot long run, HR drift
 
 **Context:** Same as `post-run-debrief.md` Fixture 4. Heat was the
 obvious cause.
 
 **Expected shape:** Could ask about fuelling (often tied to hot long
 runs), hydration, or how the legs felt independent of the HR. Not "how
-hot was it?" — redundant.
+hot was it?", redundant.
 
-### Fixture D — routine easy run, nothing notable
+### Fixture D, routine easy run, nothing notable
 
 **Context:** Regular Tuesday 8km easy, HR normal, pace normal, no life
 context signals, plan was "8km easy".
@@ -147,7 +147,7 @@ context signals, plan was "8km easy".
 **Expected shape:** `SKIP`. There is nothing specific to ask. A generic
 question here degrades quality.
 
-### Fixture E — first run after onboarding
+### Fixture E, first run after onboarding
 
 **Context:** Same as `post-run-debrief.md` Fixture 5. First run Casey has
 read.
@@ -156,7 +156,7 @@ read.
 for you usually?") or ask about a recurring element from the 12-week
 backfill. Or `SKIP` if the backfill already made the pattern legible.
 
-### Fixture F — long run with no plan uploaded
+### Fixture F, long run with no plan uploaded
 
 **Context:** 24km on Sunday, no plan, no recent workout signals, no
 injury context.

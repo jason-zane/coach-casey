@@ -36,7 +36,7 @@ async function enrichDebriefRpe(
 }
 
 /**
- * Idempotent — uses ensure_thread() SQL helper which upserts on the unique
+ * Idempotent, uses ensure_thread() SQL helper which upserts on the unique
  * (athlete_id) constraint.
  */
 export async function ensureThread(athleteId: string): Promise<string> {
@@ -61,7 +61,7 @@ export async function loadThread(
 }
 
 /**
- * Rolling-window pagination by day count (not message count) — quiet stretches
+ * Rolling-window pagination by day count (not message count), quiet stretches
  * don't load disproportionate date ranges, busy stretches don't overload.
  * Returns oldest-first for straightforward rendering top-to-bottom.
  */
@@ -135,7 +135,7 @@ export async function loadOlderWindow(
 }
 
 /**
- * Load messages centred on a specific date — used by calendar jumps and search
+ * Load messages centred on a specific date, used by calendar jumps and search
  * result taps. Returns `daysBefore` + `daysAfter` of context around the target.
  */
 export async function loadAroundDate(

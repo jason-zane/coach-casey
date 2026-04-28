@@ -34,7 +34,7 @@ type AthletePauseState = {
 
 /**
  * Resolve the activity_id for an RPE write and verify ownership. Throws
- * on mismatch — RPE writes only ever come from the signed-in athlete's
+ * on mismatch, RPE writes only ever come from the signed-in athlete's
  * own server action path, so an ownership failure is genuinely
  * exceptional, not a normal-flow error.
  */
@@ -118,7 +118,7 @@ function rowToState(row: ActivityNoteRow | null): RpeState {
 /**
  * Fetch (or create-if-missing) the activity_notes row for an activity.
  * The bucket is denormalised onto the row at insert and never changes.
- * Used as a building block — does not enforce ownership; callers do
+ * Used as a building block, does not enforce ownership; callers do
  * that one level up so the check happens once per server-action call.
  */
 async function ensureActivityNote(
@@ -144,7 +144,7 @@ async function ensureActivityNote(
     )
     .single();
   if (insertErr) {
-    // 23505 = unique_violation — a parallel insert won the race; fetch
+    // 23505 = unique_violation, a parallel insert won the race; fetch
     // the row that did land.
     if ((insertErr as { code?: string }).code === "23505") {
       const { data: race } = await admin
@@ -225,7 +225,7 @@ export async function loadDebriefRpeMetaBatch(
     const note = notes.get(id) ?? null;
     const state = rowToState(note);
     // Eligibility: shape gate, plus the pause flag for the activity's
-    // bucket (only suppresses the initial prompt — once a row has been
+    // bucket (only suppresses the initial prompt, once a row has been
     // answered/skipped, it stays visible in its terminal state).
     const shapeOk = isEligibleActivity(activity);
     const eligible =
@@ -238,7 +238,7 @@ export async function loadDebriefRpeMetaBatch(
 /**
  * Idempotently mark a prompt as displayed. Called from the client the
  * first time the picker enters view. Sets `rpe_prompted_at = NOW()` only
- * if the prompt has neither been answered nor explicitly skipped — once
+ * if the prompt has neither been answered nor explicitly skipped, once
  * the row has reached a terminal state, the prompted-at stamp is fixed.
  */
 export async function markRpePrompted(
@@ -264,15 +264,15 @@ export type RpeSubmitResult = {
 };
 
 /**
- * Record an RPE answer. The picker is fixed — the spec deliberately
- * disallows edits in V1 — so this no-ops when the row has already been
+ * Record an RPE answer. The picker is fixed, the spec deliberately
+ * disallows edits in V1, so this no-ops when the row has already been
  * answered or skipped. Validation lives here, not at the client edge,
  * so an out-of-range value fails fast even if a request is hand-crafted.
  *
  * Server-side enforces the same gates the UI applies (eligibility +
- * bucket pause). The client's eligibility/pause state can drift —
+ * bucket pause). The client's eligibility/pause state can drift 
  * stale tab across a deploy, hand-crafted request, race with a pause
- * trigger — and without these checks an ineligible or paused write
+ * trigger, and without these checks an ineligible or paused write
  * would silently corrupt the eligibility/skip-count history. Errors
  * throw rather than return a typed result because they should never
  * happen in normal flow; surfacing in Sentry is the desired outcome.
@@ -301,7 +301,7 @@ export async function submitRpe(
     return { state: rowToState(note) };
   }
   if (note.rpe_skipped_at !== null) {
-    // Already skipped — V1 doesn't allow promotion of a skip into an
+    // Already skipped, V1 doesn't allow promotion of a skip into an
     // answer. Return current state without mutation.
     return { state: rowToState(note) };
   }
@@ -314,7 +314,7 @@ export async function submitRpe(
       rpe_value: value,
       rpe_answered_at: now,
       // Backfill prompted_at if the client never managed to mark it
-      // (rare — flaky network at first paint). Without this, the row
+      // (rare, flaky network at first paint). Without this, the row
       // never enters the consecutive-skip pool.
       rpe_prompted_at: note.rpe_prompted_at ?? now,
     })
@@ -327,7 +327,7 @@ export async function submitRpe(
     .maybeSingle();
   if (error) throw error;
   if (!data) {
-    // Lost the optimistic-concurrency check — re-read state.
+    // Lost the optimistic-concurrency check, re-read state.
     const fresh = await ensureActivityNote(athleteId, activityId, activity.bucket);
     return { state: rowToState(fresh) };
   }
@@ -345,7 +345,7 @@ export type RpeSkipResult = {
  * bucket-specific pause flag. Returns whether the pause was just
  * applied so the client can surface a confirmation if it wants to.
  *
- * Same defensive gates as `submitRpe` — eligibility and bucket pause
+ * Same defensive gates as `submitRpe`, eligibility and bucket pause
  * are re-checked server-side. A paused athlete can't accumulate further
  * skips in that bucket; an ineligible activity can't enter the skip
  * pool at all.
@@ -414,14 +414,14 @@ export async function skipRpe(
       .from("athletes")
       .update({
         [pausedCol]: pausedUntil,
-        // Anchor counting forward of right now — the skips that
+        // Anchor counting forward of right now, the skips that
         // triggered this pause are consumed and shouldn't re-trigger
         // immediately when the pause expires.
         [anchorCol]: now,
       })
       .eq("id", athleteId);
     if (pauseErr) {
-      // Don't return paused:true when the DB write failed — the client
+      // Don't return paused:true when the DB write failed, the client
       // would surface a "prompts paused" toast that doesn't match
       // reality, analytics would log a state change that didn't happen,
       // and the next skip would re-trigger this branch in a loop. The

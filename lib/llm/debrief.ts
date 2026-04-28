@@ -32,7 +32,7 @@ export type DebriefOutcome =
   | { kind: "skip"; reason: DebriefSkipReason };
 
 export const STRAVA_BLURB_SIGNATURE =
-  "— coached by Coach Casey · coachcasey.app";
+  "coached by Coach Casey · coachcasey.app";
 
 // Verdict cap is 140 chars per prompt spec. Allow some slack for the model
 // occasionally going slightly long; reject anything past this absolute cap
@@ -44,7 +44,7 @@ const ABORTED_NAME_TOKENS = ["abort", "dnf", "stopped", "cut short"];
 /**
  * Gate an activity before the LLM sees it. Handles §2.3 edge cases:
  * non-run activities, aborted activities, and pathologically short runs.
- * Very short legitimate runs (recovery jogs, cooldowns) fall through — the
+ * Very short legitimate runs (recovery jogs, cooldowns) fall through, the
  * prompt is instructed to produce a compressed debrief for them.
  */
 export function debriefGate(activity: DebriefActivity): DebriefSkipReason | null {
@@ -216,7 +216,7 @@ function renderStableContext(ctx: DebriefContext): string {
 
 function renderRpeHistory(ctx: DebriefContext): string {
   if (ctx.rpeHistory.length === 0) {
-    return "(no RPE answers in the trailing 28 days — the athlete hasn't engaged with the prompt yet, or this is early in the trial.)";
+    return "(no RPE answers in the trailing 28 days, the athlete hasn't engaged with the prompt yet, or this is early in the trial.)";
   }
   const lines = ctx.rpeHistory.slice(-20).map((r) => {
     const date = r.date.slice(0, 10);
@@ -401,7 +401,7 @@ export async function generateDebriefBody(ctx: DebriefContext): Promise<string> 
 }
 
 /**
- * Conversational follow-up — the long-running default. Generated per-run
+ * Conversational follow-up, the long-running default. Generated per-run
  * based on what's notable about the activity. Returns `null` when the
  * prompt elects to `SKIP` rather than ask a generic question.
  */
@@ -443,7 +443,7 @@ export async function generateConversationalFollowUp(
 }
 
 /**
- * Structured follow-up — picks from the ranked question bank in
+ * Structured follow-up, picks from the ranked question bank in
  * `post-run-followup-structured.md`. The bank is a starter draft (per
  * `v1-scope.md` §6); the prompt returns `DEFER` when nothing fits, and
  * the caller falls back to conversational.
@@ -528,10 +528,10 @@ export async function generateFollowUp(
 }
 
 /**
- * Strava blurb — one dry sentence appended to the athlete's Strava
+ * Strava blurb, one dry sentence appended to the athlete's Strava
  * activity description. Public-facing; the prompt enforces the voice and
  * the 140-char target. We hard-cap at `STRAVA_BLURB_MAX_CHARS` here as a
- * backstop — anything longer is dropped rather than posted.
+ * backstop, anything longer is dropped rather than posted.
  *
  * Returns `null` on any failure or if the model produces empty/oversized
  * text. The caller treats `null` as "skip the description update" so a
@@ -607,14 +607,14 @@ function passesStravaBlurbVoiceCheck(text: string): boolean {
 
 /**
  * Full debrief generation: gate, body, follow-up, Strava blurb. Does not
- * persist — the server action layer handles persistence, idempotency,
+ * persist, the server action layer handles persistence, idempotency,
  * and the Strava description update. The follow-up is generated via the
  * picker; at sync time the picker has no RPE answer to consider, so it
  * resolves to structured (weeks 1–2) or conversational. RPE-branched
  * follow-ups arrive later via `regenerateFollowUpForRpeAnswer` when the
  * athlete submits their RPE.
  *
- * Both the follow-up and Strava blurb are best-effort — a failure in
+ * Both the follow-up and Strava blurb are best-effort, a failure in
  * either does not block the debrief from shipping.
  */
 export async function generateDebrief(ctx: DebriefContext): Promise<DebriefOutcome> {
@@ -633,7 +633,7 @@ export async function generateDebrief(ctx: DebriefContext): Promise<DebriefOutco
     console.warn("follow-up generation failed, debrief will ship without one", e);
   }
 
-  // Strava blurb runs independently as well — a missing blurb just means
+  // Strava blurb runs independently as well, a missing blurb just means
   // we don't update the Strava description for this activity.
   let stravaBlurb: string | null = null;
   try {

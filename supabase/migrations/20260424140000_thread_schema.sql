@@ -1,6 +1,6 @@
 -- Home state & chat: one thread per athlete, messages as the base record.
 -- Message type is a discriminator; chat, debriefs, weekly reviews, follow-ups,
--- and system messages all live in the same thread. Append-only — edits create
+-- and system messages all live in the same thread. Append-only, edits create
 -- new rows rather than mutate.
 --
 -- pgvector is enabled here alongside an embeddings table scaffold. Indexes are
@@ -47,12 +47,12 @@ CREATE POLICY "threads update own" ON public.threads
 
 -- Message kind discriminator. Expand cautiously; each value implies a UI
 -- typographic treatment and a producer path.
---   chat_user      — athlete-authored chat message
---   chat_casey     — Coach Casey reply to a chat message
---   debrief        — post-run debrief, Casey-authored, arrives unprompted
---   weekly_review  — Sunday review, Casey-authored, arrives on cadence
---   follow_up      — question attached to end of a debrief/review (Casey)
---   system         — rare operational message ("Strava reconnected")
+--   chat_user     , athlete-authored chat message
+--   chat_casey    , Coach Casey reply to a chat message
+--   debrief       , post-run debrief, Casey-authored, arrives unprompted
+--   weekly_review , Sunday review, Casey-authored, arrives on cadence
+--   follow_up     , question attached to end of a debrief/review (Casey)
+--   system        , rare operational message ("Strava reconnected")
 CREATE TYPE public.message_kind AS ENUM (
   'chat_user',
   'chat_casey',
@@ -72,7 +72,7 @@ CREATE TABLE public.messages (
   -- refs, in-progress streaming flags, etc. JSONB keeps the schema stable as
   -- message types pick up structured payloads.
   meta jsonb NOT NULL DEFAULT '{}'::jsonb,
-  -- Full-text search column. `simple` config — English stemming drops
+  -- Full-text search column. `simple` config, English stemming drops
   -- athlete-relevant terms (run names, abbreviations) too aggressively.
   search_tsv tsvector GENERATED ALWAYS AS (
     to_tsvector('simple', coalesce(body, ''))
@@ -111,7 +111,7 @@ CREATE POLICY "messages insert own chat" ON public.messages
 --
 -- Scaffolded now so embedding generation can be wired without a later
 -- migration. `text-embedding-3-small` produces 1536-dim vectors. No index
--- created — added surgically when semantic recall turns on.
+-- created, added surgically when semantic recall turns on.
 
 CREATE TABLE public.message_embeddings (
   message_id uuid PRIMARY KEY REFERENCES public.messages(id) ON DELETE CASCADE,
@@ -130,7 +130,7 @@ ALTER TABLE public.message_embeddings ENABLE ROW LEVEL SECURITY;
 -- =====================================================================
 --
 -- Called from onboarding completion and (defensively) on first thread load.
--- Idempotent — unique(athlete_id) enforces one thread per athlete.
+-- Idempotent, unique(athlete_id) enforces one thread per athlete.
 
 CREATE OR REPLACE FUNCTION public.ensure_thread(p_athlete_id uuid)
 RETURNS uuid

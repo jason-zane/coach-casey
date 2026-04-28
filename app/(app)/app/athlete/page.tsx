@@ -98,7 +98,7 @@ export default async function AthletePage() {
               Timezone
             </span>
             <span className={profile.timezone ? "text-ink" : "text-ink-subtle"}>
-              {profile.timezone ?? "—"}
+              {profile.timezone ?? ""}
             </span>
           </div>
         </Section>
@@ -294,7 +294,7 @@ export default async function AthletePage() {
 
           <div className="border-t border-rule/60 pt-5 mt-3 space-y-2">
             <p className="text-[13px] leading-[1.55] text-ink-muted">
-              Download a copy of everything Coach Casey holds about you — your
+              Download a copy of everything Coach Casey holds about you, your
               account, plan, activities, conversations, and notes. Returned as
               a single JSON file.
             </p>

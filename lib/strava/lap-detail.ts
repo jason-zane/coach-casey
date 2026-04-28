@@ -5,7 +5,7 @@ import { fetchActivityDetail } from "./client";
  * Lazily fetch lap detail for an activity that was pulled by the long-history
  * backfill (summaries only). The 2-year backfill deliberately skips the per-
  * activity detail endpoint to stay inside Strava's 100-reads-per-15-min
- * budget — fine for surface-level reasoning about volume and frequency,
+ * budget, fine for surface-level reasoning about volume and frequency,
  * but lap structure is needed when Casey is asked something specific
  * ("what was the workout pacing on March 14, 2024?").
  *
@@ -16,7 +16,7 @@ import { fetchActivityDetail } from "./client";
  *
  * Idempotent: a row that already has a non-empty laps array short-circuits.
  * Errors are surfaced (returning null with a logged warning) rather than
- * thrown — the caller usually wants to degrade to summary-only reasoning,
+ * thrown, the caller usually wants to degrade to summary-only reasoning,
  * not crash.
  */
 export async function ensureActivityLapDetail(

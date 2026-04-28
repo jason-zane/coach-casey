@@ -15,7 +15,7 @@ import { shouldGenerateCrossTrainingAck } from "@/lib/strava/activity-types";
 
 /**
  * 24-hour retroactive guard. Activities synced more than this old are
- * stored as ambient context but produce no thread message — a debrief
+ * stored as ambient context but produce no thread message, a debrief
  * arriving for a 5-day-old activity is jarring and stale (see
  * docs/cross-training.md §11.4).
  */
@@ -51,7 +51,7 @@ async function findExistingAck(
 
 /**
  * Generate and persist a cross-training acknowledgement for a single
- * activity. Idempotent — a repeat call returns `{ kind: "exists" }`
+ * activity. Idempotent, a repeat call returns `{ kind: "exists" }`
  * rather than producing a duplicate message, backed by the partial unique
  * index added in `20260425120000_cross_training_indexes.sql`.
  *
@@ -60,7 +60,7 @@ async function findExistingAck(
  *  - Cron (safety net): `/api/cron/strava-poll` picks up missed activities.
  *  - Dev trigger: `/api/dev/cross-training` for local testing.
  *
- * Substitution detection is dormant in V1 — `planned_sessions` doesn't
+ * Substitution detection is dormant in V1, `planned_sessions` doesn't
  * exist yet (plans are stored as raw text). When plan extraction lands,
  * the substitution check fires here and the message is persisted with
  * kind = 'cross_training_substitution'. For now every ack is the standard
@@ -100,7 +100,7 @@ export async function generateCrossTrainingAckForActivity(
     if (existing) return { kind: "exists", messageId: existing };
   }
 
-  // Substitution detection is dormant — see file header. When ready,
+  // Substitution detection is dormant, see file header. When ready,
   // populate `isSubstitution` from a planned_sessions query here.
   const isSubstitution = false;
 
@@ -132,7 +132,7 @@ export async function generateCrossTrainingAckForActivity(
     avg_hr: ctx.activity.avgHr,
   };
 
-  // Force regeneration replaces the existing row — same rule the debrief
+  // Force regeneration replaces the existing row, same rule the debrief
   // pipeline applies. Done after generation, not before, so a generation
   // failure leaves the prior ack in place.
   if (force) {
@@ -158,7 +158,7 @@ export async function generateCrossTrainingAckForActivity(
 
   if (insertErr) {
     // 23505 = unique_violation on the partial unique index. Race with a
-    // concurrent webhook retry — return the winning row.
+    // concurrent webhook retry, return the winning row.
     if ((insertErr as { code?: string }).code === "23505") {
       const existing = await findExistingAck(athleteId, activityId);
       if (existing) return { kind: "exists", messageId: existing };
@@ -169,7 +169,7 @@ export async function generateCrossTrainingAckForActivity(
   const messageId = (inserted as { id: string }).id;
 
   // Push notification, gated by the per-kind toggle. Master `push_enabled`
-  // gate applies inside the send path through the subscriptions check —
+  // gate applies inside the send path through the subscriptions check 
   // an athlete with no subscriptions silently no-ops.
   try {
     const { data: prefs } = await admin

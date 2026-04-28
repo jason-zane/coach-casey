@@ -184,7 +184,7 @@ async function buildWelcomeBody(
   return [
     opening,
     "Finish your next run and a debrief will land. Short. Specific. A weekly review arrives on Sundays. Message me any time.",
-    "I don’t write training plans — that’s your coach or the plan you’re following. I interpret what’s happening inside it. Supplementary, not a replacement.",
+    "I don’t write training plans, that’s your coach or the plan you’re following. I interpret what’s happening inside it. Supplementary, not a replacement.",
   ].join("\n\n");
 }
 
@@ -196,7 +196,7 @@ export async function seedEmptyStateIfNeeded(threadId: string, athleteId: string
     .eq("thread_id", threadId);
   if ((count ?? 0) > 0) return;
 
-  // First-load welcome — folds the old onboarding "welcome" step into the
+  // First-load welcome, folds the old onboarding "welcome" step into the
   // chat as Casey's opening message, personalized to whatever the athlete
   // told us during onboarding (runs, plan status, race, injury).
   const body = await buildWelcomeBody(athleteId);

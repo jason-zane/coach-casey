@@ -69,7 +69,7 @@ export type StravaAthleteProfile = {
 /**
  * Fetch the authenticated athlete's profile. Requires `profile:read_all`
  * scope; returns null and logs if Strava 401s (athletes connected before
- * the scope was added). Other errors throw — callers can decide whether
+ * the scope was added). Other errors throw, callers can decide whether
  * to swallow or propagate.
  */
 export async function fetchAthleteProfile(
@@ -213,7 +213,7 @@ export async function fetchActivitiesSince(
  * Paginate Strava's /athlete/activities with optional after/before bounds.
  * Both bounds are inclusive seconds-since-epoch. `before` is used by the
  * long-history backfill to avoid overlapping the recent foreground ingest
- * window — keeps the backfill cleanly disjoint so it never overwrites lap
+ * window, keeps the backfill cleanly disjoint so it never overwrites lap
  * detail we already pulled.
  *
  * Safety caps at 30 pages × 100 = 3000 activities per call. Two years of
@@ -322,15 +322,22 @@ function escapeRegex(s: string): string {
  *   (^|\n\n) [non-newline verdict] \n\n SIGNATURE \s*$
  *
  * If the user added content *after* the signature (manual edit), the
- * regex won't match and we leave the description alone — they wanted
+ * regex won't match and we leave the description alone, they wanted
  * that content there.
  */
 export function stripPriorCaseyBlock(
   description: string,
   signature: string,
 ): string {
+  // Anchor on the stable marker text ("coached by Coach Casey · coachcasey.app")
+  // so we still strip blocks posted under the previous signature variant
+  // (which had a leading em dash). Anything within the same logical line as
+  // the marker is allowed to vary, including punctuation we have since
+  // dropped.
+  const markerMatch = signature.match(/coached by Coach Casey[^\n]*$/);
+  const marker = markerMatch ? markerMatch[0] : signature.trim();
   const re = new RegExp(
-    `(?:\\n\\n|^)[^\\n]+\\n\\n${escapeRegex(signature)}\\s*$`,
+    `(?:\\n\\n|^)[^\\n]+\\n\\n[^\\n]*${escapeRegex(marker)}\\s*$`,
   );
   return description.replace(re, "").replace(/\s+$/, "");
 }

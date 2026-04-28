@@ -1,7 +1,7 @@
 /**
  * Read-only queries that power the athlete page.
  *
- * Everything here is shaped to a "what Casey knows about you" frame —
+ * Everything here is shaped to a "what Casey knows about you" frame 
  * memory-as-progress counts, the rolling mileage prose, niggles + life
  * context Casey is holding. No editor mutations live here yet; those
  * arrive in a follow-up PR.
@@ -87,7 +87,7 @@ type ActivityRow = {
 /**
  * Compute the start of "this week" (Monday 00:00) in the athlete's local
  * timezone, expressed as a UTC ISO string the activities query can use.
- * Falls back to UTC when no timezone is captured — matches the rest of the
+ * Falls back to UTC when no timezone is captured, matches the rest of the
  * codebase's null-tz behaviour.
  */
 function startOfThisWeekIso(tz: string | null): string {
@@ -134,7 +134,7 @@ export async function loadAthletePageData(
 ): Promise<AthletePageData> {
   // Self-heal: if the athlete connected Strava before the callback seeded
   // sex/weight, fill those in from the live Strava profile. Idempotent and
-  // best-effort — never fails the page.
+  // best-effort, never fails the page.
   await backfillStravaProfile(athleteId);
 
   const admin = createAdminClient();
@@ -286,7 +286,7 @@ export async function loadAthletePageData(
     }));
 
   // Run count via ilike over activity_type covers Run / TrailRun / VirtualRun.
-  // Cross-training count is everything else that isn't ambient or null —
+  // Cross-training count is everything else that isn't ambient or null 
   // computed locally from the small all-types result rather than as a
   // separate filtered query, which would need a NOT-ilike clause Supabase
   // doesn't support cleanly.

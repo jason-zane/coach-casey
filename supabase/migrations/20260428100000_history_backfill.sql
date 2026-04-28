@@ -1,7 +1,7 @@
 -- History backfill state on athletes.
 --
 -- Two-year (and later, all-time) Strava activity backfill. Onboarding's
--- foreground ingest only pulls 12 weeks with full lap detail — fast, but
+-- foreground ingest only pulls 12 weeks with full lap detail, fast, but
 -- leaves Casey blind to the athlete's deeper training history. This column
 -- set tracks an asynchronous backfill that pulls activity *summaries* (no
 -- laps) for a longer window so Casey can reason about volume, frequency,
@@ -9,11 +9,11 @@
 -- budget.
 --
 --   status:
---     'idle'    — no backfill needed yet (default for old rows)
---     'pending' — queued; cron will pick it up
---     'running' — slice in progress
---     'done'    — completed, oldest activity at floor
---     'error'   — last attempt errored; cron retries with backoff
+--     'idle'   , no backfill needed yet (default for old rows)
+--     'pending', queued; cron will pick it up
+--     'running', slice in progress
+--     'done'   , completed, oldest activity at floor
+--     'error'  , last attempt errored; cron retries with backoff
 --
 --   floor_iso:
 --     time floor for the backfill. Two-year backfills set this to
@@ -27,7 +27,7 @@ ALTER TABLE public.athletes
   ADD COLUMN IF NOT EXISTS history_backfill_floor_iso timestamptz,
   -- Upper bound (exclusive) for the next fetch. Anchored at kickoff to
   -- (onboarding completion time − 12 weeks) so it does NOT drift forward
-  -- on subsequent cron passes — preventing summary upserts from
+  -- on subsequent cron passes, preventing summary upserts from
   -- overwriting lap detail the foreground ingest already pulled. Updates
   -- on each cron pass when the page cap is hit, walking backwards
   -- through history one chunk at a time.

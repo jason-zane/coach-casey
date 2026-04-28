@@ -1,4 +1,4 @@
-# Prompt engineering — principles and quality bars
+# Prompt engineering, principles and quality bars
 
 Cross-cutting guidance for every prompt in this directory. Each prompt file
 states its own purpose, input/output shape, and fixtures; this doc holds the
@@ -43,7 +43,7 @@ does not rewrite the plan.
 
 Named in `v1-scope.md` §2. This doc gives operational meaning.
 
-### Post-run debrief — quality bar: GREAT
+### Post-run debrief, quality bar: GREAT
 
 The surface users judge the product by. A "great" debrief is one that the
 athlete could not have written about themselves from the same data, and that
@@ -94,7 +94,7 @@ a thoughtful coach would have written if they had been watching.
 A debrief ships when it passes all six on strong grades. A debrief is
 rejected when any grade is "no".
 
-### Post-run follow-up — quality bar: GOOD (v1), sharpened v1.1
+### Post-run follow-up, quality bar: GOOD (v1), sharpened v1.1
 
 Follow-ups are a tool for eliciting context that improves future debriefs.
 They do not need to be beautiful. They need to be:
@@ -110,14 +110,14 @@ Structured follow-ups (ranked set for weeks 1–2) prioritise context gaps
 that materially improve debrief quality. Ranking is a dedicated design
 session output; see `post-run-followup-structured.md`.
 
-### Weekly review — quality bar: ACCEPTABLE at launch, GREAT v1.1
+### Weekly review, quality bar: ACCEPTABLE at launch, GREAT v1.1
 
 Reviews lean on accumulated context. Early-cohort reviews will be thinner.
 Frame honestly: "these get sharper as I learn more about you."
 
 Detailed rubric added when weekly-review prompt ships.
 
-### Chat — quality bar: SOLID
+### Chat, quality bar: SOLID
 
 Conversational register creates forgiveness one-shot debriefs don't have.
 Responsive-prescription posture: chat engages forward-looking questions,
@@ -150,9 +150,9 @@ reasons from the plan, names the decision as the athlete's. See
   (memory writes, extractions). Plain-text responses for anything rendered
   directly to the athlete.
 - **Model choice:** Sonnet 4.6 for generation (voice-bearing surfaces).
-  Haiku for classification and lightweight routing. No GPT-family for v1 —
+  Haiku for classification and lightweight routing. No GPT-family for v1 
   single-provider simplicity matters more than marginal quality.
 - **Temperature:** default 1.0 for voice-bearing prompts (debriefs, chat);
   0.2 for extraction (plan parsing). Deterministic voice is worse than
-  varied voice — a coach does not say the same thing the same way every
+  varied voice, a coach does not say the same thing the same way every
   time.
