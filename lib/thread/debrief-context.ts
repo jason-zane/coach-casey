@@ -77,6 +77,11 @@ export type PriorDebrief = {
   body: string;
 };
 
+export type PriorFollowUp = {
+  createdAt: string;
+  body: string;
+};
+
 export type DebriefContext = {
   athleteId: string;
   athleteCreatedAt: string;
@@ -99,6 +104,14 @@ export type DebriefContext = {
   lifeContext: MemoryItem[];
   goalRaces: DebriefGoalRace[];
   priorDebriefs: PriorDebrief[];
+  /**
+   * Most-recent follow-up questions Casey has already asked the athlete
+   * (kind='follow_up'), oldest-first. The structured-question picker uses
+   * these to satisfy the "never re-ask in a week" rule, without this it
+   * was repeating the same question (race goal, plan shape) every run
+   * because the prior-debrief block only carries debrief bodies.
+   */
+  priorFollowUps: PriorFollowUp[];
   isFirstDebrief: boolean;
   /**
    * Trailing 28-day `(activity, rpe_value, planned_intent_inferred)`
@@ -246,10 +259,12 @@ export async function buildDebriefContext(
     arcWeeks = 6,
     recentLifeContextDays = 14,
     priorDebriefCount = 3,
+    priorFollowUpCount = 8,
   }: {
     arcWeeks?: number;
     recentLifeContextDays?: number;
     priorDebriefCount?: number;
+    priorFollowUpCount?: number;
   } = {},
 ): Promise<DebriefContext> {
   const admin = createAdminClient();
@@ -287,6 +302,7 @@ export async function buildDebriefContext(
     planRes,
     racesRes,
     priorDebriefsRes,
+    priorFollowUpsRes,
     rpeHistoryRes,
   ] = await Promise.all([
     admin
@@ -331,6 +347,13 @@ export async function buildDebriefContext(
       .eq("kind", "debrief")
       .order("created_at", { ascending: false })
       .limit(priorDebriefCount),
+    admin
+      .from("messages")
+      .select("created_at, body")
+      .eq("athlete_id", athleteId)
+      .eq("kind", "follow_up")
+      .order("created_at", { ascending: false })
+      .limit(priorFollowUpCount),
     // Trailing RPE, answered notes only, joined to the activity row for
     // shape inference. Excludes today's activity (`neq` on activity_id)
     // so today's RPE never leaks into today's context per spec §6.
@@ -384,6 +407,14 @@ export async function buildDebriefContext(
     raceDate: r.race_date,
     goalTimeSeconds: r.goal_time_seconds,
   }));
+
+  const priorFollowUps = ((priorFollowUpsRes.data ?? []) as {
+    created_at: string;
+    body: string;
+  }[])
+    .slice()
+    .reverse()
+    .map((f) => ({ createdAt: f.created_at, body: f.body }));
 
   const priorDebriefs = ((priorDebriefsRes.data ?? []) as {
     created_at: string;
@@ -460,6 +491,7 @@ export async function buildDebriefContext(
     lifeContext,
     goalRaces,
     priorDebriefs,
+    priorFollowUps,
     isFirstDebrief: priorDebriefs.length === 0,
     rpeHistory,
   };

@@ -211,6 +211,22 @@ function renderStableContext(ctx: DebriefContext): string {
     );
   }
 
+  // Recently asked follow-up questions. The structured-question picker
+  // ranks against this so the same question doesn't appear on every run;
+  // the conversational and RPE-branched paths see it for the same reason.
+  if (ctx.priorFollowUps.length > 0) {
+    const lines = ctx.priorFollowUps
+      .map((f) => `- [${f.createdAt.slice(0, 10)}] ${f.body.replace(/\n/g, " ")}`)
+      .join("\n");
+    parts.push(
+      `# Recently asked follow-up questions (do not re-ask any of these)\n${lines}`,
+    );
+  } else {
+    parts.push(
+      "# Recently asked follow-up questions\nNone yet. Any question is fair game.",
+    );
+  }
+
   return parts.join("\n\n");
 }
 

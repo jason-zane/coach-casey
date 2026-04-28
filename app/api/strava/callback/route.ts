@@ -55,10 +55,33 @@ export async function GET(request: Request) {
   try {
     const token = await exchangeCodeForToken(code);
 
+    // Resolve strava_athlete_id eagerly. Strava's token response is supposed
+    // to include the athlete object, but in practice it's sometimes missing
+    // the id, which leaves the connection row with NULL strava_athlete_id
+    // and silently breaks the webhook (the handler looks up athletes by it).
+    // Fall back to /athlete to guarantee we have it before writing the row.
+    let stravaAthleteId: number | null = token.athlete?.id ?? null;
+    let profileFromFallback: Awaited<
+      ReturnType<typeof fetchAthleteProfileWithToken>
+    > = null;
+    if (stravaAthleteId == null) {
+      try {
+        profileFromFallback = await fetchAthleteProfileWithToken(
+          token.access_token,
+        );
+        stravaAthleteId = profileFromFallback?.id ?? null;
+      } catch (e) {
+        console.warn(
+          "Strava /athlete id fallback failed; webhook may miss events",
+          e,
+        );
+      }
+    }
+
     await admin.from("strava_connections").upsert(
       {
         athlete_id: athlete.id,
-        strava_athlete_id: token.athlete?.id ?? null,
+        strava_athlete_id: stravaAthleteId,
         access_token: token.access_token,
         refresh_token: token.refresh_token,
         expires_at: new Date(token.expires_at * 1000).toISOString(),
@@ -77,9 +100,10 @@ export async function GET(request: Request) {
     // about-you step) than block the connect flow.
     try {
       const profile =
-        token.athlete && (token.athlete.sex || token.athlete.weight != null)
+        profileFromFallback ??
+        (token.athlete && (token.athlete.sex || token.athlete.weight != null)
           ? token.athlete
-          : await fetchAthleteProfileWithToken(token.access_token);
+          : await fetchAthleteProfileWithToken(token.access_token));
 
       if (profile) {
         const update: Record<string, unknown> = {};
