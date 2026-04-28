@@ -96,11 +96,6 @@ export function AboutYouForm({
       </div>
 
       <div className="space-y-2">
-        <FieldLabel htmlFor="dob">Date of birth</FieldLabel>
-        <DobInput id="dob" value={dob} onChange={handleDobChange} />
-      </div>
-
-      <div className="space-y-2">
         <p className="font-sans text-sm text-ink-muted">
           Sex
           {initialSex && (
@@ -125,6 +120,11 @@ export function AboutYouForm({
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <FieldLabel htmlFor="dob">Date of birth</FieldLabel>
+        <DobInput id="dob" value={dob} onChange={handleDobChange} />
       </div>
 
       <div className="space-y-2">

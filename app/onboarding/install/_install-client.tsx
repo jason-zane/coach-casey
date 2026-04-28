@@ -63,7 +63,10 @@ export function InstallClient({ platform }: { platform: MobilePlatform }) {
       {renderInstructions(platform, Boolean(deferred))}
 
       <div className="flex flex-wrap items-center gap-4">
-        {platform === "android-chrome" && deferred ? (
+        {deferred ? (
+          // Any browser that fired beforeinstallprompt \u2014 desktop Chrome /
+          // Edge / Brave, Android Chrome, etc. iOS browsers never fire
+          // this so this branch is silently skipped on iOS.
           <PrimaryButton
             type="button"
             onClick={triggerNativeInstall}
@@ -142,31 +145,42 @@ function IOSSafariInstructions() {
 function IOSChromeInstructions() {
   return (
     <div className="space-y-4 font-sans text-sm text-ink">
-      <ol className="space-y-3">
-        <li className="flex gap-3">
-          <span className="font-mono text-ink-subtle w-5">1.</span>
-          <span>
-            Tap the <strong>Share</strong> icon (in Chrome&rsquo;s address bar
-            or the bottom menu).
-          </span>
-        </li>
-        <li className="flex gap-3">
-          <span className="font-mono text-ink-subtle w-5">2.</span>
-          <span>
-            Scroll down and tap <strong>Add to Home Screen</strong>.
-          </span>
-        </li>
-        <li className="flex gap-3">
-          <span className="font-mono text-ink-subtle w-5">3.</span>
-          <span>
-            Tap <strong>Add</strong>. Then come back here and continue.
-          </span>
-        </li>
-      </ol>
-      <p className="text-ink-subtle text-xs">
-        If you want push notifications down the line, opening in Safari first
-        gives the fullest install. Either works for now.
+      <p className="font-sans text-sm text-ink">
+        Two paths from Chrome. Either works.
       </p>
+
+      <div className="space-y-2">
+        <p className="font-mono text-xs uppercase tracking-wider text-ink-subtle">
+          Quickest, stay in Chrome
+        </p>
+        <ol className="space-y-3">
+          <li className="flex gap-3">
+            <span className="font-mono text-ink-subtle w-5">1.</span>
+            <span>
+              Tap the <strong>Share</strong> icon (in Chrome&rsquo;s address
+              bar or the bottom menu).
+            </span>
+          </li>
+          <li className="flex gap-3">
+            <span className="font-mono text-ink-subtle w-5">2.</span>
+            <span>
+              Scroll and tap <strong>Add to Home Screen</strong>, then{" "}
+              <strong>Add</strong>.
+            </span>
+          </li>
+        </ol>
+      </div>
+
+      <div className="space-y-2 border-t border-rule/60 pt-4">
+        <p className="font-mono text-xs uppercase tracking-wider text-ink-subtle">
+          Want push notifications? Open in Safari first
+        </p>
+        <p className="text-ink-muted text-xs">
+          On iPhone, only Safari&rsquo;s install supports push. If
+          notifications matter to you, tap copy and paste into Safari.
+        </p>
+        <CopyLinkButton />
+      </div>
     </div>
   );
 }

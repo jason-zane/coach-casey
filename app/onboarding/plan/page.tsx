@@ -114,7 +114,7 @@ export default function PlanStepPage() {
             value={planText}
             onChange={(e) => setPlanText(e.target.value)}
             placeholder={
-              "Mon — easy 10km\nTue — 6 x 1km at threshold, 2min jog\nWed — easy 8km\n..."
+              "Mon, easy 10km\nTue, 6 x 1km at threshold, 2min jog\nWed, easy 8km\n..."
             }
             className="font-mono"
           />
