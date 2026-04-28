@@ -8,7 +8,7 @@ import { classifyActivityType } from "./activity-types";
  * long-history backfill lands or is upgraded (e.g. two_years → all_time).
  *
  * Shape stays small on purpose, the chat prompt renders this as ~24 lines max
- * and Casey reaches for the DB lookup tool when she needs anything finer.
+ * and Casey reaches for the DB lookup tool when they need anything finer.
  */
 export type MonthlyRollupEntry = {
   month: string; // YYYY-MM

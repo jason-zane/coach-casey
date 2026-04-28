@@ -61,7 +61,7 @@ export type ChatContext = {
   goalRaces: GoalRace[];
   /** Cached per-month rollup for activities older than 12 weeks. Null until the long-history backfill lands. */
   monthlyRollup: MonthlyRollupEntry[] | null;
-  /** ISO date of the recent-window boundary. Older than this, Casey only has summaries unless she pulls fresh detail. */
+  /** ISO date of the recent-window boundary. Older than this, Casey only has summaries unless they pull fresh detail. */
   recentBoundaryIso: string;
   /** ISO date of the oldest activity in the DB, used for the detail-availability marker. Null when no history. */
   oldestActivityIso: string | null;
@@ -245,7 +245,7 @@ function renderContext(ctx: ChatContext): string {
 
   // Long-history rollup: per-month shape of training older than 12 weeks.
   // Only present once the long-history backfill has landed; before that,
-  // we omit the section so Casey doesn't claim knowledge she doesn't have.
+  // we omit the section so Casey doesn't claim knowledge they don't have.
   const rollupBlock = renderRollupForPrompt(ctx.monthlyRollup);
   if (rollupBlock) {
     parts.push(`# Long history (summary)\n${rollupBlock}`);
@@ -323,7 +323,7 @@ function renderHistory(messages: Message[]): Anthropic.MessageParam[] {
     .map<Anthropic.MessageParam>((m) => {
       const role: "user" | "assistant" = m.kind === "chat_user" ? "user" : "assistant";
       // Non-chat Casey messages (debriefs, reviews, follow-ups) are shown to
-      // the model as assistant turns so Casey remembers what she's said.
+      // the model as assistant turns so Casey remembers what they've said.
       const prefix =
         m.kind === "debrief" ? "[debrief] " : m.kind === "weekly_review" ? "[weekly review] " : "";
       return { role, content: `${prefix}${m.body}` };
