@@ -10,7 +10,7 @@ const ERROR_COPY: Record<string, string> = {
     "Strava didn't accept the authorization. Give it another go, or try again in a minute.",
   no_code: "Strava didn't return an authorization code. Try connecting again.",
   access_denied:
-    "You declined to connect Strava. No problem — hit the button when you're ready.",
+    "You declined to connect Strava. No problem. Hit the button when you're ready.",
 };
 
 export default async function StravaStepPage({

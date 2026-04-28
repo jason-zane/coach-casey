@@ -190,7 +190,10 @@ export function ValidationLoop({
                   <button
                     type="button"
                     onClick={submit}
-                    disabled={!draftChip && draftText.trim().length === 0}
+                    disabled={
+                      pending ||
+                      (!draftChip && draftText.trim().length === 0)
+                    }
                     className="rounded-md bg-accent px-4 py-2 font-sans text-sm text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-40"
                   >
                     Send
@@ -198,9 +201,10 @@ export function ValidationLoop({
                   <button
                     type="button"
                     onClick={finish}
-                    className="font-sans text-xs text-ink-subtle underline-offset-4 hover:underline"
+                    disabled={pending}
+                    className="font-sans text-xs text-ink-subtle underline-offset-4 hover:underline disabled:opacity-50"
                   >
-                    Move on
+                    {pending ? "Moving on…" : "Move on"}
                   </button>
                 </div>
               </div>
