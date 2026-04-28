@@ -10,6 +10,7 @@ type Props = {
     dateOfBirth: string | null;
     weightKg: number | null;
     sex: string | null;
+    coachingMode: "coach" | "self" | null;
   };
 };
 
@@ -38,6 +39,12 @@ function formatSex(sex: string | null): string | null {
   }
 }
 
+function formatCoachingMode(mode: "coach" | "self" | null): string | null {
+  if (mode === "coach") return "Coached by someone";
+  if (mode === "self") return "Self-directed or public plan";
+  return null;
+}
+
 function formatWeight(
   weightKg: number | null,
   units: "metric" | "imperial",
@@ -54,7 +61,7 @@ export function YouEditor({ initial }: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<
-    null | "displayName" | "units" | "dob" | "weight" | "sex"
+    null | "displayName" | "units" | "dob" | "weight" | "sex" | "coachingMode"
   >(null);
 
   // Mirror the server fields locally so optimistic updates feel instant.
@@ -69,6 +76,9 @@ export function YouEditor({ initial }: Props) {
       : "",
   );
   const [sex, setSex] = useState<string>(initial.sex ?? "");
+  const [coachingMode, setCoachingMode] = useState<"coach" | "self" | "">(
+    initial.coachingMode ?? "",
+  );
 
   function close() {
     setOpen(null);
@@ -228,7 +238,7 @@ export function YouEditor({ initial }: Props) {
             className="block w-full bg-paper border border-rule rounded-[6px] px-3 h-9 text-[14px] text-ink focus:outline-none focus:border-accent/60"
             disabled={pending}
           >
-            <option value="">—</option>
+            <option value="">Choose</option>
             <option value="M">Male</option>
             <option value="F">Female</option>
             <option value="X">Other</option>
@@ -238,6 +248,58 @@ export function YouEditor({ initial }: Props) {
           save({
             sex:
               sex === "M" || sex === "F" || sex === "X" ? sex : null,
+          })
+        }
+      />
+
+      <ProfileRow
+        label="Coaching"
+        value={formatCoachingMode(
+          coachingMode === "" ? null : coachingMode,
+        )}
+        editing={open === "coachingMode"}
+        onEdit={() => setOpen("coachingMode")}
+        onCancel={close}
+        pending={pending}
+        renderInput={() => (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCoachingMode("coach")}
+              disabled={pending}
+              className={`rounded-[6px] border px-3 h-9 text-[13px] transition-colors ${
+                coachingMode === "coach"
+                  ? "border-accent bg-accent/10 text-ink"
+                  : "border-rule text-ink hover:border-rule-strong"
+              }`}
+            >
+              Coach
+            </button>
+            <button
+              type="button"
+              onClick={() => setCoachingMode("self")}
+              disabled={pending}
+              className={`rounded-[6px] border px-3 h-9 text-[13px] transition-colors ${
+                coachingMode === "self"
+                  ? "border-accent bg-accent/10 text-ink"
+                  : "border-rule text-ink hover:border-rule-strong"
+              }`}
+            >
+              Self / public plan
+            </button>
+            <button
+              type="button"
+              onClick={() => setCoachingMode("")}
+              disabled={pending}
+              className="text-[12px] text-ink-muted hover:text-ink underline-offset-4 hover:underline"
+            >
+              Clear
+            </button>
+          </div>
+        )}
+        onSave={() =>
+          save({
+            coachingMode: coachingMode === "" ? null : coachingMode,
           })
         }
       />

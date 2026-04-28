@@ -41,6 +41,8 @@ export type ChatContext = {
   sex: "M" | "F" | null;
   weightKg: number | null;
   ageYears: number | null;
+  /** 'coach' = a human coach is writing the athlete's training; defer to coach intent. 'self' = athlete is self-directed or following a public plan. null = not asked yet. */
+  coachingMode: "coach" | "self" | null;
   recentMessages: Message[];
   recentActivities: ActivitySummary[];
   recentCrossTraining: CrossTrainingSummary[];
@@ -125,6 +127,15 @@ function renderContext(ctx: ChatContext): string {
   }
   if (ctx.weightKg != null) {
     athleteLines.push(`Weight: ${ctx.weightKg} kg`);
+  }
+  if (ctx.coachingMode === "coach") {
+    athleteLines.push(
+      "Coaching: a human coach is writing this athlete's training. Defer to the coach's intent. Help the athlete read what is happening inside the plan rather than offering alternative sessions.",
+    );
+  } else if (ctx.coachingMode === "self") {
+    athleteLines.push(
+      "Coaching: self-directed or following a public plan. You can engage more directly with workout choices when the athlete asks for input.",
+    );
   }
   parts.push(`# Athlete\n${athleteLines.join("\n")}`);
 

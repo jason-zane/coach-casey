@@ -65,6 +65,7 @@ export type AthleteProfileInput = {
   dateOfBirth?: string | null; // YYYY-MM-DD
   weightKg?: number | null;
   sex?: "M" | "F" | "X" | null;
+  coachingMode?: "coach" | "self" | null;
 };
 
 /**
@@ -127,9 +128,35 @@ export async function updateAthleteProfile(
     }
   }
 
-  if (Object.keys(update).length === 0) return;
+  if (Object.keys(update).length > 0) {
+    await admin.from("athletes").update(update).eq("id", athlete.id);
+  }
 
-  await admin.from("athletes").update(update).eq("id", athlete.id);
+  // Coaching mode lives on preferences (alongside plan_follower_status).
+  // Handled separately so the athletes.update doesn't carry an invalid
+  // column name.
+  if (Object.prototype.hasOwnProperty.call(input, "coachingMode")) {
+    if (
+      input.coachingMode != null &&
+      input.coachingMode !== "coach" &&
+      input.coachingMode !== "self"
+    ) {
+      throw new Error("Invalid coaching mode");
+    }
+    await admin
+      .from("preferences")
+      .upsert(
+        { athlete_id: athlete.id, coaching_mode: input.coachingMode ?? null },
+        { onConflict: "athlete_id" },
+      );
+  }
+
+  if (
+    Object.keys(update).length === 0 &&
+    !Object.prototype.hasOwnProperty.call(input, "coachingMode")
+  ) {
+    return;
+  }
   revalidatePath("/app/athlete");
 }
 

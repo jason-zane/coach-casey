@@ -84,6 +84,7 @@ export default async function AthletePage() {
               dateOfBirth: profile.dateOfBirth,
               weightKg: profile.weightKg,
               sex: profile.sex,
+              coachingMode: profile.coachingMode,
             }}
           />
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[14px] pt-2">
