@@ -8,6 +8,16 @@ import {
   type WorkoutClassification,
 } from "@/lib/strava/workout-detect";
 import type { Message } from "@/lib/thread/types";
+import {
+  executeFetchRunDetail,
+  executeQueryTrainingHistory,
+  type FetchRunDetailArgs,
+  type QueryHistoryArgs,
+} from "./chat-tools";
+import {
+  renderRollupForPrompt,
+  type MonthlyRollupEntry,
+} from "@/lib/strava/history-rollup";
 
 type MemoryItem = { kind: string; content: string; tags: string[] };
 type ActivitySummary = {
@@ -49,6 +59,12 @@ export type ChatContext = {
   memoryItems: MemoryItem[];
   activePlanText: string | null;
   goalRaces: GoalRace[];
+  /** Cached per-month rollup for activities older than 12 weeks. Null until the long-history backfill lands. */
+  monthlyRollup: MonthlyRollupEntry[] | null;
+  /** ISO date of the recent-window boundary. Older than this, Casey only has summaries unless she pulls fresh detail. */
+  recentBoundaryIso: string;
+  /** ISO date of the oldest activity in the DB, used for the detail-availability marker. Null when no history. */
+  oldestActivityIso: string | null;
 };
 
 export type ChatStreamEvent =
@@ -96,10 +112,57 @@ const CHAT_TOOLS: Anthropic.Tool[] = [
       required: ["content", "body_part"],
     },
   },
+  {
+    name: "query_training_history",
+    description:
+      "Look up the athlete's training history from the database for a date range. Use this when the athlete asks about anything older than the recent 12-week window already shown in context, e.g. 'what was my volume last August', 'how did the spring block compare', 'when did I run that half'. No external API call, cheap. Default granularity is week.",
+    input_schema: {
+      type: "object",
+      properties: {
+        from: {
+          type: "string",
+          description: "Start date YYYY-MM-DD (inclusive). Defaults to 3 months ago.",
+        },
+        to: {
+          type: "string",
+          description: "End date YYYY-MM-DD (inclusive). Defaults to today.",
+        },
+        granularity: {
+          type: "string",
+          enum: ["run", "week", "month"],
+          description: "How to aggregate: per-run lines, per-week totals, or per-month totals.",
+        },
+      },
+    },
+  },
+  {
+    name: "fetch_run_detail",
+    description:
+      "Pull lap detail from Strava for a single older run when the athlete asks about workout structure (interval splits, tempo pacing, HR drift). Costs against the daily fetch cap. ONLY use when the answer genuinely needs lap-level data, never for general 'how was that run' questions where a summary is enough. Pass the activity_id returned by query_training_history with granularity='run'.",
+    input_schema: {
+      type: "object",
+      properties: {
+        activity_id: {
+          type: "string",
+          description: "Activity UUID from query_training_history.",
+        },
+      },
+      required: ["activity_id"],
+    },
+  },
 ];
+
+const LOOKUP_TOOL_NAMES = new Set(["query_training_history", "fetch_run_detail"]);
 
 let cachedSystemPrompt: string | null = null;
 async function loadSystemPrompt(): Promise<string> {
+  // In development we always re-read so prompt edits take effect on the next
+  // turn without a server restart. In production the file is immutable for
+  // the lifetime of the build, so the cache is safe.
+  if (process.env.NODE_ENV !== "production") {
+    const p = path.join(process.cwd(), "prompts/chat-system.md");
+    return readFile(p, "utf8");
+  }
   if (!cachedSystemPrompt) {
     const p = path.join(process.cwd(), "prompts/chat-system.md");
     cachedSystemPrompt = await readFile(p, "utf8");
@@ -179,6 +242,33 @@ function renderContext(ctx: ChatContext): string {
       `# Recent runs (last 12 weeks, oldest → newest)\n${lines}`,
     );
   }
+
+  // Long-history rollup: per-month shape of training older than 12 weeks.
+  // Only present once the long-history backfill has landed; before that,
+  // we omit the section so Casey doesn't claim knowledge she doesn't have.
+  const rollupBlock = renderRollupForPrompt(ctx.monthlyRollup);
+  if (rollupBlock) {
+    parts.push(`# Long history (summary)\n${rollupBlock}`);
+  }
+
+  // Honest "what Casey can see" marker so the model doesn't overclaim.
+  // Recent window has full lap detail; long-history rows have summary only,
+  // detail must be fetched on demand via the fetch_run_detail tool.
+  const recentDate = ctx.recentBoundaryIso.slice(0, 10);
+  const availabilityLines = [
+    `Lap detail available in context: from ${recentDate} onward (last 12 weeks).`,
+  ];
+  if (ctx.oldestActivityIso) {
+    const oldestDate = ctx.oldestActivityIso.slice(0, 10);
+    availabilityLines.push(
+      `Summaries only (no lap detail in context) for: ${oldestDate} to ${recentDate}. Use fetch_run_detail to pull laps for a specific older run.`,
+    );
+  } else {
+    availabilityLines.push(
+      "No long-history backfill yet, the recent window is all you have.",
+    );
+  }
+  parts.push(`# What you can see\n${availabilityLines.join("\n")}`);
 
   if (ctx.recentCrossTraining.length > 0) {
     const lines = ctx.recentCrossTraining
@@ -282,10 +372,40 @@ export function summariseActivity(
 }
 
 /**
- * Streams Casey's reply as an async generator of {type, value} events.
- * Accumulates text + tool-use inputs; the route handler is responsible for
- * executing tool side effects once their input_json is complete.
+ * Strips em-dashes from chat output. The system prompt forbids them but
+ * Sonnet still slips one in occasionally; this is the belt-and-braces
+ * post-process so the no-em-dash rule is actually enforced. En-dashes
+ * inside numeric ranges ("5:05–5:15/km") are explicitly permitted by the
+ * style guide, so we only target the wider em-dash glyph.
  */
+export function stripEmDashes(text: string): string {
+  // U+2014 EM DASH only. Replace with comma + space to preserve sentence flow,
+  // collapsing the awkward " — " case down to ", " and the no-space case to
+  // a single comma.
+  return text
+    .replace(/\s*—\s*/g, ", ")
+    .replace(/,,/g, ",");
+}
+
+/**
+ * Streams Casey's reply with full tool-use loop support.
+ *
+ * Three tool families:
+ *   1. Lookup tools (query_training_history, fetch_run_detail) , execute,
+ *      append tool_result, model continues with the result in context.
+ *   2. Memory tools (remember_context, remember_injury) , fire-and-forget
+ *      side effects in the route handler. The model gets an empty ack as
+ *      tool_result so the conversation contract holds without exposing
+ *      memory state to the prompt.
+ *
+ * The loop runs at most MAX_TOOL_TURNS turns to prevent runaway tool calls.
+ */
+const MAX_TOOL_TURNS = 4;
+
+type AssistantBlock =
+  | { type: "text"; text: string }
+  | { type: "tool_use"; id: string; name: string; input: unknown };
+
 export async function* streamChat(
   ctx: ChatContext,
   userText: string,
@@ -299,46 +419,111 @@ export async function* streamChat(
   const contextBlock = renderContext(ctx);
   const history = renderHistory(ctx.recentMessages);
 
-  const stream = anthropic().messages.stream({
-    model: SONNET_MODEL,
-    max_tokens: 1024,
-    system: [
-      { type: "text", text: system, cache_control: { type: "ephemeral" } },
-      { type: "text", text: contextBlock, cache_control: { type: "ephemeral" } },
-    ],
-    tools: CHAT_TOOLS,
-    messages: [...history, { role: "user", content: userText }],
-  });
+  const messages: Anthropic.MessageParam[] = [
+    ...history,
+    { role: "user", content: userText },
+  ];
 
   let fullText = "";
-  // Accumulate tool-use blocks by content_block index.
-  const toolBuffers = new Map<number, { name: string; json: string }>();
 
-  for await (const event of stream) {
-    if (event.type === "content_block_start") {
-      if (event.content_block.type === "tool_use") {
-        toolBuffers.set(event.index, { name: event.content_block.name, json: "" });
-      }
-    } else if (event.type === "content_block_delta") {
-      if (event.delta.type === "text_delta") {
-        fullText += event.delta.text;
-        yield { type: "text", value: event.delta.text };
-      } else if (event.delta.type === "input_json_delta") {
-        const buf = toolBuffers.get(event.index);
-        if (buf) buf.json += event.delta.partial_json;
-      }
-    } else if (event.type === "content_block_stop") {
-      const buf = toolBuffers.get(event.index);
-      if (buf) {
-        try {
-          const input = buf.json ? JSON.parse(buf.json) : {};
-          yield { type: "tool_use", name: buf.name, input };
-        } catch {
-          // Malformed tool input, drop silently.
+  for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
+    const stream = anthropic().messages.stream({
+      model: SONNET_MODEL,
+      max_tokens: 1024,
+      system: [
+        { type: "text", text: system, cache_control: { type: "ephemeral" } },
+        { type: "text", text: contextBlock, cache_control: { type: "ephemeral" } },
+      ],
+      tools: CHAT_TOOLS,
+      messages,
+    });
+
+    const blocks: AssistantBlock[] = [];
+    const toolBuffers = new Map<number, { id: string; name: string; json: string }>();
+    let turnTextRaw = "";
+    let turnTextEmitted = "";
+
+    for await (const event of stream) {
+      if (event.type === "content_block_start") {
+        if (event.content_block.type === "tool_use") {
+          toolBuffers.set(event.index, {
+            id: event.content_block.id,
+            name: event.content_block.name,
+            json: "",
+          });
         }
-        toolBuffers.delete(event.index);
+      } else if (event.type === "content_block_delta") {
+        if (event.delta.type === "text_delta") {
+          turnTextRaw += event.delta.text;
+          // Stream em-dash-stripped text. Stripping per chunk is fine because
+          // em-dashes are single codepoints and never split across deltas.
+          const cleaned = stripEmDashes(event.delta.text);
+          turnTextEmitted += cleaned;
+          yield { type: "text", value: cleaned };
+        } else if (event.delta.type === "input_json_delta") {
+          const buf = toolBuffers.get(event.index);
+          if (buf) buf.json += event.delta.partial_json;
+        }
+      } else if (event.type === "content_block_stop") {
+        const buf = toolBuffers.get(event.index);
+        if (buf) {
+          try {
+            const input = buf.json ? JSON.parse(buf.json) : {};
+            blocks.push({ type: "tool_use", id: buf.id, name: buf.name, input });
+            yield { type: "tool_use", name: buf.name, input };
+          } catch {
+            // Malformed tool input, drop silently.
+          }
+          toolBuffers.delete(event.index);
+        }
       }
     }
+
+    if (turnTextRaw.length > 0) {
+      // Push the raw text into the assistant turn so subsequent tool_result
+      // turns see the model's prose verbatim. The streamed copy to the
+      // client was already em-dash-stripped above.
+      blocks.unshift({ type: "text", text: turnTextRaw });
+      fullText += turnTextEmitted;
+    }
+
+    const toolUses = blocks.filter(
+      (b): b is Extract<AssistantBlock, { type: "tool_use" }> => b.type === "tool_use",
+    );
+    const lookupCalls = toolUses.filter((t) => LOOKUP_TOOL_NAMES.has(t.name));
+
+    // Done when the model emits no lookup tool calls. Memory tools can fire
+    // as side effects without round-tripping a tool_result.
+    if (lookupCalls.length === 0) {
+      break;
+    }
+
+    // Append assistant turn (text + tool_use blocks) and tool_result blocks
+    // for every tool_use the model emitted, lookup OR memory. The model
+    // requires a tool_result for every tool_use; memory tools get an empty
+    // ack since their side effects run in the route handler.
+    messages.push({ role: "assistant", content: blocks });
+    const toolResults: Anthropic.ToolResultBlockParam[] = [];
+    for (const t of toolUses) {
+      let result = "ok";
+      if (t.name === "query_training_history") {
+        result = await executeQueryTrainingHistory(
+          ctx.athleteId,
+          (t.input ?? {}) as QueryHistoryArgs,
+        );
+      } else if (t.name === "fetch_run_detail") {
+        result = await executeFetchRunDetail(
+          ctx.athleteId,
+          (t.input ?? {}) as FetchRunDetailArgs,
+        );
+      }
+      toolResults.push({
+        type: "tool_result",
+        tool_use_id: t.id,
+        content: result,
+      });
+    }
+    messages.push({ role: "user", content: toolResults });
   }
 
   yield { type: "done", fullText };

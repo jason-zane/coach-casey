@@ -42,10 +42,13 @@ export async function buildChatContext(
     memoryRes,
     planRes,
     racesRes,
+    oldestRes,
   ] = await Promise.all([
       admin
         .from("athletes")
-        .select("id, display_name, sex, weight_kg, date_of_birth")
+        .select(
+          "id, display_name, sex, weight_kg, date_of_birth, monthly_history_rollup",
+        )
         .eq("id", athleteId)
         .single(),
       admin
@@ -87,6 +90,15 @@ export async function buildChatContext(
         .eq("athlete_id", athleteId)
         .eq("is_active", true)
         .order("race_date", { ascending: true }),
+      // Oldest activity in the DB drives the "what you can see" marker. One
+      // row, indexed scan, very cheap.
+      admin
+        .from("activities")
+        .select("start_date_local")
+        .eq("athlete_id", athleteId)
+        .order("start_date_local", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
   const historyRows = (historyRes.data ?? []) as Message[];
@@ -183,6 +195,10 @@ export async function buildChatContext(
   const coachingMode =
     coachingRaw === "coach" || coachingRaw === "self" ? coachingRaw : null;
 
+  const monthlyRollup =
+    (athleteRes.data as { monthly_history_rollup?: unknown } | null)
+      ?.monthly_history_rollup ?? null;
+
   return {
     athleteId,
     displayName: (athleteRes.data?.display_name as string | null) ?? null,
@@ -196,5 +212,11 @@ export async function buildChatContext(
     memoryItems,
     activePlanText: (planRes.data?.raw_text as string | null) ?? null,
     goalRaces,
+    monthlyRollup: Array.isArray(monthlyRollup)
+      ? (monthlyRollup as ChatContext["monthlyRollup"])
+      : null,
+    recentBoundaryIso: since.toISOString(),
+    oldestActivityIso:
+      (oldestRes?.data as { start_date_local: string } | null)?.start_date_local ?? null,
   };
 }

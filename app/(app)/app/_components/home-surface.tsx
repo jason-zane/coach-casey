@@ -113,6 +113,7 @@ export function HomeSurface({
   // the athlete can't tap anyway.
   const [keyboardInset, setKeyboardInset] = useState(0);
 
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const sentinelTopRef = useRef<HTMLDivElement | null>(null);
   const initialScrollDoneRef = useRef(false);
@@ -639,21 +640,28 @@ export function HomeSurface({
   }, [pullY, doRefresh]);
 
   // --- On-screen keyboard tracking via visualViewport. Computes the overlap
-  // between the layout viewport and the visual viewport, that's the height of
-  // the keyboard. We then translate the composer up by that amount and add
+  // between our root surface (sized to 100dvh, which already tracks the
+  // browser's URL bar) and the visual viewport. The remaining gap is the
+  // on-screen keyboard. We translate the composer up by that amount and add
   // matching bottom padding to the scroll container so the latest message can
   // be scrolled into view above the floating composer.
+  //
+  // Earlier versions used `window.innerHeight - vv.height`, which on iOS
+  // Safari incorrectly reports the URL bar / bottom toolbar as keyboard
+  // (innerHeight tracks the LARGE viewport, vv.height tracks the visible
+  // area). That made the composer drift mid-page when the URL bar was up.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const vv = window.visualViewport;
     if (!vv) return;
     function update() {
       if (!vv) return;
-      const overlap = Math.max(
-        0,
-        window.innerHeight - vv.height - vv.offsetTop,
-      );
-      setKeyboardInset(overlap);
+      const layoutHeight = rootRef.current?.clientHeight ?? window.innerHeight;
+      const overlap = Math.max(0, layoutHeight - vv.height - vv.offsetTop);
+      // Sub-pixel jitter (≤2px) is just float rounding between layoutHeight
+      // and vv.height when the keyboard is closed; ignore it so the
+      // composer doesn't twitch up by a pixel as the URL bar animates.
+      setKeyboardInset(overlap > 2 ? overlap : 0);
     }
     update();
     vv.addEventListener("resize", update);
@@ -698,7 +706,16 @@ export function HomeSurface({
   }, [messages]);
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-paper">
+    <div
+      ref={rootRef}
+      // h-dvh (dynamic viewport) over inset-0 so the surface tracks the
+      // visible viewport on iOS Safari. inset-0 sizes to the LARGE viewport
+      // (URL bar collapsed), which puts the composer behind the bottom
+      // toolbar when the URL bar is showing. dvh follows the URL bar
+      // dynamically so the composer always sits at the visible bottom; the
+      // keyboardInset translateY then handles only the on-screen keyboard.
+      className="fixed inset-x-0 top-0 h-dvh flex flex-col bg-paper"
+    >
       <a
         href="#thread"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-surface focus:text-ink focus:px-3 focus:py-1.5 focus:rounded focus:border focus:border-rule"
