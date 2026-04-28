@@ -22,6 +22,8 @@ export type AthleteProfile = {
   dateOfBirth: string | null;
   weightKg: number | null;
   sex: string | null;
+  /** 'coach' = human coach writes the training, 'self' = self-directed / public plan, null = unset. */
+  coachingMode: "coach" | "self" | null;
 };
 
 export type GoalRace = {
@@ -141,6 +143,7 @@ export async function loadAthletePageData(
 
   const [
     athleteRes,
+    preferencesRes,
     goalRes,
     activitiesRes,
     memoryRes,
@@ -155,6 +158,11 @@ export async function loadAthletePageData(
       )
       .eq("id", athleteId)
       .single(),
+    admin
+      .from("preferences")
+      .select("coaching_mode")
+      .eq("athlete_id", athleteId)
+      .maybeSingle(),
     admin
       .from("goal_races")
       .select("name, race_date, goal_time_seconds")
@@ -205,6 +213,14 @@ export async function loadAthletePageData(
     weight_kg: number | null;
     sex: string | null;
   };
+  const prefRow = preferencesRes.data as {
+    coaching_mode: string | null;
+  } | null;
+  const coachingMode =
+    prefRow?.coaching_mode === "coach" || prefRow?.coaching_mode === "self"
+      ? prefRow.coaching_mode
+      : null;
+
   const profile: AthleteProfile = {
     id: a.id,
     email: a.email,
@@ -214,6 +230,7 @@ export async function loadAthletePageData(
     dateOfBirth: a.date_of_birth,
     weightKg: a.weight_kg != null ? Number(a.weight_kg) : null,
     sex: a.sex,
+    coachingMode,
   };
 
   const goalRow = goalRes.data as {

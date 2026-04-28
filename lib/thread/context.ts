@@ -34,13 +34,25 @@ export async function buildChatContext(
   const since = new Date();
   since.setDate(since.getDate() - activityWeeks * 7);
 
-  const [athleteRes, historyRes, activitiesRes, memoryRes, planRes, racesRes] =
-    await Promise.all([
+  const [
+    athleteRes,
+    preferencesRes,
+    historyRes,
+    activitiesRes,
+    memoryRes,
+    planRes,
+    racesRes,
+  ] = await Promise.all([
       admin
         .from("athletes")
         .select("id, display_name, sex, weight_kg, date_of_birth")
         .eq("id", athleteId)
         .single(),
+      admin
+        .from("preferences")
+        .select("coaching_mode")
+        .eq("athlete_id", athleteId)
+        .maybeSingle(),
       admin
         .from("messages")
         .select("id, thread_id, athlete_id, kind, body, meta, created_at")
@@ -165,12 +177,19 @@ export async function buildChatContext(
         ? rawWeight
         : Number(rawWeight) || null;
 
+  const coachingRaw =
+    (preferencesRes.data as { coaching_mode: string | null } | null)
+      ?.coaching_mode ?? null;
+  const coachingMode =
+    coachingRaw === "coach" || coachingRaw === "self" ? coachingRaw : null;
+
   return {
     athleteId,
     displayName: (athleteRes.data?.display_name as string | null) ?? null,
     sex: rawSex === "M" || rawSex === "F" ? rawSex : null,
     weightKg,
     ageYears: dob ? ageOnDate(dob, todayIso) : null,
+    coachingMode,
     recentMessages,
     recentActivities,
     recentCrossTraining,
