@@ -251,21 +251,28 @@ function renderContext(ctx: ChatContext): string {
     parts.push(`# Long history (summary)\n${rollupBlock}`);
   }
 
-  // Honest "what Casey can see" marker so the model doesn't overclaim.
-  // Recent window has full lap detail; long-history rows have summary only,
-  // detail must be fetched on demand via the fetch_run_detail tool.
+  // Phrase this positively, lead with what Casey HAS, not what's missing.
+  // Earlier wording ("Summaries only (no lap detail in context)") was
+  // misread by the model as "no data" and the model would deny having
+  // older history even though the rollup was sitting right above this
+  // block. The model should treat the rollup as real data and the tools
+  // as real capabilities.
   const recentDate = ctx.recentBoundaryIso.slice(0, 10);
-  const availabilityLines = [
-    `Lap detail available in context: from ${recentDate} onward (last 12 weeks).`,
-  ];
+  const availabilityLines: string[] = [];
+  availabilityLines.push(
+    `You see full per-run detail with lap breakdowns for runs from ${recentDate} onward (the last 12 weeks). Treat these as the high-resolution window.`,
+  );
   if (ctx.oldestActivityIso) {
     const oldestDate = ctx.oldestActivityIso.slice(0, 10);
     availabilityLines.push(
-      `Summaries only (no lap detail in context) for: ${oldestDate} to ${recentDate}. Use fetch_run_detail to pull laps for a specific older run.`,
+      `You see per-month summary data (volume, run count, longest run) for runs from ${oldestDate} to ${recentDate}, rendered above under "Long history (summary)". This is real data covering up to two years of history; reason from it directly.`,
+    );
+    availabilityLines.push(
+      `For specifics older than 12 weeks that the monthly rollup doesn't cover, call query_training_history. For lap detail on a specific older run, call fetch_run_detail. You are connected to Strava; use these tools rather than telling the athlete you can't see older data.`,
     );
   } else {
     availabilityLines.push(
-      "No long-history backfill yet, the recent window is all you have.",
+      "Long-history backfill hasn't completed yet, so for now the recent 12-week window is what you have. You can still call fetch_run_detail for specific runs once they appear.",
     );
   }
   parts.push(`# What you can see\n${availabilityLines.join("\n")}`);

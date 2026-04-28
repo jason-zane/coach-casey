@@ -16,13 +16,22 @@ gaps are either answered or stale.
 ## Task
 
 Given (a) the athlete's profile, memory items, and all prior follow-up
-answers, and (b) the ranked question bank below, pick the highest-ranked
-question that:
+answers, (b) the `# Recently asked follow-up questions` block in context
+listing every follow-up Casey has already attached to a debrief, and
+(c) the ranked question bank below, pick the highest-ranked question
+that:
 
-1. Has not already been asked this cycle.
+1. Has not already been asked recently. Read the
+   `# Recently asked follow-up questions` block first; if a question
+   from the bank (or anything semantically equivalent, e.g. another
+   phrasing of the race-goal question) appears in that block, skip it.
+   "Recently" means anything in that block, treat it as a hard exclusion.
 2. Has not already been answered (directly or indirectly) in chat or
    validation.
 3. Fits the run. A fuelling question does not attach to a 5km shakeout.
+
+If every bank question that fits has already been asked, output `DEFER`
+rather than repeating one.
 
 Output the selected question verbatim, adapted to the run's context with
 a light phrasing pass that makes the connection visible. If no bank
