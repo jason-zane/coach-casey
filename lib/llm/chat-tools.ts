@@ -125,7 +125,7 @@ export async function executeQueryTrainingHistory(
 
   if (granularity === "run") {
     // Cap at 50 runs to keep tool_result tokens bounded; Casey can re-query
-    // a narrower range if she needs more.
+    // a narrower range if they need more.
     const lines = rows.slice(0, 50).map((r) => {
       const km = (r.distance_m ?? 0) / 1000;
       const pace = formatPace(r.avg_pace_s_per_km);
