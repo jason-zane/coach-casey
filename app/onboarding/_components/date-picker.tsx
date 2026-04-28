@@ -146,7 +146,7 @@ export function DatePicker({
     setYear(y);
   }
 
-  // Year range for the dropdown — sensible window around current
+  // Year range for the dropdown, sensible window around current
   const yearRange: number[] = [];
   const startYear = today.getFullYear() - 1;
   const endYear = today.getFullYear() + 5;

@@ -1,15 +1,15 @@
 /**
- * Strava Push Subscriptions — one-off admin script.
+ * Strava Push Subscriptions, one-off admin script.
  *
  * Strava allows ONE active push subscription per application. This script
  * lists, creates, or deletes that subscription.
  *
  * Required env:
  *   STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET
- *   STRAVA_WEBHOOK_VERIFY_TOKEN   — any sufficiently long random string;
+ *   STRAVA_WEBHOOK_VERIFY_TOKEN  , any sufficiently long random string;
  *                                    Strava echoes it back during the GET
  *                                    challenge to prove we own the endpoint.
- *   NEXT_PUBLIC_APP_URL           — base URL for the callback
+ *   NEXT_PUBLIC_APP_URL          , base URL for the callback
  *
  * Usage:
  *   pnpm tsx scripts/strava-webhook-subscribe.ts list
@@ -18,7 +18,7 @@
  *
  * The callback URL must be publicly reachable and respond to the GET
  * challenge with { "hub.challenge": <value> }. Our endpoint lives at
- * `/api/strava/webhook` — see `app/api/strava/webhook/route.ts`.
+ * `/api/strava/webhook`, see `app/api/strava/webhook/route.ts`.
  *
  * For local testing you need a public tunnel (e.g. `vercel dev` with a
  * preview URL, or ngrok) pointing at the dev server.

@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
  * set; we still scope every query by the resolved athlete_id so we can
  * never accidentally return another athlete's data.
  *
- * Strava OAuth tokens are deliberately excluded — the athlete already has
+ * Strava OAuth tokens are deliberately excluded, the athlete already has
  * their data on Strava and exposing the access token serves no
  * portability purpose.
  */
@@ -49,7 +49,7 @@ export async function GET() {
     return (data as AnyRow[] | null) ?? [];
   };
 
-  // Strava connection — strip secrets.
+  // Strava connection, strip secrets.
   const { data: stravaConnRaw } = await admin
     .from("strava_connections")
     .select("athlete_id, strava_athlete_id, scope, is_mock, connected_at, created_at, updated_at")

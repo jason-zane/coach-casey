@@ -24,9 +24,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Coach Casey — reflective partner for marathoners",
+  title: "Coach Casey: a reflective partner for marathoners",
   description:
-    "Most running apps tell you what to do. Coach Casey doesn't. It sits alongside your existing plan and makes sense of what just happened — every run, every week.",
+    "Most running apps tell you what to do. Coach Casey doesn't. It sits alongside your existing plan and makes sense of what just happened, every run, every week.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

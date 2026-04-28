@@ -36,9 +36,9 @@ export type WorkoutClassification = {
   confidence: "high" | "medium" | "low";
   /** Short human label, e.g. "5 × 1km intervals" or "20-min tempo block". */
   summary: string;
-  /** Compacted laps for prompt rendering — null when no usable laps. */
+  /** Compacted laps for prompt rendering, null when no usable laps. */
   laps: LapSummary[] | null;
-  /** Why we classified this way — useful for logs / debugging. */
+  /** Why we classified this way, useful for logs / debugging. */
   reason: string;
 };
 
@@ -82,7 +82,7 @@ function median(xs: number[]): number {
 
 function isUniformDistance(laps: LapSummary[]): boolean {
   if (laps.length < 3) return false;
-  // Drop the last lap — final lap is often a partial that throws this off.
+  // Drop the last lap, final lap is often a partial that throws this off.
   const considered = laps.slice(0, -1);
   if (considered.length < 2) return false;
   const med = median(considered.map((l) => l.distance_m));
@@ -191,7 +191,7 @@ export function classifyWorkout(input: ClassifyInput): WorkoutClassification {
       ? Math.round(input.movingTimeS / (input.distanceM / 1000))
       : null);
 
-  // Strava workout_type: 1 race, 2 long, 3 workout. Trust 1 unconditionally —
+  // Strava workout_type: 1 race, 2 long, 3 workout. Trust 1 unconditionally 
   // the athlete explicitly tagged it. For 3 we use it as a hint but still
   // run the lap analysis below to pick the *kind* of workout.
   if (input.stravaWorkoutType === 1) {
@@ -321,7 +321,7 @@ export function classifyWorkout(input: ClassifyInput): WorkoutClassification {
     };
   }
 
-  // Strava said it was a workout but we couldn't see structure — surface
+  // Strava said it was a workout but we couldn't see structure, surface
   // the laps anyway so the athlete can ask about them.
   if (input.stravaWorkoutType === 3) {
     return {
@@ -333,7 +333,7 @@ export function classifyWorkout(input: ClassifyInput): WorkoutClassification {
     };
   }
 
-  // Long-ish, no structure — surface as long when distance fits.
+  // Long-ish, no structure, surface as long when distance fits.
   if (input.stravaWorkoutType === 2 || (input.distanceM ?? 0) >= 20_000) {
     return {
       kind: "long",

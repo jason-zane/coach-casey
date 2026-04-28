@@ -80,7 +80,7 @@ export function NotificationsClient({ platform, configured, publicKey }: Props) 
         const existing = await reg.pushManager.getSubscription();
         if (existing) {
           // The browser already has a subscription, but the matching row may
-          // not exist for the *current* athlete — they could have signed in
+          // not exist for the *current* athlete, they could have signed in
           // as a different account, or we may have pruned the row when the
           // push service returned 410. Reconcile by upserting now (the
           // server action is endpoint-keyed and idempotent). If the upsert
@@ -186,7 +186,7 @@ export function NotificationsClient({ platform, configured, publicKey }: Props) 
           tag: "welcome-test",
         });
       } catch {
-        // Non-fatal — subscription is still saved.
+        // Non-fatal, subscription is still saved.
       }
       setPhase("subscribed");
     } catch (err) {

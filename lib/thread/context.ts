@@ -12,12 +12,12 @@ import type { Message } from "./types";
  * Assemble the chat context for a single turn: athlete profile, recent
  * messages, recent activities, active memory items, active plan, goal races.
  *
- * Uses the admin client — tools and repository already gate by athleteId,
+ * Uses the admin client, tools and repository already gate by athleteId,
  * and the service role avoids an extra round-trip through RLS.
  *
  * Activity window covers the full 12-week ingest window so the athlete can
  * ask about specific laps or sessions from any point in the picture.
- * Per-activity rendering then varies — workouts get lap detail inlined,
+ * Per-activity rendering then varies, workouts get lap detail inlined,
  * easy/long runs and cross-training stay one-liners.
  */
 const DEFAULT_ACTIVITY_WEEKS = 12;

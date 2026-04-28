@@ -1,11 +1,11 @@
 -- RPE capture per `docs/rpe-feature-spec.md`.
 --
 -- Two surfaces:
---   1) `activity_notes` — one row per activity, RPE columns nullable. The
+--   1) `activity_notes`, one row per activity, RPE columns nullable. The
 --      spec describes "new columns" on activity_notes; the table didn't
 --      exist yet, so it's introduced here scoped to RPE only. Future
 --      per-activity notes can extend the same row.
---   2) `athletes.rpe_prompts_paused_until` — pause flag set when the
+--   2) `athletes.rpe_prompts_paused_until`, pause flag set when the
 --      athlete hits the consecutive-skip threshold. Checked on every
 --      potential prompt display.
 --
@@ -18,7 +18,7 @@ CREATE TABLE public.activity_notes (
   athlete_id uuid NOT NULL REFERENCES public.athletes(id) ON DELETE CASCADE,
   -- RPE state. `rpe_value` is only set when `rpe_answered_at` is set;
   -- `rpe_skipped_at` is set on explicit dismissal. The two timestamps are
-  -- mutually exclusive — an activity is either answered or skipped, never
+  -- mutually exclusive, an activity is either answered or skipped, never
   -- both.
   rpe_value smallint,
   rpe_prompted_at timestamptz,
@@ -53,9 +53,9 @@ CREATE POLICY "activity_notes read own" ON public.activity_notes
 
 -- Pause state on athletes.
 --
---   `rpe_prompts_paused_until` — when set and in the future, prompts are
+--   `rpe_prompts_paused_until`, when set and in the future, prompts are
 --     suppressed.
---   `rpe_skip_count_anchor_at` — moment the most recent pause was
+--   `rpe_skip_count_anchor_at`, moment the most recent pause was
 --     triggered. Consecutive-skip counting only considers prompts after
 --     this point, so the post-pause re-prompt gets a fresh 5-skip
 --     threshold (per spec §8.4) rather than instantly re-pausing on the

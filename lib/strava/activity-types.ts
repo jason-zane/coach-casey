@@ -4,10 +4,10 @@
  * Strava's `sport_type` and legacy `type` fields are free-form strings with
  * known values. We classify into four buckets:
  *
- *   run            — flows into the post-run debrief pipeline
- *   cross_training — flows into the cross-training acknowledgement pipeline
- *   ambient        — stored as activity rows, no thread message generated
- *   catch_all      — unknown type; routed to cross-training with the
+ *   run           , flows into the post-run debrief pipeline
+ *   cross_training, flows into the cross-training acknowledgement pipeline
+ *   ambient       , stored as activity rows, no thread message generated
+ *   catch_all     , unknown type; routed to cross-training with the
  *                    catch-all interpretation pattern (see
  *                    docs/cross-training.md §5.7)
  *
@@ -38,7 +38,7 @@ function normaliseType(raw: string | null | undefined): string {
 
 /**
  * Returns the pipeline classification for a Strava activity type. Falls
- * back to the catch-all bucket when the type is unknown — Strava adds
+ * back to the catch-all bucket when the type is unknown, Strava adds
  * activity types occasionally (e.g. "HighIntensityIntervalTraining" was a
  * relatively recent addition) and the cross-training prompt is instructed
  * to handle unknowns honestly rather than fail closed.
@@ -47,7 +47,7 @@ export function classifyActivityType(raw: string | null | undefined): ActivityCl
   const type = normaliseType(raw);
   if (!type) return "catch_all";
 
-  // Any type containing "Run" is treated as a run — covers Run, TrailRun,
+  // Any type containing "Run" is treated as a run, covers Run, TrailRun,
   // VirtualRun, and any future run variants. The debrief gate itself
   // applies further filtering (distance, abort tokens).
   if (/run/i.test(type)) return "run";

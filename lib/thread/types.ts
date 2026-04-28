@@ -40,7 +40,7 @@ export function getDebriefActivityId(message: Message): string | null {
 /**
  * Strava activity id (the bigint primary key Strava uses in URLs), pulled
  * from the message's meta block. Present on debrief and cross-training
- * messages — used to render the "View on Strava" attribution link required
+ * messages, used to render the "View on Strava" attribution link required
  * by Strava's brand guidelines for any UI displaying activity-derived data.
  */
 export function getMessageStravaId(message: Message): number | null {
@@ -60,7 +60,7 @@ export function getMessageStravaId(message: Message): number | null {
  * Activity stats mirrored onto debrief and cross-training messages so the
  * thread renderer can show a consistent stat row (distance · time · pace ·
  * HR) without re-querying activities on every render. All fields are
- * optional — the renderer omits anything missing, which also means messages
+ * optional, the renderer omits anything missing, which also means messages
  * created before this metadata was added still render cleanly.
  */
 export type MessageActivityStats = {

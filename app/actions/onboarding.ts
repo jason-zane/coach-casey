@@ -77,7 +77,7 @@ export async function completeOnboarding() {
   // Queue the long-history backfill. Cron picks it up and pulls up to two
   // years of activity summaries asynchronously, so onboarding completes
   // immediately and the deeper picture builds in the background. Mock
-  // connections (preview mode) skip — there's no live Strava to call.
+  // connections (preview mode) skip, there's no live Strava to call.
   const { data: conn } = await admin
     .from("strava_connections")
     .select("is_mock")

@@ -10,7 +10,7 @@ export const maxDuration = 300;
  *
  * Mechanism: call `supabase.auth.admin.deleteUser(user_id)`. The
  * auth.users → athletes foreign key is `ON DELETE CASCADE`, and every
- * athlete-owned table cascades from athletes — so removing the auth user
+ * athlete-owned table cascades from athletes, so removing the auth user
  * removes everything. Documented in the Privacy Policy.
  *
  * Schedule: 03:30 UTC daily (configured in vercel.json).

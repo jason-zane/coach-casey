@@ -5,12 +5,12 @@ import type { RpeBucket } from "./types";
 /**
  * Count consecutive active skips (spec §8.1) for an athlete within a
  * single bucket, working backwards from the most recent prompted
- * activity in that bucket. Stops at the first non-skip — answer or
- * non-engagement — per the rule "only active skips count toward the
+ * activity in that bucket. Stops at the first non-skip, answer or
+ * non-engagement, per the rule "only active skips count toward the
  * threshold."
  *
  * Bucket scoping (run vs cross-training) is per
- * docs/post-run-debrief-moment.md §6 — a skip pattern in one bucket
+ * docs/post-run-debrief-moment.md §6, a skip pattern in one bucket
  * cannot pause prompts in the other.
  *
  * Optionally anchored on a timestamp: when the athlete is recovering

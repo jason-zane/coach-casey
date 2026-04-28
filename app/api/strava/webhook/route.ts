@@ -15,12 +15,12 @@ export const maxDuration = 60;
 /**
  * Strava Push Subscriptions webhook endpoint.
  *
- * GET — subscription challenge. Strava POSTs a subscription request to its
+ * GET, subscription challenge. Strava POSTs a subscription request to its
  *   own API with { callback_url, verify_token }; it then calls this GET with
  *   `hub.mode=subscribe&hub.verify_token=...&hub.challenge=...`. We verify
  *   the token and echo the challenge.
  *
- * POST — events. Strava delivers { aspect_type, object_type, object_id,
+ * POST, events. Strava delivers { aspect_type, object_type, object_id,
  *   owner_id, subscription_id, updates }. We ACK with 200 in under two
  *   seconds and do the real work in an async hook (`after()`).
  *
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
   try {
     event = (await request.json()) as StravaWebhookEvent;
   } catch {
-    // Malformed body — acknowledge anyway so Strava doesn't retry endlessly.
+    // Malformed body, acknowledge anyway so Strava doesn't retry endlessly.
     return new Response(null, { status: 200 });
   }
 
@@ -161,12 +161,12 @@ async function handleEvent(event: StravaWebhookEvent): Promise<void> {
   const activityId = (upserted as { id: string }).id;
 
   // Route to the right pipeline based on activity classification:
-  //   run            — post-run debrief
-  //   cross_training — cross-training acknowledgement
-  //   catch_all      — cross-training acknowledgement (catch-all variant)
-  //   ambient        — stored only; no thread message (e.g. Walk)
+  //   run           , post-run debrief
+  //   cross_training, cross-training acknowledgement
+  //   catch_all     , cross-training acknowledgement (catch-all variant)
+  //   ambient       , stored only; no thread message (e.g. Walk)
   //
-  // Both downstream pipelines are idempotent — a webhook retry returns
+  // Both downstream pipelines are idempotent, a webhook retry returns
   // `{ kind: "exists" }` rather than duplicating. Force-regeneration is
   // never triggered from the webhook; that's a product-side decision.
   const force = false;
@@ -179,7 +179,7 @@ async function handleEvent(event: StravaWebhookEvent): Promise<void> {
       await generateCrossTrainingAckForActivity(athleteId, activityId, { force });
       break;
     case "ambient":
-      // Stored only — Walks and similar low-signal types are ambient
+      // Stored only, Walks and similar low-signal types are ambient
       // context, not thread-worthy.
       break;
   }

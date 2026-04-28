@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 
 /**
  * Years between two ISO dates (floor). Used to render the athlete's age
- * at the time of an activity rather than at debrief generation time —
+ * at the time of an activity rather than at debrief generation time 
  * matters for backfilled debriefs and historical cross-references.
  */
 export function ageOnDate(dobIso: string, asOfIso: string): number | null {
@@ -39,7 +39,7 @@ export type DebriefActivity = {
   maxHr: number | null;
   elevGainM: number | null;
   laps: DebriefLap[];
-  /** True when laps show ≥30s/km spread — treat as a workout, not a steady run. */
+  /** True when laps show ≥30s/km spread, treat as a workout, not a steady run. */
   hasWorkoutShape: boolean;
 };
 
@@ -103,8 +103,8 @@ export type DebriefContext = {
   /**
    * Trailing 28-day `(activity, rpe_value, planned_intent_inferred)`
    * triples. Per `rpe-feature-spec.md` §6 + §9.1, the debrief prompt
-   * receives this as longitudinal context — *not* the current activity's
-   * RPE — for divergence pattern recognition.
+   * receives this as longitudinal context, *not* the current activity's
+   * RPE, for divergence pattern recognition.
    */
   rpeHistory: RpeHistoryEntry[];
 };
@@ -236,7 +236,7 @@ function aggregateWeeks(runs: DebriefArcRun[]): DebriefWeekAggregate[] {
  * Assembles the full context a post-run debrief needs. Keyed on a single
  * activity, with the arc, plan, memory, and prior debriefs layered around it.
  *
- * Uses the admin client — the caller (server action, webhook, cron) has
+ * Uses the admin client, the caller (server action, webhook, cron) has
  * already resolved authorisation.
  */
 export async function buildDebriefContext(
@@ -331,7 +331,7 @@ export async function buildDebriefContext(
       .eq("kind", "debrief")
       .order("created_at", { ascending: false })
       .limit(priorDebriefCount),
-    // Trailing RPE — answered notes only, joined to the activity row for
+    // Trailing RPE, answered notes only, joined to the activity row for
     // shape inference. Excludes today's activity (`neq` on activity_id)
     // so today's RPE never leaks into today's context per spec §6.
     //
@@ -339,7 +339,7 @@ export async function buildDebriefContext(
     // the rating. A late-answered run from 6 weeks ago shouldn't pollute
     // the trailing 28-day picture, and a recent run answered late
     // shouldn't fall out of it. Final ordering is applied in JS after
-    // fetch — referenced-table ordering through PostgREST is fragile
+    // fetch, referenced-table ordering through PostgREST is fragile
     // across Supabase versions and the dataset is small.
     admin
       .from("activity_notes")

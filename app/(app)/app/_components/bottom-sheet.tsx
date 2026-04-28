@@ -12,7 +12,7 @@ type Props = {
 /**
  * Bottom-anchored floating card with symmetric fade+rise enter/exit. Lives
  * in the lower portion of the screen (thumb reach), floats over the thread
- * with a plain dark overlay that works in both light and dark modes — no
+ * with a plain dark overlay that works in both light and dark modes, no
  * blur, since blur inverts awkwardly in dark mode.
  */
 export function BottomSheet({ open, onClose, ariaLabel, children }: Props) {

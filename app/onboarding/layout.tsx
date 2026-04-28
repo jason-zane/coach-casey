@@ -50,9 +50,9 @@ export default async function OnboardingLayout({
               const isDone = i < currentIdx;
               const isCurrent = i === currentIdx;
               // Visible against both paper and dark-mode backgrounds:
-              //   done      — filled accent (plum)
-              //   current   — filled ink, slightly larger
-              //   upcoming  — outlined with ink-subtle (contrasts in both modes)
+              //   done     , filled accent (plum)
+              //   current  , filled ink, slightly larger
+              //   upcoming , outlined with ink-subtle (contrasts in both modes)
               return (
                 <span
                   key={s}

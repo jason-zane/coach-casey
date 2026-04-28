@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — Coach Casey",
+  title: "Terms of Service | Coach Casey",
   description:
     "The terms under which Coach Casey is provided. Plain language, no surprises.",
 };
@@ -132,7 +132,7 @@ export default function TermsPage() {
             </p>
           </Section>
 
-          <Section title="What Coach Casey is — and isn't">
+          <Section title="What Coach Casey is, and isn't">
             <p>
               Coach Casey is a reflective training partner. It writes
               debriefs, answers questions, and tracks the shape of your
@@ -311,8 +311,8 @@ export default function TermsPage() {
 
           <Section title="Contact">
             <p>
-              For anything — questions about these terms, privacy, or
-              security — email{" "}
+              For anything, questions about these terms, privacy, or
+              security, email{" "}
               <a className="link" href="mailto:hello@coachcasey.com">
                 hello@coachcasey.com
               </a>

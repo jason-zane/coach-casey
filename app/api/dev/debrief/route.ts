@@ -8,16 +8,16 @@ import { generateDebriefForActivity } from "@/app/actions/debrief";
  * development and prompt iteration.
  *
  * Modes:
- *   GET /api/dev/debrief?activity_id=<uuid>         — debrief that activity
- *   GET /api/dev/debrief?strava_id=<int>            — resolve by strava id
- *   GET /api/dev/debrief?latest=1                   — debrief the most recent
+ *   GET /api/dev/debrief?activity_id=<uuid>        , debrief that activity
+ *   GET /api/dev/debrief?strava_id=<int>           , resolve by strava id
+ *   GET /api/dev/debrief?latest=1                  , debrief the most recent
  *                                                     activity for the
  *                                                     signed-in athlete
- *   GET /api/dev/debrief?...&force=1                — regenerate even if one
+ *   GET /api/dev/debrief?...&force=1               , regenerate even if one
  *                                                     already exists
  *
  * Authentication: the signed-in user is resolved via the normal Supabase SSR
- * client, and the athlete is derived from that — no admin escape hatch.
+ * client, and the athlete is derived from that, no admin escape hatch.
  * Disabled in production.
  */
 export async function GET(request: Request) {

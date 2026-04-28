@@ -32,7 +32,7 @@ type SessionSpec = {
 };
 
 const WEEKS: SessionSpec[][] = [
-  // Week 1 — base
+  // Week 1, base
   [
     { offset: 1, kind: "easy", km: 10, paceSPerKm: 320, avgHr: 142, name: "Easy shakeout" },
     { offset: 2, kind: "workout", km: 12, paceSPerKm: 260, avgHr: 164, name: "5 x 1km at threshold" },
@@ -40,7 +40,7 @@ const WEEKS: SessionSpec[][] = [
     { offset: 5, kind: "recovery", km: 6, paceSPerKm: 335, avgHr: 136, name: "Recovery jog" },
     { offset: 6, kind: "long", km: 22, paceSPerKm: 305, avgHr: 150, name: "Sunday long" },
   ],
-  // Week 2 — build
+  // Week 2, build
   [
     { offset: 1, kind: "easy", km: 10, paceSPerKm: 318, avgHr: 142, name: "Easy" },
     { offset: 2, kind: "workout", km: 13, paceSPerKm: 255, avgHr: 166, name: "6 x 1km at threshold" },
@@ -48,7 +48,7 @@ const WEEKS: SessionSpec[][] = [
     { offset: 5, kind: "recovery", km: 6, paceSPerKm: 335, avgHr: 135, name: "Recovery" },
     { offset: 6, kind: "long", km: 24, paceSPerKm: 300, avgHr: 151, name: "Sunday long" },
   ],
-  // Week 3 — the outlier Saturday
+  // Week 3, the outlier Saturday
   [
     { offset: 1, kind: "easy", km: 11, paceSPerKm: 320, avgHr: 143, name: "Easy" },
     { offset: 2, kind: "workout", km: 14, paceSPerKm: 252, avgHr: 167, name: "3 x 2km at threshold" },
@@ -56,7 +56,7 @@ const WEEKS: SessionSpec[][] = [
     { offset: 5, kind: "easy", km: 8, paceSPerKm: 298, avgHr: 152, name: "Saturday with the group" },
     { offset: 6, kind: "long", km: 26, paceSPerKm: 302, avgHr: 152, name: "Sunday long" },
   ],
-  // Week 4 — step-back
+  // Week 4, step-back
   [
     { offset: 1, kind: "easy", km: 8, paceSPerKm: 322, avgHr: 140, name: "Easy" },
     { offset: 2, kind: "workout", km: 10, paceSPerKm: 270, avgHr: 160, name: "Tempo 5km" },
@@ -64,12 +64,12 @@ const WEEKS: SessionSpec[][] = [
     { offset: 5, kind: "recovery", km: 6, paceSPerKm: 335, avgHr: 135, name: "Recovery" },
     { offset: 6, kind: "long", km: 20, paceSPerKm: 305, avgHr: 149, name: "Cut-back long" },
   ],
-  // Week 5 — MISSING (illness / travel), only two very short runs
+  // Week 5, MISSING (illness / travel), only two very short runs
   [
     { offset: 1, kind: "easy", km: 5, paceSPerKm: 340, avgHr: 138, name: "Short shakeout" },
     { offset: 3, kind: "easy", km: 6, paceSPerKm: 338, avgHr: 140, name: "Back to it" },
   ],
-  // Week 6 — return, ease in
+  // Week 6, return, ease in
   [
     { offset: 1, kind: "easy", km: 10, paceSPerKm: 322, avgHr: 143, name: "Easy" },
     { offset: 2, kind: "workout", km: 12, paceSPerKm: 262, avgHr: 164, name: "5 x 1km at threshold" },
@@ -77,7 +77,7 @@ const WEEKS: SessionSpec[][] = [
     { offset: 5, kind: "recovery", km: 6, paceSPerKm: 332, avgHr: 136, name: "Recovery" },
     { offset: 6, kind: "long", km: 24, paceSPerKm: 302, avgHr: 150, name: "Sunday long" },
   ],
-  // Week 7 — build back
+  // Week 7, build back
   [
     { offset: 1, kind: "easy", km: 11, paceSPerKm: 318, avgHr: 142, name: "Easy" },
     { offset: 2, kind: "workout", km: 14, paceSPerKm: 256, avgHr: 166, name: "3 x 2km threshold" },
@@ -85,7 +85,7 @@ const WEEKS: SessionSpec[][] = [
     { offset: 5, kind: "recovery", km: 6, paceSPerKm: 334, avgHr: 136, name: "Recovery" },
     { offset: 6, kind: "long", km: 28, paceSPerKm: 300, avgHr: 152, name: "Sunday long" },
   ],
-  // Week 8 — peak building, hot long run with HR drift (higher HR than usual)
+  // Week 8, peak building, hot long run with HR drift (higher HR than usual)
   [
     { offset: 1, kind: "easy", km: 12, paceSPerKm: 318, avgHr: 143, name: "Easy" },
     { offset: 2, kind: "workout", km: 15, paceSPerKm: 252, avgHr: 168, name: "2 x 3km at MP+threshold" },
@@ -93,7 +93,7 @@ const WEEKS: SessionSpec[][] = [
     { offset: 5, kind: "recovery", km: 7, paceSPerKm: 334, avgHr: 137, name: "Recovery" },
     { offset: 6, kind: "long", km: 30, paceSPerKm: 305, avgHr: 159, name: "Long, humid" },
   ],
-  // Week 9 — biggest week
+  // Week 9, biggest week
   [
     { offset: 1, kind: "easy", km: 12, paceSPerKm: 318, avgHr: 142, name: "Easy" },
     { offset: 2, kind: "workout", km: 16, paceSPerKm: 248, avgHr: 168, name: "MP block 3 x 4km" },
@@ -101,7 +101,7 @@ const WEEKS: SessionSpec[][] = [
     { offset: 5, kind: "recovery", km: 7, paceSPerKm: 334, avgHr: 137, name: "Recovery" },
     { offset: 6, kind: "long", km: 32, paceSPerKm: 298, avgHr: 152, name: "Sunday long" },
   ],
-  // Week 10 — most recent, step back
+  // Week 10, most recent, step back
   [
     { offset: 1, kind: "easy", km: 10, paceSPerKm: 320, avgHr: 142, name: "Easy" },
     { offset: 2, kind: "workout", km: 12, paceSPerKm: 256, avgHr: 165, name: "Threshold 4 x 1.5km" },

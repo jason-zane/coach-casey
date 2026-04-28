@@ -50,7 +50,7 @@ export type CrossTrainingContext = {
   lifeContext: CrossTrainingMemoryItem[];
   /** Last ~10 runs. Shape the prompt uses to anchor "the running picture". */
   recentRuns: CrossTrainingArcRun[];
-  /** Active plan text when present — same raw_text the debrief pipeline reads. */
+  /** Active plan text when present, same raw_text the debrief pipeline reads. */
   activePlanText: string | null;
   /** Whether this athlete has any prior cross-training acknowledgement. */
   isFirstCrossTrainingAck: boolean;
@@ -85,7 +85,7 @@ type ActivityRow = {
 /**
  * Compute the 0-6 day-of-week for a timestamp interpreted in a given
  * timezone. Falls back to UTC when tz is null (existing athletes without
- * timezone captured — see scale_foundations migration).
+ * timezone captured, see scale_foundations migration).
  */
 function dayOfWeekInTz(iso: string, tz: string | null): number {
   const d = new Date(iso);
@@ -101,7 +101,7 @@ function dayOfWeekInTz(iso: string, tz: string | null): number {
     const idx = DAY_NAMES.findIndex((n) => n === label);
     return idx >= 0 ? idx : d.getUTCDay();
   } catch {
-    // Invalid tz string — fall through. Should never happen with IANA names
+    // Invalid tz string, fall through. Should never happen with IANA names
     // but we're defensive because this runs in the generation hot path.
     return d.getUTCDay();
   }
@@ -135,7 +135,7 @@ function toActivity(
  * Pattern detection: same activity_type, same day-of-week (in athlete tz),
  * 3+ occurrences in the last 4 weeks, excluding the current activity.
  *
- * Returned as a free-form description used in the prompt — the prompt reads
+ * Returned as a free-form description used in the prompt, the prompt reads
  * the description, not the raw count. "Tuesday gym, 4 of the last 4 weeks"
  * is the target shape.
  */
@@ -163,7 +163,7 @@ async function detectPattern(
     .gte("start_date_local", windowStart)
     .neq("id", activity.id);
   if (error) {
-    // Pattern detection failing should not block generation — the prompt
+    // Pattern detection failing should not block generation, the prompt
     // still works without pattern context. Log and fall through.
     console.warn("cross-training pattern query failed", error);
     return { isPattern: false, description: null };
@@ -225,7 +225,7 @@ function paceSPerKm(distanceM: number | null, movingTimeS: number | null): numbe
  * on a single activity, with pattern detection, memory, and a slim run
  * summary layered around it.
  *
- * Uses the admin client — caller (webhook, cron, dev) has already resolved
+ * Uses the admin client, caller (webhook, cron, dev) has already resolved
  * authorisation.
  */
 export async function buildCrossTrainingContext(

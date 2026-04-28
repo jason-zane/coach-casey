@@ -10,5 +10,5 @@ export function anthropic(): Anthropic {
 }
 
 // Primary model for generation and onboarding per technical-decision-log.
-// Using the latest Sonnet — the decision log notes newer-model swaps are routine.
+// Using the latest Sonnet, the decision log notes newer-model swaps are routine.
 export const SONNET_MODEL = "claude-sonnet-4-6";

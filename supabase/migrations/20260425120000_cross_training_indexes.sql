@@ -1,4 +1,4 @@
--- Cross-training idempotency. Mirrors the debrief partial unique index — a
+-- Cross-training idempotency. Mirrors the debrief partial unique index, a
 -- webhook retry, a duplicate Strava event, or a regen attempt must not
 -- produce two cross-training messages for the same activity. Covers both
 -- the standard ack and the substitution variant with a single index,

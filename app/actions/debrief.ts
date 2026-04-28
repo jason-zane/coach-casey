@@ -53,7 +53,7 @@ async function findExistingDebrief(
 }
 
 /**
- * Generate and persist a debrief for a single activity. Idempotent — a
+ * Generate and persist a debrief for a single activity. Idempotent, a
  * repeat call returns `{ kind: "exists" }` rather than producing a
  * duplicate message, backed by the partial unique index added in
  * `20260424150000_debrief_idempotency.sql`.
@@ -75,7 +75,7 @@ export async function generateDebriefForActivity(
 ): Promise<GenerateDebriefResult> {
   const admin = createAdminClient();
 
-  // Ownership check — the webhook path resolves athleteId from strava_athlete_id
+  // Ownership check, the webhook path resolves athleteId from strava_athlete_id
   // and could in principle be passed a mismatching activity. Verify.
   const { data: ownership } = await admin
     .from("activities")
@@ -123,7 +123,7 @@ export async function generateDebriefForActivity(
   // debrief for the same activity. Delete the existing debrief (and any
   // follow-up that points at it) so the insert below succeeds. Done after
   // generation, not before, so a failure in generateDebrief leaves the
-  // existing debrief in place — only a successful regenerate replaces it.
+  // existing debrief in place, only a successful regenerate replaces it.
   if (force) {
     const stale = await findExistingDebrief(athleteId, activityId);
     if (stale) {
@@ -153,7 +153,7 @@ export async function generateDebriefForActivity(
 
   if (debriefErr) {
     // 23505 = unique_violation on messages_debrief_per_activity_uniq.
-    // Race with a concurrent webhook retry — resolve by returning the
+    // Race with a concurrent webhook retry, resolve by returning the
     // winning row rather than surfacing the error.
     if ((debriefErr as { code?: string }).code === "23505") {
       const existing = await findExistingDebrief(athleteId, activityId);
@@ -183,7 +183,7 @@ export async function generateDebriefForActivity(
       .select("id")
       .single();
     if (followErr) {
-      // Follow-up failure should not roll back the debrief — the debrief is
+      // Follow-up failure should not roll back the debrief, the debrief is
       // the value; the follow-up is a nice-to-have.
       console.warn("follow-up insert failed; debrief already persisted", followErr);
     } else {
@@ -220,7 +220,7 @@ export async function generateDebriefForActivity(
   }
 
   // Best-effort push notification once the debrief is durably persisted.
-  // Wrapped so a push failure can't surface as a debrief failure — the
+  // Wrapped so a push failure can't surface as a debrief failure, the
   // debrief is the value, the notification is the alert. The lead text
   // mirrors the opening sentence of the debrief, so the notification
   // preview is itself useful even if the athlete doesn't open the app.

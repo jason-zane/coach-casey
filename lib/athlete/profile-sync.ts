@@ -4,7 +4,7 @@
  *
  * Idempotent. Cheap to call on every athlete-page render: returns early
  * when both fields are already populated. Errors are swallowed and logged
- * — the athlete page must never fail because Strava is unreachable.
+ *, the athlete page must never fail because Strava is unreachable.
  */
 
 import { createAdminClient } from "@/lib/supabase/server";

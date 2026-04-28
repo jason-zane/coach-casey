@@ -106,7 +106,7 @@ async function mapWithConcurrency<T, U>(
  * Fetches the priority 8-12 week window from Strava and upserts. Pulls runs
  * AND cross-training (Ride, Swim, gym, yoga, ...) so the chat context can
  * reflect the full training picture, not just runs. Ambient types (Walk) are
- * skipped — they'd just be noise.
+ * skipped, they'd just be noise.
  *
  * Lap detail is only fetched for runs, since laps for non-running activities
  * don't carry meaningful workout structure for a marathon coach and the
@@ -166,7 +166,7 @@ export async function ingestLiveActivitiesForAthlete(
 }
 
 /**
- * Loads recent runs only. Cross-training is intentionally excluded — the two
+ * Loads recent runs only. Cross-training is intentionally excluded, the two
  * existing callers (validation onboarding observations, anything legacy)
  * treat every row as a run for weekly volume / pace summaries. Cross-training
  * is fetched separately by the chat context builder.

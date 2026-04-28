@@ -11,7 +11,7 @@
  *     friendlier)
  *
  * Does NOT delete: activities, memory_items, threads, messages,
- * push_subscriptions. Onboarding is about confirming what we know — not
+ * push_subscriptions. Onboarding is about confirming what we know, not
  * wiping the athlete's history.
  *
  * Usage: node scripts/dev-reset-onboarding.mjs <email>

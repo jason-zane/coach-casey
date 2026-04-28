@@ -29,7 +29,7 @@ export type IngestSummary = {
  * happens, then land on the real count.
  *
  * Workout detection uses the lap-pattern classifier in
- * `lib/strava/workout-detect.ts` — auto-lap easy runs are explicitly excluded
+ * `lib/strava/workout-detect.ts`, auto-lap easy runs are explicitly excluded
  * even when they have ≥3 laps, since auto-lap on a steady run produces
  * uniform-distance, low-spread laps that aren't actually a session.
  */

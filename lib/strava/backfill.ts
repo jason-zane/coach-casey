@@ -5,7 +5,7 @@ import { mapStravaActivity } from "./ingest";
 
 /**
  * Long-history Strava backfill. Distinct from the foreground ingest in
- * `ingest.ts` — that one pulls 12 weeks with full lap detail during onboarding
+ * `ingest.ts`, that one pulls 12 weeks with full lap detail during onboarding
  * for the validation step. This one pulls *summaries only* (no detail
  * endpoint) for a longer window so Casey can reason about volume, frequency,
  * and patterns over months/years without burning the per-run detail budget.
@@ -50,7 +50,7 @@ function initialBeforeIso(): string {
 }
 
 /**
- * Mark an athlete for a long-history backfill. Idempotent — calling twice
+ * Mark an athlete for a long-history backfill. Idempotent, calling twice
  * for the same floor doesn't re-run a finished backfill, and an in-progress
  * backfill is left alone. Use `floor: 'all_time'` to upgrade a 'done'
  * two-year backfill into a deeper one (e.g. on paywall conversion).
@@ -96,7 +96,7 @@ export async function kickOffHistoryBackfill(
 }
 
 /**
- * Run one slice of the backfill for a single athlete. Idempotent — the
+ * Run one slice of the backfill for a single athlete. Idempotent, the
  * upsert on (athlete_id, strava_id) prevents duplicates.
  *
  * The before-cursor anchored at kickoff (history_backfill_before_iso) keeps
@@ -165,7 +165,7 @@ export async function runHistoryBackfillForAthlete(
       maxPages: MAX_PAGES_PER_SLICE,
     });
 
-    // Drop ambient types (Walk, etc.) — same filter the foreground ingest
+    // Drop ambient types (Walk, etc.), same filter the foreground ingest
     // applies. Long history isn't useful if it's noise.
     const kept = activities.filter((a) => {
       const cls = classifyActivityType(a.sport_type ?? a.type);
@@ -245,7 +245,7 @@ export async function announceBackfillComplete(
     const admin = createAdminClient();
 
     // Find this athlete's thread. If they haven't opened /app yet, the
-    // thread doesn't exist — the announcement will land naturally as part
+    // thread doesn't exist, the announcement will land naturally as part
     // of the welcome seed when they first arrive, since the seed reads
     // recent activity counts.
     const { data: thread } = await admin
@@ -286,7 +286,7 @@ export async function announceBackfillComplete(
 
     const body =
       `I&rsquo;ve now read ${horizon} of your training. ` +
-      `That gives me a fuller picture — peaks, blocks, gaps, the shape of how you build.`;
+      `That gives me a fuller picture, peaks, blocks, gaps, the shape of how you build.`;
 
     await admin.from("messages").insert({
       thread_id: thread.id,

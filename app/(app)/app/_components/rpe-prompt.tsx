@@ -17,7 +17,7 @@ type Props = {
 /**
  * Anchor descriptors for positions 1, 3, 5, 7, 10 per spec §4. These are
  * v1 placeholders and will be replaced by the content workstream at
- * launch-prep — leaving them in a single map so the swap is one edit.
+ * launch-prep, leaving them in a single map so the swap is one edit.
  */
 const ANCHOR_DESCRIPTORS: Record<number, string> = {
   1: "very easy",
@@ -55,7 +55,7 @@ export function RpePrompt({ activityId, initial }: Props) {
   const promptedRef = useRef(false);
 
   // Mark the prompt as shown once, on first visibility. Server is
-  // idempotent — re-firing on remount is harmless. IntersectionObserver
+  // idempotent, re-firing on remount is harmless. IntersectionObserver
   // covers the case where the debrief is mounted but offscreen (long
   // thread); falling back to immediate fire if the API isn't available.
   useEffect(() => {
@@ -89,7 +89,7 @@ export function RpePrompt({ activityId, initial }: Props) {
 
   function pick(value: number) {
     if (state.kind !== "unanswered") return;
-    // Optimistic — interaction-principles §3.4. Server reconciles in the
+    // Optimistic, interaction-principles §3.4. Server reconciles in the
     // background; on failure we revert to unanswered and surface a hint.
     const previous = state;
     const optimistic: RpeState = {
@@ -136,7 +136,7 @@ export function RpePrompt({ activityId, initial }: Props) {
   }
 
   if (state.kind === "skipped") {
-    // Quiet, non-interactive trail — keeps the debrief layout stable
+    // Quiet, non-interactive trail, keeps the debrief layout stable
     // without re-offering a control the spec disallows in V1.
     return (
       <div
@@ -236,7 +236,7 @@ export function RpePrompt({ activityId, initial }: Props) {
         })}
       </div>
 
-      {/* Anchor descriptor strip — shown at first use per spec §4. Each
+      {/* Anchor descriptor strip, shown at first use per spec §4. Each
           label sits beneath its number; non-anchors are an empty cell so
           alignment stays honest. Hover/focus over the picker swaps the
           line for the focused number's descriptor. */}

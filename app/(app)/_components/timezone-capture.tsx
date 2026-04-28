@@ -22,7 +22,7 @@ export function TimezoneCapture() {
       if (!tz) return;
       void setAthleteTimezone(tz);
     } catch {
-      // Ignore — older browsers without resolvedOptions support fall
+      // Ignore, older browsers without resolvedOptions support fall
       // back to the server's UTC handling.
     }
   }, []);

@@ -83,7 +83,7 @@ export async function GET(request: Request) {
 
       if (profile) {
         const update: Record<string, unknown> = {};
-        // Only seed when our row is currently empty — never overwrite
+        // Only seed when our row is currently empty, never overwrite
         // values the athlete may edit later in the about-you step.
         const { data: current } = await admin
           .from("athletes")
@@ -116,7 +116,7 @@ export async function GET(request: Request) {
       console.warn("Strava /athlete profile seed failed (non-fatal)", e);
     }
 
-    // Don't run ingest inline — let the reading-state page do it behind
+    // Don't run ingest inline, let the reading-state page do it behind
     // the designed loading moment. Keeps the callback fast so the browser
     // isn't hanging on the redirect back from Strava.
     return NextResponse.redirect(`${appUrl}/onboarding/reading`);

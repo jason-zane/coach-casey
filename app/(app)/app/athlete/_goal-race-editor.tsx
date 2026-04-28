@@ -160,7 +160,7 @@ export function GoalRaceEditor({ initial }: Props) {
       {!initial && (
         <p className="text-[13px] leading-[1.55] text-ink-muted">
           The race that matters and what time you&rsquo;re chasing. Casey
-          uses this everywhere — debriefs, weekly reviews, the lot.
+          uses this everywhere, debriefs, weekly reviews, the lot.
         </p>
       )}
 

@@ -6,9 +6,9 @@ import { isPushConfigured } from "@/lib/push/keys";
 /**
  * Dev/local helper to fire a push at the signed-in athlete's devices.
  *
- *   GET /api/dev/push                     — sends a generic test
- *   GET /api/dev/push?body=Hello          — overrides the body text
- *   GET /api/dev/push?title=Hi            — overrides the title
+ *   GET /api/dev/push                    , sends a generic test
+ *   GET /api/dev/push?body=Hello         , overrides the body text
+ *   GET /api/dev/push?title=Hi           , overrides the title
  *
  * Useful for verifying VAPID keys, sw.js delivery, and notification rendering
  * without needing to fake a Strava activity. Disabled in production.

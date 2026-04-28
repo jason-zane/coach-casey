@@ -1,7 +1,7 @@
-# Post-run follow-up — structured prompt
+# Post-run follow-up, structured prompt
 
 **Status:** v1 scaffolding. The ranked question set itself is explicitly
-flagged in `v1-scope.md` §6 as requiring a dedicated design session — not
+flagged in `v1-scope.md` §6 as requiring a dedicated design session, not
 a casual afternoon. This file exists so the code path can be wired before
 that session lands. The question bank below is a *starter draft*, not the
 final ranked list.
@@ -39,7 +39,7 @@ prompt will take over.
   comes first), defer to the conversational prompt and retire structured
   follow-ups entirely.
 
-## Question bank — DRAFT, NOT FINAL
+## Question bank, DRAFT, NOT FINAL
 
 The v1-scope doc flags the final list as the product of a dedicated
 session that ranks by *what materially improves debrief quality*. This
@@ -48,35 +48,35 @@ here is subject to the real ranking session.
 
 Categories ranked by likely impact on debrief quality:
 
-**Rank 1 — plan legibility.** Without this, Casey is reading the plan as
+**Rank 1, plan legibility.** Without this, Casey is reading the plan as
 prose, which is where the biggest quality gap is today.
 1. "What's on the plan for this week, roughly?"
 2. "Is today's run the one the plan had for you, or did it shift?"
 
-**Rank 2 — training pattern.** Shapes what a "normal" week looks like for
+**Rank 2, training pattern.** Shapes what a "normal" week looks like for
 this athlete.
 3. "Is a Tuesday easy day typical for you, or does the week roll
    differently?"
 4. "How many runs a week are you aiming for right now?"
 
-**Rank 3 — injury and niggle history.** Pre-empts misreads of future runs.
+**Rank 3, injury and niggle history.** Pre-empts misreads of future runs.
 5. "Anything you're carrying into this block that's worth me knowing
    about? Calf, knee, Achilles, anything at all."
 6. "Any recent niggles that are resolved but worth flagging in case
    they come back?"
 
-**Rank 4 — race and goal context.** Shapes the arc Casey reads.
+**Rank 4, race and goal context.** Shapes the arc Casey reads.
 7. "Which race is the one you're building toward? Date, distance, goal
    time if you have one."
 8. "Is there a B-race or tune-up on the way to it?"
 
-**Rank 5 — life rhythm.** Lets Casey read HR drift, short weeks,
+**Rank 5, life rhythm.** Lets Casey read HR drift, short weeks,
 cracked workouts in context rather than as fitness signal.
 9. "Roughly what does a full-on work week look like for you? Shifts,
    late nights, travel?"
 10. "Anything chronic on the sleep front I should be aware of?"
 
-**Rank 6 — execution detail.** Sharpens workout reads specifically.
+**Rank 6, execution detail.** Sharpens workout reads specifically.
 11. "Do you tend to run workouts by pace, by feel, or by heart rate?"
 12. "For long runs, do you usually fuel, and if so, what works for you?"
 
@@ -87,7 +87,7 @@ cracked workouts in context rather than as fitness signal.
 - "Do you usually fuel on long runs?" → only on long runs (>= 18km).
 - "Any niggles?" → any run, but once answered, never re-ask.
 
-## Voice — same hard rules as the debrief and the conversational prompt
+## Voice, same hard rules as the debrief and the conversational prompt
 
 - No em-dashes anywhere.
 - No exclamation marks, no emoji.

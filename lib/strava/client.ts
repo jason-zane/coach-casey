@@ -69,7 +69,7 @@ export type StravaAthleteProfile = {
 /**
  * Fetch the authenticated athlete's profile. Requires `profile:read_all`
  * scope; returns null and logs if Strava 401s (athletes connected before
- * the scope was added). Other errors throw — callers can decide whether
+ * the scope was added). Other errors throw, callers can decide whether
  * to swallow or propagate.
  */
 export async function fetchAthleteProfile(
@@ -213,7 +213,7 @@ export async function fetchActivitiesSince(
  * Paginate Strava's /athlete/activities with optional after/before bounds.
  * Both bounds are inclusive seconds-since-epoch. `before` is used by the
  * long-history backfill to avoid overlapping the recent foreground ingest
- * window — keeps the backfill cleanly disjoint so it never overwrites lap
+ * window, keeps the backfill cleanly disjoint so it never overwrites lap
  * detail we already pulled.
  *
  * Safety caps at 30 pages × 100 = 3000 activities per call. Two years of
@@ -322,7 +322,7 @@ function escapeRegex(s: string): string {
  *   (^|\n\n) [non-newline verdict] \n\n SIGNATURE \s*$
  *
  * If the user added content *after* the signature (manual edit), the
- * regex won't match and we leave the description alone — they wanted
+ * regex won't match and we leave the description alone, they wanted
  * that content there.
  */
 export function stripPriorCaseyBlock(

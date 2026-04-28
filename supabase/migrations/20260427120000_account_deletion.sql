@@ -4,7 +4,7 @@
 -- which calls auth.admin.deleteUser() and lets the existing ON DELETE
 -- CASCADE chain remove activities, messages, memory_items, etc.
 --
--- We deliberately don't add deleted_at to every owned table — that would
+-- We deliberately don't add deleted_at to every owned table, that would
 -- be churn for no benefit. Sign-in is gated on athletes.deleted_at, which
 -- is enough to prevent any access during the window.
 

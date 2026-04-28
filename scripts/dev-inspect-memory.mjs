@@ -1,4 +1,4 @@
-// Dev debug — list recent memory_items for an athlete email.
+// Dev debug, list recent memory_items for an athlete email.
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
 

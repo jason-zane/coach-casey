@@ -38,7 +38,7 @@ export function Composer({ onSend, disabled }: Props) {
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     // Desktop: Return sends, Shift+Return = newline.
     // Mobile: soft-keyboard Enter inserts newline (no keyDown for Enter on
-    // most mobile keyboards when pressed as "return" — the send button is
+    // most mobile keyboards when pressed as "return", the send button is
     // the primary path).
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();

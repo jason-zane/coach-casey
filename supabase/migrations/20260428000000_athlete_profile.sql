@@ -3,7 +3,7 @@
 -- weight_kg, sex, date_of_birth: populated from Strava's GET /athlete
 -- profile when the athlete connects (sync to be wired in a follow-up).
 -- weight is kg, sex is 'M' / 'F' / 'X' / null as Strava returns it,
--- date_of_birth is filled by chat capture or manual entry — Strava's
+-- date_of_birth is filled by chat capture or manual entry, Strava's
 -- profile endpoint does not expose DOB.
 --
 -- units: athlete's preferred display units. 'metric' or 'imperial'.
@@ -25,6 +25,6 @@ COMMENT ON COLUMN public.athletes.weight_kg IS
 COMMENT ON COLUMN public.athletes.sex IS
   'Strava-shaped sex marker (''M'', ''F'', ''X'', or null). Display layer formats for presentation.';
 COMMENT ON COLUMN public.athletes.date_of_birth IS
-  'Date of birth. Captured via chat or manual entry — Strava does not expose DOB. Used to derive age for the athlete page.';
+  'Date of birth. Captured via chat or manual entry, Strava does not expose DOB. Used to derive age for the athlete page.';
 COMMENT ON COLUMN public.athletes.units IS
   'Display preference: ''metric'' or ''imperial''. Defaults to metric.';

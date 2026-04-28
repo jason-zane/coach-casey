@@ -62,7 +62,7 @@ export async function signUpWithEmail(
   }
 
   // If email confirmation is off (Supabase project setting), signUp returns a
-  // session and the user is already logged in — go straight into onboarding.
+  // session and the user is already logged in, go straight into onboarding.
   if (data.session) {
     revalidatePath("/", "layout");
     redirect("/onboarding");

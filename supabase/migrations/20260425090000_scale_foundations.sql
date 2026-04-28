@@ -3,7 +3,7 @@
 -- push control) all depend on. Grouped here because none individually warrants
 -- its own migration and they ship together.
 --
--- 1. athletes.timezone        — IANA TZ name. Needed to compute day-of-week
+-- 1. athletes.timezone       , IANA TZ name. Needed to compute day-of-week
 --                               in the athlete's local time for pattern
 --                               detection and future plan adherence queries.
 --                               Nullable: existing athletes have no value
@@ -12,13 +12,13 @@
 --                               must fall back to UTC when null.
 --
 -- 2. messages.model_version,
---    messages.prompt_version  — Identify the LLM model + prompt revision
+--    messages.prompt_version , Identify the LLM model + prompt revision
 --                               that produced each Casey-authored message.
 --                               Populated by every generation path going
 --                               forward. Existing rows stay NULL; the
 --                               fields are additive, not a rewrite.
 --
--- 3. messages.deleted_at      — Soft-delete marker. Used when a Strava
+-- 3. messages.deleted_at     , Soft-delete marker. Used when a Strava
 --                               activity is deleted upstream (debrief
 --                               becomes orphaned) or when we need to hide
 --                               a message without breaking the append-only
@@ -26,7 +26,7 @@
 --                               existing queries are unaffected because
 --                               NULL means "live".
 --
--- 4. preferences.*_push_enabled — Split the single `push_enabled` toggle into
+-- 4. preferences.*_push_enabled, Split the single `push_enabled` toggle into
 --                               per-kind sub-toggles. Master `push_enabled`
 --                               stays as the global gate. Athletes now have
 --                               granular control over which Casey surfaces

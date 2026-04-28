@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Coach Casey",
+  title: "Privacy Policy | Coach Casey",
   description:
     "How Coach Casey collects, stores, and uses your data. Strava data is read-only and never used to train models.",
 };
@@ -68,22 +68,22 @@ export default function PrivacyPage() {
             <h3>Information you give us</h3>
             <ul>
               <li>
-                <strong>Account details</strong> — email address, password
+                <strong>Account details</strong>, email address, password
                 (hashed), display name. Used to sign you in.
               </li>
               <li>
-                <strong>Onboarding answers</strong> — your training plan
+                <strong>Onboarding answers</strong>, your training plan
                 (pasted as text), goal race, current niggles or injuries, and
                 notification preferences. Used to write debriefs and respond
                 to you in context.
               </li>
               <li>
-                <strong>Conversation history</strong> — messages you send
+                <strong>Conversation history</strong>, messages you send
                 Coach Casey and the responses generated. Stored so future
                 replies can reference earlier context.
               </li>
               <li>
-                <strong>Effort and feedback</strong> — RPE (rate of perceived
+                <strong>Effort and feedback</strong>, RPE (rate of perceived
                 exertion) ratings you submit after runs.
               </li>
             </ul>
@@ -98,11 +98,11 @@ export default function PrivacyPage() {
             </p>
             <ul>
               <li>
-                <strong>Profile</strong> — your Strava athlete ID, name, and
+                <strong>Profile</strong>, your Strava athlete ID, name, and
                 profile photo.
               </li>
               <li>
-                <strong>Activities</strong> — runs and other activities,
+                <strong>Activities</strong>, runs and other activities,
                 including distance, time, pace, heart rate, elevation,
                 workout laps, GPS-derived summary fields, and any
                 title/description you wrote.
@@ -114,7 +114,7 @@ export default function PrivacyPage() {
               from Coach Casey to the end of that activity&apos;s
               description, followed by an attribution line. We do not
               modify activity titles, distance, time, or any other field,
-              and we never delete or replace anything you wrote — your
+              and we never delete or replace anything you wrote, your
               own description text is preserved above ours. You can edit
               or remove the appended note in Strava at any time, and you
               can disconnect Strava entirely from your settings page.
@@ -123,12 +123,12 @@ export default function PrivacyPage() {
             <h3>Information collected automatically</h3>
             <ul>
               <li>
-                <strong>Usage analytics</strong> — pages viewed, features
+                <strong>Usage analytics</strong>, pages viewed, features
                 used, errors encountered. Pseudonymous; we use this to fix
                 bugs and decide what to improve.
               </li>
               <li>
-                <strong>Device and connection</strong> — browser, operating
+                <strong>Device and connection</strong>, browser, operating
                 system, approximate region, IP address (used for
                 rate-limiting and security; not stored long-term).
               </li>
@@ -165,7 +165,7 @@ export default function PrivacyPage() {
             </ul>
           </Section>
 
-          <Section title="AI models — and what we don't do">
+          <Section title="AI models, and what we don't do">
             <p>
               Coach Casey uses Anthropic&apos;s Claude models at inference
               time to write debriefs and respond in chat. When we call the
@@ -238,25 +238,25 @@ export default function PrivacyPage() {
           <Section title="How long we keep it">
             <ul>
               <li>
-                <strong>Account, plan, and conversation data</strong> — kept
+                <strong>Account, plan, and conversation data</strong>, kept
                 for as long as your account is active.
               </li>
               <li>
-                <strong>Strava activity data</strong> — kept for as long as
+                <strong>Strava activity data</strong>, kept for as long as
                 your account is active and your Strava connection is in
                 place. If you disconnect Strava, we stop syncing new
                 activities. Previously-ingested activities remain (so your
                 history is intact) unless you ask us to delete them.
               </li>
               <li>
-                <strong>Account deletion</strong> — when you delete your
+                <strong>Account deletion</strong>, when you delete your
                 account, your data is soft-deleted immediately and hard-
                 deleted within 30 days. Backups roll off in line with our
                 hosting provider&apos;s standard retention. Aggregated,
                 fully de-identified statistics may be retained.
               </li>
               <li>
-                <strong>Logs</strong> — operational logs are kept short-term
+                <strong>Logs</strong>, operational logs are kept short-term
                 for debugging and security, in line with our hosting
                 providers&apos; default retention.
               </li>
@@ -272,30 +272,30 @@ export default function PrivacyPage() {
             </p>
             <ul>
               <li>
-                <strong>Supabase</strong> — database and authentication.
+                <strong>Supabase</strong>, database and authentication.
                 Data stored in Sydney.
               </li>
               <li>
-                <strong>Vercel</strong> — application hosting and serverless
+                <strong>Vercel</strong>, application hosting and serverless
                 compute.
               </li>
               <li>
-                <strong>Anthropic</strong> — AI inference (see &ldquo;AI
+                <strong>Anthropic</strong>, AI inference (see &ldquo;AI
                 models&rdquo;).
               </li>
               <li>
-                <strong>Langfuse</strong> — observability for the AI
+                <strong>Langfuse</strong>, observability for the AI
                 calls (latency, cost, prompt versions).
               </li>
               <li>
-                <strong>PostHog</strong> — pseudonymous product analytics.
+                <strong>PostHog</strong>, pseudonymous product analytics.
               </li>
               <li>
-                <strong>Resend</strong> — transactional email (sign-in,
+                <strong>Resend</strong>, transactional email (sign-in,
                 account notices).
               </li>
               <li>
-                <strong>Stripe</strong> (future) — when paid plans launch,
+                <strong>Stripe</strong> (future), when paid plans launch,
                 Stripe will process payments. The trial doesn&apos;t
                 require any payment details, so no card data is collected
                 today.
@@ -368,7 +368,7 @@ export default function PrivacyPage() {
               performance of our contract with you (running the service),
               your consent (e.g., notifications), and legitimate interests
               (e.g., security and fraud prevention). You can complain to your
-              local supervisory authority — in the UK, the{" "}
+              local supervisory authority, in the UK, the{" "}
               <a
                 className="link"
                 href="https://ico.org.uk"

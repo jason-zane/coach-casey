@@ -14,7 +14,7 @@ function ensureWebPushConfigured(): boolean {
 }
 
 /**
- * Payload shape consumed by `public/sw.js`. Keep tight — push payloads have a
+ * Payload shape consumed by `public/sw.js`. Keep tight, push payloads have a
  * 4KB hard limit and Apple is stricter still. The service worker reads
  * `title`, `body`, `tag`, `url`, and `icon`; nothing else is rendered.
  */
@@ -22,7 +22,7 @@ export type PushPayload = {
   title: string;
   body: string;
   // Coalescing key. Multiple notifications with the same tag replace each
-  // other instead of stacking — perfect for "new debrief" so a backlog
+  // other instead of stacking, perfect for "new debrief" so a backlog
   // doesn't pile up if the user has been offline.
   tag?: string;
   // Path the SW navigates to on click. Must be same-origin.
@@ -47,7 +47,7 @@ type SendResult = {
 /**
  * Best-effort push fanout. Loads all subscriptions for the athlete, sends in
  * parallel, prunes dead endpoints (404/410), records soft errors. Never
- * throws — callers (debrief generation) treat push as a side effect that
+ * throws, callers (debrief generation) treat push as a side effect that
  * shouldn't block the primary path.
  */
 export async function sendPushToAthlete(
@@ -96,7 +96,7 @@ export async function sendPushToAthlete(
       } catch (err) {
         const status = errorStatus(err);
         if (status === 404 || status === 410) {
-          // Endpoint is permanently gone — drop it.
+          // Endpoint is permanently gone, drop it.
           await admin.from("push_subscriptions").delete().eq("id", row.id);
           result.pruned += 1;
         } else {
@@ -108,7 +108,7 @@ export async function sendPushToAthlete(
               last_error_code: status ?? -1,
             })
             .eq("id", row.id);
-          // Logged but not thrown — push is best-effort.
+          // Logged but not thrown, push is best-effort.
           console.warn("push send failed", {
             id: row.id,
             status,

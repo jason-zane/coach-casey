@@ -77,7 +77,7 @@ function writeQueue(items: PendingSend[]) {
     if (items.length === 0) window.localStorage.removeItem(QUEUE_KEY);
     else window.localStorage.setItem(QUEUE_KEY, JSON.stringify(items));
   } catch {
-    // Quota / private mode — degrade silently; messages still show in thread.
+    // Quota / private mode, degrade silently; messages still show in thread.
   }
 }
 
@@ -119,7 +119,7 @@ export function HomeSurface({
   const wasNearBottomOnStreamStartRef = useRef(true);
   const pullStartYRef = useRef<number | null>(null);
 
-  // First unread is derived from the initial server payload — stable across
+  // First unread is derived from the initial server payload, stable across
   // re-renders. Accessing a ref during render would be incorrect (React would
   // miss changes); a memoised value is the right shape.
   const firstUnreadId = useMemo<string | null>(() => {
@@ -297,7 +297,7 @@ export function HomeSurface({
       let caseyId: string | null = null;
       let caseyCreatedAt: string | null = null;
       let accumulated = "";
-      // Tracks the athlete message's id as it changes — starts as the temp
+      // Tracks the athlete message's id as it changes, starts as the temp
       // id, reconciles to the server id when /api/chat acks. Used to keep
       // `failedSend` pinned to whatever id is currently in `messages`.
       let currentAthleteId = tempId;
@@ -375,7 +375,7 @@ export function HomeSurface({
       } catch (err) {
         console.error(err);
         // Pin the failure note to whatever id the athlete message currently
-        // carries — either the optimistic temp id (failure before ack) or the
+        // carries, either the optimistic temp id (failure before ack) or the
         // server id (failure after ack during streaming).
         setFailedSend({ tempId: currentAthleteId, body });
       } finally {
@@ -394,7 +394,7 @@ export function HomeSurface({
   }, [failedSend, send]);
 
   // --- Flush queued sends one-by-one; used by the online event handler.
-  // Latest-ref pattern — the effect below writes `send`'s current closure
+  // Latest-ref pattern, the effect below writes `send`'s current closure
   // into the ref each render so the online handler always calls the freshest
   // version without re-subscribing.
   const flushQueueRef = useRef<() => Promise<void>>(() => Promise.resolve());
@@ -639,7 +639,7 @@ export function HomeSurface({
   }, [pullY, doRefresh]);
 
   // --- On-screen keyboard tracking via visualViewport. Computes the overlap
-  // between the layout viewport and the visual viewport — that's the height of
+  // between the layout viewport and the visual viewport, that's the height of
   // the keyboard. We then translate the composer up by that amount and add
   // matching bottom padding to the scroll container so the latest message can
   // be scrolled into view above the floating composer.
@@ -816,7 +816,7 @@ export function HomeSurface({
                       {isQueued && (
                         <div className="px-5 sm:px-6 flex justify-end mt-1">
                           <span className="font-mono text-[10px] uppercase tracking-wider text-ink-subtle">
-                            Queued — sends when you&rsquo;re back online
+                            Queued, sends when you&rsquo;re back online
                           </span>
                         </div>
                       )}
@@ -878,7 +878,7 @@ export function HomeSurface({
             onClick={() => scrollToBottom(true)}
             className="absolute left-1/2 -translate-x-1/2 bottom-4 bg-accent text-accent-ink rounded-full shadow-md px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider breath"
           >
-            Coach Casey is replying — tap to follow
+            Coach Casey is replying, tap to follow
           </button>
         )}
       </main>
@@ -890,7 +890,7 @@ export function HomeSurface({
           // keyboard over the bottom of the layout without resizing it. We
           // translate the composer up by the keyboard's height so it sits just
           // above the keyboard, and conditionally drop the MenuBar entirely
-          // while the keyboard is open — it's hidden behind the keyboard
+          // while the keyboard is open, it's hidden behind the keyboard
           // anyway and removing it kills the visual jitter the athlete
           // otherwise sees as the menu icons "rising" with the keyboard.
           transform: keyboardInset > 0 ? `translateY(-${keyboardInset}px)` : undefined,

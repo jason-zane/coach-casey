@@ -189,7 +189,7 @@ export async function generateNextObservation(
           .map(
             (p, i) =>
               `Observation ${i + 1}: ${p.observation}\n` +
-              `Athlete response: ${p.chip ?? "(no chip)"}${p.response ? ` — "${p.response}"` : ""}`,
+              `Athlete response: ${p.chip ?? "(no chip)"}${p.response ? `, "${p.response}"` : ""}`,
           )
           .join("\n\n");
 

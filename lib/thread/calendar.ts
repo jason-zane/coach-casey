@@ -43,7 +43,7 @@ export async function datesWithActivity(
 
 /**
  * Returns the nearest date with activity on or before the target. Used when
- * the athlete taps a date with no activity — we scroll to the nearest prior
+ * the athlete taps a date with no activity, we scroll to the nearest prior
  * date with content rather than landing on an empty screen.
  */
 export async function nearestDateWithActivityBefore(

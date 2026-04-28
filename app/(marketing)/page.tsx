@@ -252,7 +252,7 @@ function MoreThanTheDebrief() {
 function ChatExample() {
   return (
     <div className="max-w-[640px] space-y-6">
-      {/* User question — matches in-app chat_user: plum bubble, right-aligned */}
+      {/* User question, matches in-app chat_user: plum bubble, right-aligned */}
       <div className="flex justify-end">
         <div
           className="rounded-[18px] rounded-br-[6px] bg-[color:var(--color-accent)] text-[color:var(--color-accent-ink)] px-4 py-2.5 max-w-[78%] break-words"
@@ -266,7 +266,7 @@ function ChatExample() {
         </div>
       </div>
 
-      {/* Casey reply — matches in-app chat_casey: left-rail text, no bubble */}
+      {/* Casey reply, matches in-app chat_casey: left-rail text, no bubble */}
       <article
         className="border-l-[2px] border-[color:var(--color-accent)]/80 pl-4 sm:pl-5 max-w-[88%] text-[color:var(--color-ink)]"
         style={{
@@ -598,7 +598,7 @@ function Faq() {
     },
     {
       q: "I don't have a coach. Does Coach Casey still work?",
-      a: "Yes. Most Coach Casey users don't have one. App plan, group plan, chatbot-written plan, or a plan you sketched for yourself — Coach Casey reads against whatever you've got. You can even just describe what you're training for in a few sentences.",
+      a: "Yes. Most Coach Casey users don't have one. App plan, group plan, chatbot-written plan, or a plan you sketched for yourself, Coach Casey reads against whatever you've got. You can even just describe what you're training for in a few sentences.",
     },
     {
       q: "How's this different from Strava or Runna?",

@@ -33,7 +33,7 @@ export function GoalRaceForm() {
     });
   }
 
-  // Earliest selectable: today. Latest: ~2y out — enough for long marathon
+  // Earliest selectable: today. Latest: ~2y out, enough for long marathon
   // build cycles without offering decades of empty months.
   const today = new Date();
   const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;

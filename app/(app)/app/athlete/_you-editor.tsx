@@ -181,7 +181,7 @@ export function YouEditor({ initial }: Props) {
               disabled={pending}
             />
             <p className="font-mono text-[10px] uppercase tracking-wider text-ink-subtle">
-              Date of birth — Casey shows your age, not the date.
+              Date of birth, Casey shows your age, not the date.
             </p>
           </div>
         )}
@@ -228,7 +228,7 @@ export function YouEditor({ initial }: Props) {
             className="block w-full bg-paper border border-rule rounded-[6px] px-3 h-9 text-[14px] text-ink focus:outline-none focus:border-accent/60"
             disabled={pending}
           >
-            <option value="">—</option>
+            <option value=""></option>
             <option value="M">Male</option>
             <option value="F">Female</option>
             <option value="X">Other</option>
@@ -301,7 +301,7 @@ function ProfileRow({
   return (
     <Row label={label}>
       <span className={value ? "text-ink" : "text-ink-subtle"}>
-        {value ?? "—"}
+        {value ?? ""}
       </span>
       <button
         type="button"

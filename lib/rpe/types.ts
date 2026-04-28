@@ -1,5 +1,5 @@
 /**
- * Public RPE state shape — surfaced to the UI on every debrief message
+ * Public RPE state shape, surfaced to the UI on every debrief message
  * that's RPE-eligible. The client uses this to render either the picker,
  * the post-answer "answered" state, or the post-skip blank.
  */
@@ -20,7 +20,7 @@ export type DebriefRpeMeta = {
 };
 
 /**
- * Skip-count and pause bucket. Two values for V1 — finer granularity
+ * Skip-count and pause bucket. Two values for V1, finer granularity
  * deferred to V1.1 with dogfood evidence (see
  * docs/post-run-debrief-moment.md §6).
  */
@@ -30,7 +30,7 @@ export type RpeBucket = "run" | "xtrain";
  * Derive the bucket from an activity type. Runs (anything containing
  * "run", including VirtualRun and TrailRun) are the run bucket;
  * everything else is cross-training. The classification is set once at
- * activity_notes insert time and never changes — same activity, same
+ * activity_notes insert time and never changes, same activity, same
  * bucket forever.
  */
 export function bucketFromActivityType(activityType: string | null): RpeBucket {
