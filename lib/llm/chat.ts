@@ -9,10 +9,14 @@ import {
 } from "@/lib/strava/workout-detect";
 import type { Message } from "@/lib/thread/types";
 import {
-  executeFetchRunDetail,
-  executeQueryTrainingHistory,
-  type FetchRunDetailArgs,
-  type QueryHistoryArgs,
+  executeLookupActivity,
+  executeQueryActivities,
+  executeReadRpeHistory,
+  executeRefreshActivityFromStrava,
+  type LookupActivityArgs,
+  type QueryActivitiesArgs,
+  type ReadRpeHistoryArgs,
+  type RefreshActivityArgs,
 } from "./chat-tools";
 import {
   renderRollupForPrompt,
@@ -21,22 +25,35 @@ import {
 
 type MemoryItem = { kind: string; content: string; tags: string[] };
 type ActivitySummary = {
+  /** DB UUID, exposed in context so Casey can pass it to lookup tools. */
+  id: string;
   date: string;
   name: string | null;
   distance_km: number;
   pace: string;
   hr: number | null;
+  maxHr: number | null;
   duration_minutes: number | null;
   workout: WorkoutClassification;
 };
 
 type CrossTrainingSummary = {
+  /** DB UUID, exposed in context so Casey can pass it to lookup tools. */
+  id: string;
   date: string;
   activityType: string | null;
   name: string | null;
   durationMinutes: number | null;
   distanceKm: number | null;
   avgHr: number | null;
+  maxHr: number | null;
+  avgWatts: number | null;
+  maxWatts: number | null;
+  sufferScore: number | null;
+  /** Lap detail when present, null otherwise. Rides often have lap detail
+   *  (auto-laps every km or per climb), so showing it inline avoids a tool
+   *  call for "when did the HR hit 188". */
+  laps: import("@/lib/strava/client").StravaLap[] | null;
 };
 
 type GoalRace = {
@@ -113,9 +130,24 @@ const CHAT_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
-    name: "query_training_history",
+    name: "lookup_activity",
     description:
-      "Look up the athlete's training history from the database for a date range. Use this when the athlete asks about anything older than the recent 12-week window already shown in context, e.g. 'what was my volume last August', 'how did the spring block compare', 'when did I run that half'. No external API call, cheap. Default granularity is week.",
+      "Read every detail we have on a single activity from the database, including laps, splits, best efforts, segment efforts, power, cadence, suffer score, temperature, elevation. Works for runs, rides, swims, and any other activity type. This is the default tool when the athlete asks about ONE specific activity beyond what's already rendered in context: 'when did the HR hit 188 on that ride', 'how did the splits go on the long run', 'was there a climb you crushed'. Cheap, DB read only, no rate limit. Pass the activity_id (UUID) shown next to each activity in the rendered context.",
+    input_schema: {
+      type: "object",
+      properties: {
+        activity_id: {
+          type: "string",
+          description: "The activity's UUID, shown as id=... in the rendered context.",
+        },
+      },
+      required: ["activity_id"],
+    },
+  },
+  {
+    name: "query_activities",
+    description:
+      "Read activity history from the database for a date range, optionally filtered by activity type. Use when the athlete asks about training over a span of time: 'what was my running volume in August', 'how much riding have I done this year', 'when was my biggest week'. Cheap, no Strava call. Default granularity is week, default types is ['run']. Pass types=['ride'] for cycling, types=['cross_training'] for gym/swim/yoga, types=['all'] for everything.",
     input_schema: {
       type: "object",
       properties: {
@@ -127,24 +159,47 @@ const CHAT_TOOLS: Anthropic.Tool[] = [
           type: "string",
           description: "End date YYYY-MM-DD (inclusive). Defaults to today.",
         },
+        types: {
+          type: "array",
+          items: { type: "string", enum: ["run", "ride", "cross_training", "all"] },
+          description: "Activity types to include. Defaults to ['run']. Use ['all'] for everything.",
+        },
         granularity: {
           type: "string",
           enum: ["run", "week", "month"],
-          description: "How to aggregate: per-run lines, per-week totals, or per-month totals.",
+          description: "How to aggregate: per-activity lines, per-week totals, or per-month totals.",
         },
       },
     },
   },
   {
-    name: "fetch_run_detail",
+    name: "read_rpe_history",
     description:
-      "Pull lap detail from Strava for a single older run when the athlete asks about workout structure (interval splits, tempo pacing, HR drift). Costs against the daily fetch cap. ONLY use when the answer genuinely needs lap-level data, never for general 'how was that run' questions where a summary is enough. Pass the activity_id returned by query_training_history with granularity='run'.",
+      "Read the athlete's trailing in-app RPE answers (1-10 effort ratings on individual activities) for a date range, joined with the activity that was rated. Use when the athlete asks about effort patterns: 'have I been pushing too hard lately', 'what's my average RPE this month', 'when did I last rate something a 9'. Cheap, DB read only.",
+    input_schema: {
+      type: "object",
+      properties: {
+        from: {
+          type: "string",
+          description: "Start date YYYY-MM-DD. Defaults to 1 month ago.",
+        },
+        to: {
+          type: "string",
+          description: "End date YYYY-MM-DD. Defaults to today.",
+        },
+      },
+    },
+  },
+  {
+    name: "refresh_activity_from_strava",
+    description:
+      "Force-refresh a single activity from Strava because lookup_activity returned incomplete detail. ONLY use as an escape hatch when the DB row is genuinely missing fields you'd expect (e.g. an older activity has no laps and the athlete's question requires them). Counts against a daily cap. For day-to-day questions, lookup_activity is the right tool, not this one.",
     input_schema: {
       type: "object",
       properties: {
         activity_id: {
           type: "string",
-          description: "Activity UUID from query_training_history.",
+          description: "The activity's UUID.",
         },
       },
       required: ["activity_id"],
@@ -152,7 +207,12 @@ const CHAT_TOOLS: Anthropic.Tool[] = [
   },
 ];
 
-const LOOKUP_TOOL_NAMES = new Set(["query_training_history", "fetch_run_detail"]);
+const LOOKUP_TOOL_NAMES = new Set([
+  "lookup_activity",
+  "query_activities",
+  "read_rpe_history",
+  "refresh_activity_from_strava",
+]);
 
 let cachedSystemPrompt: string | null = null;
 async function loadSystemPrompt(): Promise<string> {
@@ -251,31 +311,47 @@ function renderContext(ctx: ChatContext): string {
     parts.push(`# Long history (summary)\n${rollupBlock}`);
   }
 
-  // Phrase this positively, lead with what Casey HAS, not what's missing.
-  // Earlier wording ("Summaries only (no lap detail in context)") was
-  // misread by the model as "no data" and the model would deny having
-  // older history even though the rollup was sitting right above this
-  // block. The model should treat the rollup as real data and the tools
-  // as real capabilities.
+  // Routing rules for Casey. Lead with what's free in context, then name
+  // each tool by the question shape it answers. The goal is that Casey
+  // never declines to answer when the data is reachable, and never
+  // hallucinates because it didn't call a tool it had.
   const recentDate = ctx.recentBoundaryIso.slice(0, 10);
   const availabilityLines: string[] = [];
   availabilityLines.push(
-    `You see full per-run detail with lap breakdowns for runs from ${recentDate} onward (the last 12 weeks). Treat these as the high-resolution window.`,
+    `Free in context (no tool call needed): full per-activity detail for runs and rides from ${recentDate} onward (the last 12 weeks), including laps where present. Cross-training entries above carry an id=... suffix so you can pass it to lookup_activity if you need more detail.`,
   );
   if (ctx.oldestActivityIso) {
     const oldestDate = ctx.oldestActivityIso.slice(0, 10);
     availabilityLines.push(
-      `You see per-month summary data (volume, run count, longest run) for runs from ${oldestDate} to ${recentDate}, rendered above under "Long history (summary)". This is real data covering up to two years of history; reason from it directly.`,
-    );
-    availabilityLines.push(
-      `For specifics older than 12 weeks that the monthly rollup doesn't cover, call query_training_history. For lap detail on a specific older run, call fetch_run_detail. You are connected to Strava; use these tools rather than telling the athlete you can't see older data.`,
+      `Free in context: per-month summary of running AND cross-training from ${oldestDate} to ${recentDate}, rendered above as "Long history (summary)". This is real data covering up to two years; reason from it directly.`,
     );
   } else {
     availabilityLines.push(
-      "Long-history backfill hasn't completed yet, so for now the recent 12-week window is what you have. You can still call fetch_run_detail for specific runs once they appear.",
+      "Long-history backfill hasn't completed yet, so the deeper rollup is not yet available.",
     );
   }
-  parts.push(`# What you can see\n${availabilityLines.join("\n")}`);
+  availabilityLines.push(
+    "Free in context: the last 30 chat turns and the last 30 memory items, rendered above.",
+  );
+  availabilityLines.push("");
+  availabilityLines.push("Tool routing (default to the cheapest match):");
+  availabilityLines.push(
+    "  - One specific activity, more detail than rendered: lookup_activity(activity_id). Covers laps, splits, best efforts, segment efforts, power, suffer score, temperature, etc. Works for any activity type. DB read, free.",
+  );
+  availabilityLines.push(
+    "  - Range or aggregate across activities: query_activities(from, to, types?, granularity?). Defaults to runs; pass types=['ride'] or ['all'] for cross-training. DB read, free.",
+  );
+  availabilityLines.push(
+    "  - Trailing RPE patterns: read_rpe_history(from, to). DB read, free.",
+  );
+  availabilityLines.push(
+    "  - DB row genuinely missing detail it should have: refresh_activity_from_strava(activity_id). Counts against a daily cap. Use as a last resort.",
+  );
+  availabilityLines.push("");
+  availabilityLines.push(
+    "Decision rule: answer from rendered context first. If not enough, pick the lookup tool by question shape. Never decline to answer when the data is reachable through any of these tools, and never claim 'I don't have that' without trying the right tool first.",
+  );
+  parts.push(`# What you can see and how to reach more\n${availabilityLines.join("\n")}`);
 
   if (ctx.recentCrossTraining.length > 0) {
     const lines = ctx.recentCrossTraining
@@ -286,10 +362,38 @@ function renderContext(ctx: ChatContext): string {
           c.distanceKm != null && c.distanceKm > 0
             ? `, ${c.distanceKm.toFixed(1)} km`
             : "";
-        const hr = c.avgHr ? `, HR ${c.avgHr}` : "";
+        const hrParts: string[] = [];
+        if (c.avgHr) hrParts.push(`HR ${c.avgHr}`);
+        if (c.maxHr) hrParts.push(`max ${c.maxHr}`);
+        const hr = hrParts.length ? `, ${hrParts.join("/")}` : "";
+        const watts = c.avgWatts
+          ? `, ${Math.round(c.avgWatts)} W${c.maxWatts ? `/max ${c.maxWatts}` : ""}`
+          : "";
+        const suffer = c.sufferScore != null ? `, suffer ${Math.round(c.sufferScore)}` : "";
         const label = c.activityType ?? "session";
         const title = c.name && c.name.trim() ? ` "${c.name.trim()}"` : "";
-        return `- ${c.date}: ${label}${title}, ${dur}${dist}${hr}`;
+        const head = `- ${c.date}: ${label}${title}, ${dur}${dist}${hr}${watts}${suffer} (id=${c.id})`;
+        // Inline lap breakdown when present so questions like "when did the
+        // HR spike on that ride" don't require a tool call.
+        if (c.laps && c.laps.length > 0) {
+          const lapLines = c.laps.slice(0, 12).map((l) => {
+            const lkm = (l.distance ?? 0) / 1000;
+            const lhr = l.average_heartrate
+              ? `, HR ${Math.round(l.average_heartrate)}`
+              : "";
+            const lmax = l.max_heartrate
+              ? `/max ${Math.round(l.max_heartrate)}`
+              : "";
+            const lspeed = l.average_speed
+              ? `, ${(l.average_speed * 3.6).toFixed(1)} km/h`
+              : "";
+            return `    L${l.lap_index ?? "?"}: ${lkm.toFixed(2)} km${lspeed}${lhr}${lmax}`;
+          });
+          const truncated =
+            c.laps.length > 12 ? `\n    ... ${c.laps.length - 12} more laps` : "";
+          return `${head}\n${lapLines.join("\n")}${truncated}`;
+        }
+        return head;
       })
       .join("\n");
     parts.push(
@@ -304,7 +408,10 @@ function renderActivityForPrompt(a: ActivitySummary): string {
   const w = a.workout;
   const dur =
     a.duration_minutes != null ? `, ${formatDuration(a.duration_minutes)}` : "";
-  const head = `- ${a.date}: ${a.name ?? "Run"}, ${a.distance_km.toFixed(1)} km, ${a.pace}${dur}${a.hr ? `, HR ${a.hr}` : ""}`;
+  const hrPart = a.hr
+    ? `, HR ${a.hr}${a.maxHr ? `/max ${a.maxHr}` : ""}`
+    : "";
+  const head = `- ${a.date}: ${a.name ?? "Run"}, ${a.distance_km.toFixed(1)} km, ${a.pace}${dur}${hrPart} (id=${a.id})`;
   const wantsLaps =
     w.kind === "intervals" ||
     w.kind === "tempo" ||
@@ -357,21 +464,25 @@ async function* mockStream(userText: string): AsyncGenerator<ChatStreamEvent> {
 
 export function summariseActivity(
   a: {
+    id: string;
     start_date_local: string;
     name: string | null;
     distance_m: number | null;
     moving_time_s?: number | null;
     avg_pace_s_per_km: number | null;
     avg_hr: number | null;
+    max_hr?: number | null;
   },
   workout: WorkoutClassification,
 ): ActivitySummary {
   return {
+    id: a.id,
     date: a.start_date_local.slice(0, 10),
     name: a.name,
     distance_km: (a.distance_m ?? 0) / 1000,
     pace: formatPace(a.avg_pace_s_per_km),
     hr: a.avg_hr,
+    maxHr: a.max_hr ?? null,
     duration_minutes:
       a.moving_time_s != null ? Math.round(a.moving_time_s / 60) : null,
     workout,
@@ -513,15 +624,25 @@ export async function* streamChat(
     const toolResults: Anthropic.ToolResultBlockParam[] = [];
     for (const t of toolUses) {
       let result = "ok";
-      if (t.name === "query_training_history") {
-        result = await executeQueryTrainingHistory(
+      if (t.name === "lookup_activity") {
+        result = await executeLookupActivity(
           ctx.athleteId,
-          (t.input ?? {}) as QueryHistoryArgs,
+          (t.input ?? {}) as LookupActivityArgs,
         );
-      } else if (t.name === "fetch_run_detail") {
-        result = await executeFetchRunDetail(
+      } else if (t.name === "query_activities") {
+        result = await executeQueryActivities(
           ctx.athleteId,
-          (t.input ?? {}) as FetchRunDetailArgs,
+          (t.input ?? {}) as QueryActivitiesArgs,
+        );
+      } else if (t.name === "read_rpe_history") {
+        result = await executeReadRpeHistory(
+          ctx.athleteId,
+          (t.input ?? {}) as ReadRpeHistoryArgs,
+        );
+      } else if (t.name === "refresh_activity_from_strava") {
+        result = await executeRefreshActivityFromStrava(
+          ctx.athleteId,
+          (t.input ?? {}) as RefreshActivityArgs,
         );
       }
       toolResults.push({

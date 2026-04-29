@@ -7,15 +7,26 @@ import { classifyActivityType } from "./activity-types";
  * Cached on `athletes.monthly_history_rollup` and recomputed when the
  * long-history backfill lands or is upgraded (e.g. two_years → all_time).
  *
+ * Covers both running and cross-training (rides, swims, gym, yoga, etc.) in
+ * parallel fields per month so Casey can read the shape of the *full*
+ * training load over time, not just the running side.
+ *
  * Shape stays small on purpose, the chat prompt renders this as ~24 lines max
  * and Casey reaches for the DB lookup tool when they need anything finer.
  */
 export type MonthlyRollupEntry = {
   month: string; // YYYY-MM
-  distance_km: number;
+  // Running totals.
+  run_distance_km: number;
   run_count: number;
-  longest_km: number;
+  longest_run_km: number;
   races: number;
+  // Cross-training totals (rides, swims, gym, yoga, anything classified
+  // cross_training or catch_all). Distance can be 0 for non-distance work
+  // like gym; total_minutes is the more universal signal.
+  cross_distance_km: number;
+  cross_count: number;
+  cross_total_minutes: number;
 };
 
 const RECENT_WINDOW_WEEKS = 12;
@@ -50,7 +61,7 @@ export async function computeAndPersistMonthlyRollup(
 
   const { data, error } = await admin
     .from("activities")
-    .select("start_date_local, activity_type, distance_m, name, raw")
+    .select("start_date_local, activity_type, distance_m, moving_time_s, name, raw")
     .eq("athlete_id", athleteId)
     .lt("start_date_local", before)
     .order("start_date_local", { ascending: true });
@@ -60,31 +71,51 @@ export async function computeAndPersistMonthlyRollup(
     start_date_local: string;
     activity_type: string | null;
     distance_m: number | null;
+    moving_time_s: number | null;
     name: string | null;
     raw: unknown;
   }>;
 
+  function emptyEntry(month: string): MonthlyRollupEntry {
+    return {
+      month,
+      run_distance_km: 0,
+      run_count: 0,
+      longest_run_km: 0,
+      races: 0,
+      cross_distance_km: 0,
+      cross_count: 0,
+      cross_total_minutes: 0,
+    };
+  }
+
   const buckets = new Map<string, MonthlyRollupEntry>();
   for (const r of rows) {
     const cls = classifyActivityType(r.activity_type);
-    if (cls !== "run" && cls !== "catch_all") continue;
+    const isRun = cls === "run";
+    const isCross = cls === "cross_training" || cls === "catch_all";
+    if (!isRun && !isCross) continue;
 
     const km = (r.distance_m ?? 0) / 1000;
-    if (km <= 0) continue;
+    const minutes =
+      r.moving_time_s != null ? Math.round(r.moving_time_s / 60) : 0;
+
     const key = monthKey(r.start_date_local);
-    const entry =
-      buckets.get(key) ??
-      ({
-        month: key,
-        distance_km: 0,
-        run_count: 0,
-        longest_km: 0,
-        races: 0,
-      } satisfies MonthlyRollupEntry);
-    entry.distance_km += km;
-    entry.run_count += 1;
-    if (km > entry.longest_km) entry.longest_km = km;
-    if (isLikelyRace(r.name, r.raw)) entry.races += 1;
+    const entry = buckets.get(key) ?? emptyEntry(key);
+
+    if (isRun) {
+      if (km <= 0) continue;
+      entry.run_distance_km += km;
+      entry.run_count += 1;
+      if (km > entry.longest_run_km) entry.longest_run_km = km;
+      if (isLikelyRace(r.name, r.raw)) entry.races += 1;
+    } else {
+      // Cross-training: count and total minutes always; distance only when
+      // it was a distance-bearing activity.
+      entry.cross_count += 1;
+      entry.cross_total_minutes += minutes;
+      if (km > 0) entry.cross_distance_km += km;
+    }
     buckets.set(key, entry);
   }
 
@@ -92,8 +123,9 @@ export async function computeAndPersistMonthlyRollup(
   const rollup: MonthlyRollupEntry[] = Array.from(buckets.values())
     .map((e) => ({
       ...e,
-      distance_km: Math.round(e.distance_km),
-      longest_km: Math.round(e.longest_km * 10) / 10,
+      run_distance_km: Math.round(e.run_distance_km),
+      longest_run_km: Math.round(e.longest_run_km * 10) / 10,
+      cross_distance_km: Math.round(e.cross_distance_km),
     }))
     .sort((a, b) => a.month.localeCompare(b.month));
 
@@ -134,8 +166,18 @@ export function renderRollupForPrompt(
   if (!rollup || rollup.length === 0) return null;
   const recent = rollup.slice(-24);
   const lines = recent.map((e) => {
-    const tail = e.races > 0 ? `, ${e.races} race${e.races === 1 ? "" : "s"}` : "";
-    return `- ${e.month}: ${e.distance_km} km, ${e.run_count} runs, longest ${e.longest_km} km${tail}`;
+    const runPart =
+      e.run_count > 0
+        ? `${e.run_distance_km} km running across ${e.run_count} run${e.run_count === 1 ? "" : "s"}, longest ${e.longest_run_km} km`
+        : "no running";
+    const racePart = e.races > 0 ? `, ${e.races} race${e.races === 1 ? "" : "s"}` : "";
+    const crossPart =
+      e.cross_count > 0
+        ? `; cross-training ${e.cross_count} session${e.cross_count === 1 ? "" : "s"}` +
+          (e.cross_distance_km > 0 ? `, ${e.cross_distance_km} km` : "") +
+          (e.cross_total_minutes > 0 ? `, ${e.cross_total_minutes} min` : "")
+        : "";
+    return `- ${e.month}: ${runPart}${racePart}${crossPart}`;
   });
   const oldest = recent[0].month;
   const newest = recent[recent.length - 1].month;

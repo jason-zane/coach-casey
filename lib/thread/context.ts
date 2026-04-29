@@ -65,7 +65,7 @@ export async function buildChatContext(
       admin
         .from("activities")
         .select(
-          "start_date_local, name, activity_type, distance_m, moving_time_s, avg_pace_s_per_km, avg_hr, max_hr, elevation_gain_m, laps, raw",
+          "id, start_date_local, name, activity_type, distance_m, moving_time_s, avg_pace_s_per_km, avg_hr, max_hr, avg_watts, max_watts, suffer_score, elevation_gain_m, laps, raw",
         )
         .eq("athlete_id", athleteId)
         .gte("start_date_local", since.toISOString())
@@ -105,6 +105,7 @@ export async function buildChatContext(
   const recentMessages = [...historyRows].reverse();
 
   type ActivityRow = {
+    id: string;
     start_date_local: string;
     name: string | null;
     activity_type: string | null;
@@ -113,6 +114,9 @@ export async function buildChatContext(
     avg_pace_s_per_km: number | null;
     avg_hr: number | null;
     max_hr: number | null;
+    avg_watts: number | null;
+    max_watts: number | null;
+    suffer_score: number | null;
     elevation_gain_m: number | null;
     laps: unknown;
     raw: unknown;
@@ -141,7 +145,9 @@ export async function buildChatContext(
       recentActivities.push(summariseActivity(row, classification));
     } else {
       // cross_training or catch_all
+      const laps = Array.isArray(row.laps) ? (row.laps as StravaLap[]) : null;
       recentCrossTraining.push({
+        id: row.id,
         date: row.start_date_local.slice(0, 10),
         activityType: row.activity_type,
         name: row.name,
@@ -152,6 +158,11 @@ export async function buildChatContext(
         distanceKm:
           row.distance_m != null ? Number((row.distance_m / 1000).toFixed(2)) : null,
         avgHr: row.avg_hr,
+        maxHr: row.max_hr,
+        avgWatts: row.avg_watts,
+        maxWatts: row.max_watts,
+        sufferScore: row.suffer_score,
+        laps,
       });
     }
   }

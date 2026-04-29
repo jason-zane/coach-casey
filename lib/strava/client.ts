@@ -189,13 +189,33 @@ export type StravaActivity = {
   name: string;
   type: string;
   sport_type: string;
+  start_date: string; // UTC ISO
   start_date_local: string;
+  timezone?: string | null;
+  utc_offset?: number | null;
+  location_city?: string | null;
+  description?: string | null;
   distance: number; // m
   moving_time: number; // s
+  elapsed_time?: number; // s
   average_speed: number; // m/s
+  max_speed?: number;
   average_heartrate?: number;
   max_heartrate?: number;
+  average_watts?: number;
+  max_watts?: number;
+  weighted_average_watts?: number;
+  kilojoules?: number;
+  device_watts?: boolean;
+  average_cadence?: number;
+  suffer_score?: number;
+  average_temp?: number;
   total_elevation_gain?: number;
+  elev_high?: number;
+  elev_low?: number;
+  manual?: boolean;
+  trainer?: boolean;
+  commute?: boolean;
   /** 0=default, 1=race, 2=long run, 3=workout. Athlete-set, often missing. */
   workout_type?: number | null;
 };
@@ -272,8 +292,64 @@ export type StravaLap = {
   start_date_local: string;
 };
 
+export type StravaSplit = {
+  distance: number;
+  moving_time: number;
+  elapsed_time?: number;
+  elevation_difference?: number;
+  average_speed?: number;
+  average_heartrate?: number;
+  pace_zone?: number;
+  split: number;
+};
+
+export type StravaBestEffort = {
+  name: string;
+  distance: number;
+  elapsed_time: number;
+  moving_time?: number;
+  start_date_local: string;
+  pr_rank?: number | null;
+  achievements?: unknown[];
+};
+
+export type StravaSegmentEffort = {
+  id: number;
+  name: string;
+  elapsed_time: number;
+  moving_time: number;
+  distance: number;
+  start_date_local: string;
+  average_heartrate?: number;
+  max_heartrate?: number;
+  average_cadence?: number;
+  average_watts?: number;
+  device_watts?: boolean;
+  pr_rank?: number | null;
+  kom_rank?: number | null;
+  achievements?: unknown[];
+  segment?: {
+    id: number;
+    name: string;
+    activity_type?: string;
+    distance?: number;
+    average_grade?: number;
+    max_grade?: number;
+    elevation_high?: number;
+    elevation_low?: number;
+    climb_category?: number;
+    city?: string | null;
+    state?: string | null;
+    country?: string | null;
+  };
+};
+
 export type StravaActivityDetail = StravaActivity & {
   laps?: StravaLap[];
+  splits_metric?: StravaSplit[];
+  splits_standard?: StravaSplit[];
+  best_efforts?: StravaBestEffort[];
+  segment_efforts?: StravaSegmentEffort[];
   workout_type?: number;
   device_name?: string;
 };
@@ -288,8 +364,11 @@ export async function fetchActivityDetail(
   activityId: number,
 ): Promise<StravaActivityDetail> {
   const token = await getValidAccessToken(athleteId);
+  // include_all_efforts=true so segment_efforts come through. The response
+  // gets bigger (segment lists can be large on long rides) but it's the same
+  // single API read either way, and segment_efforts feed Casey's tool layer.
   const res = await fetch(
-    `${STRAVA_API_BASE}/activities/${activityId}?include_all_efforts=false`,
+    `${STRAVA_API_BASE}/activities/${activityId}?include_all_efforts=true`,
     { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
   );
   if (!res.ok) {
