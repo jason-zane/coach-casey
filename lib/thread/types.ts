@@ -43,6 +43,24 @@ export function getDebriefActivityId(message: Message): string | null {
  * messages, used to render the "View on Strava" attribution link required
  * by Strava's brand guidelines for any UI displaying activity-derived data.
  */
+/**
+ * Activity start time stored in meta on debrief and cross-training messages.
+ * The header renders this in preference to message.created_at so the thread
+ * shows when the run/ride happened, not when Casey wrote about it. Returns
+ * null for chat messages and for older debriefs that predate this meta
+ * field; callers fall back to created_at in that case.
+ */
+export function getMessageActivityDate(message: Message): string | null {
+  const kinds: MessageKind[] = [
+    "debrief",
+    "cross_training_ack",
+    "cross_training_substitution",
+  ];
+  if (!kinds.includes(message.kind)) return null;
+  const raw = (message.meta as { activity_date?: unknown }).activity_date;
+  return typeof raw === "string" && raw.length > 0 ? raw : null;
+}
+
 export function getMessageStravaId(message: Message): number | null {
   const kinds: MessageKind[] = [
     "debrief",

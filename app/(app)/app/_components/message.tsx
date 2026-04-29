@@ -2,6 +2,7 @@ import type { Message, MessageActivityStats, MessageKind } from "@/lib/thread/ty
 import {
   getDebriefActivityId,
   getDebriefRpe,
+  getMessageActivityDate,
   getMessageActivityStats,
   getMessageStravaId,
 } from "@/lib/thread/types";
@@ -43,17 +44,50 @@ function StravaAttribution({ stravaId }: { stravaId: number }) {
 
 type Props = { message: Message; unread?: boolean };
 
-function formatDateLabel(iso: string): string {
-  const d = new Date(iso);
+/**
+ * Parse an ISO timestamp as naive local-clock values, anchored in the
+ * viewer's locale. Strava's start_date_local is sent with a Z suffix even
+ * though it represents the activity's *local* time at the activity
+ * location; the Z is a serializer artefact, not real UTC. Treating it as
+ * UTC would shift a 16:59 Sydney run to 02:59 next-day for any viewer not
+ * also in Sydney. This parses the year/month/day/hour/minute string slices
+ * and constructs a Date with those values directly in the viewer's
+ * timezone, so the displayed clock matches the activity's original clock.
+ */
+function dateFromNaiveIso(iso: string): Date {
+  const [yyyy, mm, dd] = iso.slice(0, 10).split("-").map(Number);
+  const [h, min] = iso.slice(11, 16).split(":").map(Number);
+  return new Date(yyyy, (mm ?? 1) - 1, dd ?? 1, h ?? 0, min ?? 0);
+}
+
+function formatDateLabel(iso: string, naive = false): string {
+  const d = naive ? dateFromNaiveIso(iso) : new Date(iso);
   const now = new Date();
   const sameDay =
     d.getFullYear() === now.getFullYear() &&
     d.getMonth() === now.getMonth() &&
     d.getDate() === now.getDate();
-  const opts: Intl.DateTimeFormatOptions = sameDay
-    ? { hour: "numeric", minute: "2-digit" }
-    : { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" };
-  return new Intl.DateTimeFormat(undefined, opts).format(d);
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday =
+    d.getFullYear() === yesterday.getFullYear() &&
+    d.getMonth() === yesterday.getMonth() &&
+    d.getDate() === yesterday.getDate();
+  const time = new Intl.DateTimeFormat(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(d);
+  if (sameDay) return `Today, ${time}`;
+  if (isYesterday) return `Yesterday, ${time}`;
+  // Always include the date for older entries so the header is unambiguous
+  // about which run is being read. Older than the current year picks up the
+  // year suffix to avoid the "Apr 10" → which-April ambiguity.
+  const sameYear = d.getFullYear() === now.getFullYear();
+  const dateOpts: Intl.DateTimeFormatOptions = sameYear
+    ? { weekday: "short", month: "short", day: "numeric" }
+    : { weekday: "short", month: "short", day: "numeric", year: "numeric" };
+  const date = new Intl.DateTimeFormat(undefined, dateOpts).format(d);
+  return `${date}, ${time}`;
 }
 
 function weekOfLabel(iso: string): string {
@@ -183,7 +217,7 @@ function ActivityHeader({
         aria-hidden
       >
         {label} <span className="text-ink-subtle">·</span>{" "}
-        {formatDateLabel(createdAt)}
+        {formatDateLabel(createdAt, true)}
         {trailing}
       </div>
       {statParts.length > 0 && (
@@ -249,7 +283,7 @@ export function MessageBlock({ message, unread }: Props) {
         >
           <ActivityHeader
             label={label}
-            createdAt={message.created_at}
+            createdAt={getMessageActivityDate(message) ?? message.created_at}
             stats={stats}
             stravaId={stravaId}
           />
@@ -317,7 +351,7 @@ export function MessageBlock({ message, unread }: Props) {
         >
           <ActivityHeader
             label={label}
-            createdAt={message.created_at}
+            createdAt={getMessageActivityDate(message) ?? message.created_at}
             stats={stats}
             stravaId={stravaId}
             trailing={
