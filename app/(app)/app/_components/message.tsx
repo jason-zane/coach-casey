@@ -104,10 +104,13 @@ function formatPace(secPerKm: number): string {
 }
 
 function formatDuration(seconds: number): string {
+  // Use "min" rather than "m" so the duration doesn't read as metres next
+  // to the distance value in the stat row ("11.0 km · 47m" was being misread
+  // as 47-metre elevation).
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
-  if (h > 0) return `${h}h ${String(m).padStart(2, "0")}m`;
-  if (m > 0) return `${m}m`;
+  if (h > 0) return `${h}h ${String(m).padStart(2, "0")}min`;
+  if (m > 0) return `${m} min`;
   return `${Math.round(seconds)}s`;
 }
 
@@ -142,9 +145,11 @@ function formatStatRow(stats: MessageActivityStats): string[] {
     const kmh = stats.distanceKm / (stats.movingTimeS / 3600);
     parts.push(`${kmh.toFixed(1)} km/h`);
   }
-  if (stats.avgHr != null && stats.avgHr > 0) {
-    parts.push(`${Math.round(stats.avgHr)} bpm`);
-  }
+  // HR deliberately omitted from the stat row. Optical wrist HR is noisy,
+  // chest-strap data isn't universal, and surfacing bpm front-and-centre
+  // overweights a signal Casey should treat as one input among several
+  // rather than the headline metric. HR remains available to Casey via
+  // chat context and the lookup_activity tool when it's actually meaningful.
   return parts;
 }
 

@@ -7,6 +7,9 @@ import {
   type StravaActivity,
   type StravaActivityDetail,
   type StravaLap,
+  type StravaSplit,
+  type StravaBestEffort,
+  type StravaSegmentEffort,
 } from "./client";
 import { classifyActivityType } from "./activity-types";
 
@@ -47,20 +50,48 @@ export function mapStravaActivity(
   athleteId: string,
   laps: StravaLap[] | null = null,
 ) {
+  // Detail-only fields. Present when the row was ingested via /activities/:id
+  // (the detail endpoint), absent when the row came from the list endpoint
+  // only. We pass them through; nulls land cleanly in the JSONB columns.
+  const detail = a as Partial<StravaActivityDetail>;
   return {
     athlete_id: athleteId,
     strava_id: a.id,
     start_date_local: a.start_date_local,
+    timezone: a.timezone ?? null,
+    utc_offset: a.utc_offset ?? null,
+    location_city: a.location_city ?? null,
+    description: a.description ?? null,
     name: a.name,
     activity_type: a.sport_type ?? a.type,
     distance_m: a.distance,
     moving_time_s: a.moving_time,
+    elapsed_time_s: a.elapsed_time ?? null,
     avg_pace_s_per_km: paceSPerKm(a.distance, a.moving_time),
     avg_hr: a.average_heartrate ? Math.round(a.average_heartrate) : null,
     max_hr: a.max_heartrate ? Math.round(a.max_heartrate) : null,
+    avg_watts: a.average_watts ?? null,
+    max_watts: a.max_watts != null ? Math.round(a.max_watts) : null,
+    weighted_avg_watts: a.weighted_average_watts ?? null,
+    kilojoules: a.kilojoules ?? null,
+    device_watts: a.device_watts ?? null,
+    avg_cadence: a.average_cadence ?? null,
+    avg_speed_m_s: a.average_speed ?? null,
+    max_speed_m_s: a.max_speed ?? null,
+    suffer_score: a.suffer_score ?? null,
+    avg_temp_c: a.average_temp ?? null,
     elevation_gain_m: a.total_elevation_gain ?? null,
+    elev_high_m: a.elev_high ?? null,
+    elev_low_m: a.elev_low ?? null,
+    is_manual: a.manual ?? null,
+    is_trainer: a.trainer ?? null,
+    is_commute: a.commute ?? null,
     raw: a as unknown as Record<string, unknown>,
     laps,
+    splits_metric: (detail.splits_metric ?? null) as StravaSplit[] | null,
+    splits_standard: (detail.splits_standard ?? null) as StravaSplit[] | null,
+    best_efforts: (detail.best_efforts ?? null) as StravaBestEffort[] | null,
+    segment_efforts: (detail.segment_efforts ?? null) as StravaSegmentEffort[] | null,
   };
 }
 
@@ -108,9 +139,11 @@ async function mapWithConcurrency<T, U>(
  * reflect the full training picture, not just runs. Ambient types (Walk) are
  * skipped, they'd just be noise.
  *
- * Lap detail is only fetched for runs, since laps for non-running activities
- * don't carry meaningful workout structure for a marathon coach and the
- * detail endpoint counts against Strava's 100/15-min read limit.
+ * Lap detail is fetched for *every* activity type, not just runs. Ride laps
+ * + power data + segment efforts feed the same tool surface Casey uses to
+ * answer "when did the HR hit 188 on that ride", and the detail endpoint
+ * cost is one read per activity which fits comfortably inside Strava's
+ * 100-reads-per-15-min budget at the foreground 12-week scale.
  */
 export async function ingestLiveActivitiesForAthlete(
   athleteId: string,
@@ -130,17 +163,12 @@ export async function ingestLiveActivitiesForAthlete(
   });
   if (kept.length === 0) return 0;
 
-  const runs = kept.filter(
-    (a) => classifyActivityType(a.sport_type ?? a.type) === "run",
-  );
-  const nonRuns = kept.filter(
-    (a) => classifyActivityType(a.sport_type ?? a.type) !== "run",
-  );
-
-  // Pull detail (including laps) for runs only, with bounded concurrency.
-  // Degrade gracefully per activity if any single detail call fails.
-  const runDetails = await mapWithConcurrency<StravaActivity, StravaActivityDetail>(
-    runs,
+  // Pull detail (laps, splits, best efforts, segment efforts) for every kept
+  // activity. Bounded concurrency keeps us inside Strava's rate budget; per-
+  // activity failures degrade to the summary row rather than aborting the
+  // whole pull.
+  const details = await mapWithConcurrency<StravaActivity, StravaActivityDetail>(
+    kept,
     5,
     async (a) => {
       try {
@@ -153,11 +181,9 @@ export async function ingestLiveActivitiesForAthlete(
   );
 
   const admin = createAdminClient();
-  const runRows = runDetails.map((d) =>
+  const rows = details.map((d) =>
     mapStravaActivity(d, athleteId, d.laps ?? null),
   );
-  const nonRunRows = nonRuns.map((a) => mapStravaActivity(a, athleteId, null));
-  const rows = [...runRows, ...nonRunRows];
   const { error } = await admin
     .from("activities")
     .upsert(rows, { onConflict: "athlete_id,strava_id" });

@@ -35,7 +35,10 @@ information when this session matches an established weekly rhythm.
 Produce an acknowledgement that:
 
 - Names the activity specifically (type, duration or distance, one
-  observable detail if it carries weight, title, HR, day position).
+  observable detail if it carries weight, title, day position). HR is
+  available but should be cited only when it adds something the rest of
+  the picture doesn't, optical and chest-strap data vary in accuracy and
+  HR responds to caffeine, heat, and stress as much as effort.
 - Connects it to the running picture in **one** light interpretive line.
 - Asks one short question only when the activity is novel, the title is
   generic, or the context is unclear. Skips the question when:
