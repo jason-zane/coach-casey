@@ -38,16 +38,6 @@ preamble, no lead-in, no sign-off.
 4. **Non-prescriptive.** Invite reflection. Do not propose a fix.
 5. **Skippable.** Same rule as every follow-up.
 
-## Voice, hard rules (same as debrief)
-
-- No em-dashes anywhere.
-- No exclamation marks, no emoji.
-- No hype register.
-- No clinical register.
-- No hedge words.
-- Observational, dry, warm without announcing warmth.
-- No Markdown.
-
 ## Branch templates (starting points, not literals)
 
 The two branches each have a base shape. Adapt the phrasing to the

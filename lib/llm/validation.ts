@@ -1,7 +1,9 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import type Anthropic from "@anthropic-ai/sdk";
 import { anthropic, SONNET_MODEL } from "./anthropic";
+import { buildSystemPrompt } from "./prompts";
+import { formatPace } from "./context-render";
+import { mockMode, MOCK_VALIDATION_OBSERVATIONS } from "./mocks";
+import { logVoiceFindings } from "./voice-check";
 import { loadRecentActivities } from "@/lib/strava/ingest";
 
 type PriorObservation = {
@@ -9,22 +11,6 @@ type PriorObservation = {
   chip: string | null;
   response: string | null;
 };
-
-let cachedPrompt: string | null = null;
-async function systemPrompt(): Promise<string> {
-  if (!cachedPrompt) {
-    const p = path.join(process.cwd(), "prompts/onboarding-validation.md");
-    cachedPrompt = await readFile(p, "utf8");
-  }
-  return cachedPrompt;
-}
-
-function formatPace(secPerKm: number | null | undefined): string {
-  if (!secPerKm) return "n/a";
-  const m = Math.floor(secPerKm / 60);
-  const s = Math.round(secPerKm % 60);
-  return `${m}:${String(s).padStart(2, "0")}/km`;
-}
 
 function dayOfWeek(iso: string): string {
   return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
@@ -126,20 +112,6 @@ Most recent runs:
 ${recentLines}`;
 }
 
-const MOCK_OBSERVATIONS = [
-  "You've been averaging about 55km a week over the last couple of months, with most weeks looking like five runs. Sundays read like your long day, Wednesdays look like the harder session. That match what you're running?",
-  "Your easy days sit around 5:20/km, and the Wednesday workouts drop into the 4:10 to 4:20 range on average. HR stays down on the easy runs. Does that line up with what you're aiming for?",
-  "Long runs have been creeping up, 22, 24, 28, then 32km a couple of weeks back. That read like the build you'd planned, or has it stretched further than intended?",
-  "Looks like there's a week in the middle where the mileage drops right off, just a couple of short runs. Sick, travelling, or something else going on?",
-  "One Saturday a few weeks back, what reads as an easy day came out closer to 4:58/km, a good chunk quicker than your usual easy. Group run, or feeling fresh?",
-];
-
-function mockMode(): boolean {
-  if (process.env.LLM_MODE === "mock") return true;
-  if (process.env.LLM_MODE === "real") return false;
-  return !process.env.ANTHROPIC_API_KEY;
-}
-
 /**
  * Retry Anthropic on transient overload (529) and rate-limit (429) errors.
  * Auth errors, malformed requests, and billing errors are NOT retryable and
@@ -174,13 +146,15 @@ export async function generateNextObservation(
 ): Promise<{ text: string; done: boolean }> {
   if (mockMode()) {
     const idx = prior.length;
-    if (idx >= MOCK_OBSERVATIONS.length) return { text: "", done: true };
-    return { text: MOCK_OBSERVATIONS[idx], done: false };
+    if (idx >= MOCK_VALIDATION_OBSERVATIONS.length) return { text: "", done: true };
+    return { text: MOCK_VALIDATION_OBSERVATIONS[idx], done: false };
   }
 
   const activities = await loadRecentActivities(athleteId, 12);
   const summary = summariseActivities(activities);
-  const system = await systemPrompt();
+  const system = await buildSystemPrompt({
+    surface: "onboarding-validation.md",
+  });
 
   const priorBlock =
     prior.length === 0
@@ -211,13 +185,7 @@ there is not enough material to say something specific.`;
     anthropic().messages.create({
       model: SONNET_MODEL,
       max_tokens: 400,
-      system: [
-        {
-          type: "text",
-          text: system,
-          cache_control: { type: "ephemeral" },
-        },
-      ],
+      system,
       messages: [{ role: "user", content: userMessage }],
     }),
   );
@@ -230,5 +198,11 @@ there is not enough material to say something specific.`;
       .trim() || "";
 
   const done = text.trim().toUpperCase() === "DONE";
+  if (text && !done) {
+    logVoiceFindings(text, {
+      surface: "onboarding-validation",
+      athleteId,
+    });
+  }
   return { text, done };
 }

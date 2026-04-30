@@ -96,15 +96,8 @@ cracked workouts in context rather than as fitness signal.
 - "Do you usually fuel on long runs?" → only on long runs (>= 18km).
 - "Any niggles?" → any run, but once answered, never re-ask.
 
-## Voice, same hard rules as the debrief and the conversational prompt
+## Length
 
-- No em-dashes anywhere.
-- No exclamation marks, no emoji.
-- No hype register.
-- No clinical register.
-- No hedge words.
-- Observational, dry, warm without announcing warmth.
-- No Markdown.
 - One sentence. Two short ones max.
 
 ## Output format

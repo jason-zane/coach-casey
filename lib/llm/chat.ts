@@ -1,8 +1,16 @@
 import "server-only";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import type Anthropic from "@anthropic-ai/sdk";
 import { anthropic, SONNET_MODEL } from "./anthropic";
+import { buildSystemPrompt } from "./prompts";
+import {
+  formatPace,
+  renderActivePlanBlock,
+  renderAthleteBlock,
+  renderGoalRacesBlock,
+  renderMemoryItemsBlock,
+} from "./context-render";
+import { mockChatStream, mockMode } from "./mocks";
+import { logVoiceFindings } from "./voice-check";
 import {
   renderLapBreakdown,
   type WorkoutClassification,
@@ -214,87 +222,28 @@ const LOOKUP_TOOL_NAMES = new Set([
   "refresh_activity_from_strava",
 ]);
 
-let cachedSystemPrompt: string | null = null;
-async function loadSystemPrompt(): Promise<string> {
-  // In development we always re-read so prompt edits take effect on the next
-  // turn without a server restart. In production the file is immutable for
-  // the lifetime of the build, so the cache is safe.
-  if (process.env.NODE_ENV !== "production") {
-    const p = path.join(process.cwd(), "prompts/chat-system.md");
-    return readFile(p, "utf8");
-  }
-  if (!cachedSystemPrompt) {
-    const p = path.join(process.cwd(), "prompts/chat-system.md");
-    cachedSystemPrompt = await readFile(p, "utf8");
-  }
-  return cachedSystemPrompt;
-}
-
-function formatPace(secPerKm: number | null | undefined): string {
-  if (!secPerKm) return "n/a";
-  const m = Math.floor(secPerKm / 60);
-  const s = Math.round(secPerKm % 60);
-  return `${m}:${String(s).padStart(2, "0")}/km`;
-}
-
 function renderContext(ctx: ChatContext): string {
-  const parts: string[] = [];
+  const parts: string[] = [
+    renderAthleteBlock({
+      displayName: ctx.displayName,
+      sex: ctx.sex,
+      ageYears: ctx.ageYears,
+      weightKg: ctx.weightKg,
+      coachingMode: ctx.coachingMode,
+    }),
+  ];
 
-  const athleteLines: string[] = [];
-  athleteLines.push(`Name: ${ctx.displayName ?? "(unnamed)"}`);
-  if (ctx.sex) {
-    athleteLines.push(`Sex: ${ctx.sex === "M" ? "Male" : "Female"}`);
-  }
-  if (ctx.ageYears != null) {
-    athleteLines.push(`Age: ${ctx.ageYears}`);
-  }
-  if (ctx.weightKg != null) {
-    athleteLines.push(`Weight: ${ctx.weightKg} kg`);
-  }
-  if (ctx.coachingMode === "coach") {
-    athleteLines.push(
-      "Coaching: a human coach is writing this athlete's training. Defer to the coach's intent. Help the athlete read what is happening inside the plan rather than offering alternative sessions.",
-    );
-  } else if (ctx.coachingMode === "self") {
-    athleteLines.push(
-      "Coaching: self-directed or following a public plan. You can engage more directly with workout choices when the athlete asks for input.",
-    );
-  }
-  parts.push(`# Athlete\n${athleteLines.join("\n")}`);
+  const goalBlock = renderGoalRacesBlock(ctx.goalRaces);
+  if (goalBlock) parts.push(goalBlock);
 
-  if (ctx.goalRaces.length > 0) {
-    const lines = ctx.goalRaces
-      .map((r) => {
-        const name = r.name ?? "(unnamed race)";
-        const date = r.raceDate ?? "date TBD";
-        const goal =
-          r.goalTimeSeconds != null
-            ? (() => {
-                const h = Math.floor(r.goalTimeSeconds / 3600);
-                const m = Math.floor((r.goalTimeSeconds % 3600) / 60);
-                const s = Math.round(r.goalTimeSeconds % 60);
-                const mm = String(m).padStart(2, "0");
-                const ss = String(s).padStart(2, "0");
-                return h > 0 ? `, goal ${h}:${mm}:${ss}` : `, goal ${m}:${ss}`;
-              })()
-            : "";
-        return `- ${name} on ${date}${goal}`;
-      })
-      .join("\n");
-    parts.push(`# Goal races\n${lines}`);
-  }
+  const planBlock = renderActivePlanBlock(ctx.activePlanText, { fallback: "omit" });
+  if (planBlock) parts.push(planBlock);
 
-  if (ctx.activePlanText) {
-    parts.push(`# Active training plan\n${ctx.activePlanText}`);
-  }
-
-  if (ctx.memoryItems.length > 0) {
-    const lines = ctx.memoryItems
-      .slice(0, 30)
-      .map((m) => `- [${m.kind}] ${m.content}${m.tags.length ? ` (${m.tags.join(", ")})` : ""}`)
-      .join("\n");
-    parts.push(`# Memory items\n${lines}`);
-  }
+  const memoryBlock = renderMemoryItemsBlock("Memory items", ctx.memoryItems, {
+    limit: 30,
+    kindLeading: true,
+  });
+  if (memoryBlock) parts.push(memoryBlock);
 
   if (ctx.recentActivities.length > 0) {
     const lines = ctx.recentActivities.map(renderActivityForPrompt).join("\n");
@@ -444,24 +393,6 @@ function renderHistory(messages: Message[]): Anthropic.MessageParam[] {
     });
 }
 
-function mockMode(): boolean {
-  if (process.env.LLM_MODE === "mock") return true;
-  if (process.env.LLM_MODE === "real") return false;
-  return !process.env.ANTHROPIC_API_KEY;
-}
-
-async function* mockStream(userText: string): AsyncGenerator<ChatStreamEvent> {
-  const response =
-    userText.toLowerCase().includes("calf") || userText.toLowerCase().includes("knee")
-      ? "Noted. I'll keep an eye on how that travels through the week. If it's still there on your next easy run, worth easing off the pace for a day or two and seeing if it settles."
-      : "Heard. Anything specific on your mind, or just checking in?";
-  for (const chunk of response.match(/.{1,20}(\s|$)/g) ?? [response]) {
-    yield { type: "text", value: chunk };
-    await new Promise((r) => setTimeout(r, 40));
-  }
-  yield { type: "done", fullText: response };
-}
-
 export function summariseActivity(
   a: {
     id: string;
@@ -529,12 +460,16 @@ export async function* streamChat(
   userText: string,
 ): AsyncGenerator<ChatStreamEvent> {
   if (mockMode()) {
-    yield* mockStream(userText);
+    yield* mockChatStream(userText);
     return;
   }
 
-  const system = await loadSystemPrompt();
   const contextBlock = renderContext(ctx);
+  const system = await buildSystemPrompt({
+    surface: "chat-system.md",
+    shared: ["heartRate", "demographics"],
+    context: contextBlock,
+  });
   const history = renderHistory(ctx.recentMessages);
 
   const messages: Anthropic.MessageParam[] = [
@@ -548,10 +483,7 @@ export async function* streamChat(
     const stream = anthropic().messages.stream({
       model: SONNET_MODEL,
       max_tokens: 1024,
-      system: [
-        { type: "text", text: system, cache_control: { type: "ephemeral" } },
-        { type: "text", text: contextBlock, cache_control: { type: "ephemeral" } },
-      ],
+      system,
       tools: CHAT_TOOLS,
       messages,
     });
@@ -654,5 +586,10 @@ export async function* streamChat(
     messages.push({ role: "user", content: toolResults });
   }
 
+  logVoiceFindings(fullText, {
+    surface: "chat-system",
+    athleteId: ctx.athleteId,
+    athleteName: ctx.displayName,
+  });
   yield { type: "done", fullText };
 }
