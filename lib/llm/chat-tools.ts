@@ -1,4 +1,5 @@
 import "server-only";
+import { formatPace } from "./context-render";
 import { createAdminClient } from "@/lib/supabase/server";
 import { ensureActivityLapDetail } from "@/lib/strava/lap-detail";
 import { classifyActivityType } from "@/lib/strava/activity-types";
@@ -19,13 +20,6 @@ const DAILY_DETAIL_FETCH_CAP = 10;
 
 function todayUtcDate(): string {
   return new Date().toISOString().slice(0, 10);
-}
-
-function formatPace(secPerKm: number | null | undefined): string {
-  if (!secPerKm) return "n/a";
-  const m = Math.floor(secPerKm / 60);
-  const s = Math.round(secPerKm % 60);
-  return `${m}:${String(s).padStart(2, "0")}/km`;
 }
 
 function formatDuration(seconds: number | null | undefined): string {

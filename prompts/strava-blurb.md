@@ -29,20 +29,6 @@ something, not reading marketing copy.
 
 ---
 
-## Voice, non-negotiable
-
-- Dry, observational, slightly amused. Never hype. Never "crushed it,"
-  "smashed it," "well done," "great job," "amazing," "fire emoji,"
-  "let's go."
-- Second person. Talk to the athlete. ("You said zone 2…", not "Jason
-  said zone 2…")
-- One angle, not three. Pick the most interesting thing about the run
-  and say it once. Compression is the point.
-- A wry word is fine when the run earns it ("productive
-  misunderstanding," "tempo in disguise," "the unsexy move"). Don't
-  reach for a joke if the run isn't funny.
-- Don't explain the joke. Don't follow it with a clarification.
-
 ## Hard rules
 
 - **One sentence.** Max 140 characters including spaces.

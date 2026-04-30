@@ -1,8 +1,16 @@
 import "server-only";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import type Anthropic from "@anthropic-ai/sdk";
 import { anthropic, SONNET_MODEL } from "./anthropic";
+import { buildSystemPrompt } from "./prompts";
+import {
+  formatPace,
+  renderActivePlanBlock,
+  renderAthleteBlock,
+  renderGoalRacesBlock,
+  renderMemoryItemsBlock,
+} from "./context-render";
+import { mockDebrief, mockMode } from "./mocks";
+import { logVoiceFindings } from "./voice-check";
 import type {
   DebriefActivity,
   DebriefArcRun,
@@ -63,13 +71,6 @@ export function debriefGate(activity: DebriefActivity): DebriefSkipReason | null
   return null;
 }
 
-function formatPace(secPerKm: number | null | undefined): string {
-  if (!secPerKm) return "n/a";
-  const m = Math.floor(secPerKm / 60);
-  const s = Math.round(secPerKm % 60);
-  return `${m}:${String(s).padStart(2, "0")}/km`;
-}
-
 function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -77,16 +78,6 @@ function formatDuration(seconds: number): string {
   if (h > 0) return `${h}h${String(m).padStart(2, "0")}m`;
   if (m > 0) return `${m}m${String(s).padStart(2, "0")}s`;
   return `${s}s`;
-}
-
-function goalTimeLabel(seconds: number | null): string | null {
-  if (seconds == null) return null;
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.round(seconds % 60);
-  const mm = String(m).padStart(2, "0");
-  const ss = String(s).padStart(2, "0");
-  return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
 }
 
 function renderActivity(a: DebriefActivity): string {
@@ -150,48 +141,27 @@ ${runLines.join("\n")}`;
 }
 
 function renderStableContext(ctx: DebriefContext): string {
-  const parts: string[] = [];
-  const athleteLines: string[] = [];
-  athleteLines.push(`Name: ${ctx.displayName ?? "(unnamed)"}`);
-  if (ctx.sex) {
-    athleteLines.push(`Sex: ${ctx.sex === "M" ? "Male" : "Female"}`);
-  }
-  if (ctx.ageYears != null) {
-    athleteLines.push(`Age: ${ctx.ageYears}`);
-  }
-  if (ctx.weightKg != null) {
-    athleteLines.push(`Weight: ${ctx.weightKg} kg`);
-  }
-  parts.push(`# Athlete\n${athleteLines.join("\n")}`);
+  const parts: string[] = [
+    renderAthleteBlock({
+      displayName: ctx.displayName,
+      sex: ctx.sex,
+      ageYears: ctx.ageYears,
+      weightKg: ctx.weightKg,
+    }),
+  ];
 
-  if (ctx.goalRaces.length > 0) {
-    const lines = ctx.goalRaces
-      .map((r) => {
-        const name = r.name ?? "(unnamed race)";
-        const date = r.raceDate ?? "date TBD";
-        const goal = goalTimeLabel(r.goalTimeSeconds);
-        return `- ${name} on ${date}${goal ? `, goal ${goal}` : ""}`;
-      })
-      .join("\n");
-    parts.push(`# Goal races\n${lines}`);
-  }
+  const goalBlock = renderGoalRacesBlock(ctx.goalRaces);
+  if (goalBlock) parts.push(goalBlock);
 
-  if (ctx.activePlanText) {
-    parts.push(`# Active training plan\n${ctx.activePlanText.trim()}`);
-  }
+  const planBlock = renderActivePlanBlock(ctx.activePlanText, { fallback: "omit" });
+  if (planBlock) parts.push(planBlock);
 
-  if (ctx.injuries.length > 0) {
-    const lines = ctx.injuries
-      .slice(0, 20)
-      .map(
-        (m) =>
-          `- ${m.content}${m.tags.length ? ` (${m.tags.join(", ")})` : ""} [noted ${m.createdAt.slice(0, 10)}]`,
-      )
-      .join("\n");
-    parts.push(`# Known injuries and niggles\n${lines}`);
-  } else {
-    parts.push("# Known injuries and niggles\nNone on file.");
-  }
+  const injuriesBlock = renderMemoryItemsBlock("Known injuries and niggles", ctx.injuries, {
+    limit: 20,
+    withNoted: true,
+    emptyFallback: "none-on-file",
+  });
+  if (injuriesBlock) parts.push(injuriesBlock);
 
   if (ctx.priorDebriefs.length > 0) {
     const lines = ctx.priorDebriefs
@@ -257,98 +227,18 @@ function renderVolatileContext(ctx: DebriefContext): string {
   // happens at this layer.
   parts.push(`# Trailing RPE history (longitudinal context)\n${renderRpeHistory(ctx)}`);
 
-  if (ctx.lifeContext.length > 0) {
-    const lines = ctx.lifeContext
-      .slice(0, 15)
-      .map(
-        (m) =>
-          `- [${m.createdAt.slice(0, 10)}] ${m.content}${m.tags.length ? ` (${m.tags.join(", ")})` : ""}`,
-      )
-      .join("\n");
-    parts.push(`# Recent life context (last 14 days)\n${lines}`);
-  } else {
-    parts.push("# Recent life context\nNothing logged in the last 14 days.");
-  }
+  const lifeBlock = renderMemoryItemsBlock(
+    ctx.lifeContext.length > 0 ? "Recent life context (last 14 days)" : "Recent life context",
+    ctx.lifeContext,
+    {
+      limit: 15,
+      dateLeading: true,
+      emptyFallback: "none-logged",
+    },
+  );
+  if (lifeBlock) parts.push(lifeBlock);
 
   return parts.join("\n\n");
-}
-
-let cachedDebriefPrompt: string | null = null;
-let cachedConversationalPrompt: string | null = null;
-let cachedStructuredPrompt: string | null = null;
-let cachedStravaBlurbPrompt: string | null = null;
-
-async function loadDebriefPrompt(): Promise<string> {
-  if (!cachedDebriefPrompt) {
-    const p = path.join(process.cwd(), "prompts/post-run-debrief.md");
-    cachedDebriefPrompt = await readFile(p, "utf8");
-  }
-  return cachedDebriefPrompt;
-}
-
-async function loadConversationalPrompt(): Promise<string> {
-  if (!cachedConversationalPrompt) {
-    const p = path.join(process.cwd(), "prompts/post-run-followup-conversational.md");
-    cachedConversationalPrompt = await readFile(p, "utf8");
-  }
-  return cachedConversationalPrompt;
-}
-
-async function loadStructuredPrompt(): Promise<string> {
-  if (!cachedStructuredPrompt) {
-    const p = path.join(process.cwd(), "prompts/post-run-followup-structured.md");
-    cachedStructuredPrompt = await readFile(p, "utf8");
-  }
-  return cachedStructuredPrompt;
-}
-
-async function loadStravaBlurbPrompt(): Promise<string> {
-  if (!cachedStravaBlurbPrompt) {
-    const p = path.join(process.cwd(), "prompts/strava-blurb.md");
-    cachedStravaBlurbPrompt = await readFile(p, "utf8");
-  }
-  return cachedStravaBlurbPrompt;
-}
-
-function mockMode(): boolean {
-  if (process.env.LLM_MODE === "mock") return true;
-  if (process.env.LLM_MODE === "real") return false;
-  return !process.env.ANTHROPIC_API_KEY;
-}
-
-function mockDebrief(
-  ctx: DebriefContext,
-): { body: string; followUp: string | null; stravaBlurb: string | null } {
-  const a = ctx.activity;
-  const first = ctx.isFirstDebrief
-    ? "First one I've read for you, so take this as a starting point rather than a full reading."
-    : null;
-
-  const lead = a.hasWorkoutShape
-    ? `Workout shape today: ${a.laps.length} laps, pace spread of ${(Math.max(...a.laps.map((l) => l.paceSPerKm ?? 0)) - Math.min(...a.laps.map((l) => l.paceSPerKm ?? 0)))}s/km.`
-    : `Steady ${a.distanceKm.toFixed(1)} km on ${a.dayOfWeek}, ${formatPace(a.paceSPerKm)}.`;
-
-  const injuryNote = ctx.injuries.length > 0
-    ? `Keeping an eye on the ${ctx.injuries[0].tags.join(", ") || "niggle"} you mentioned.`
-    : null;
-
-  const arcNote = ctx.arcWeeks.length > 0
-    ? `Last week totaled ${ctx.arcWeeks[ctx.arcWeeks.length - 1]?.km.toFixed(1)} km across ${ctx.arcWeeks[ctx.arcWeeks.length - 1]?.runCount} runs.`
-    : "Not much arc to read from yet.";
-
-  const body = [first, lead, injuryNote, arcNote].filter(Boolean).join("\n\n");
-
-  const followUp = a.hasWorkoutShape
-    ? "How did the last rep feel relative to the first two?"
-    : ctx.injuries.length > 0
-      ? "Calf still holding up alright after that one?"
-      : null;
-
-  const stravaBlurb = a.hasWorkoutShape
-    ? "Three reps, three of the same pace. That's not luck, that's pacing."
-    : "An easy run that stayed easy. Underrated.";
-
-  return { body, followUp, stravaBlurb };
 }
 
 type CallWithRetryOpts = { attempts?: number; baseDelayMs?: number };
@@ -385,19 +275,21 @@ async function callWithRetry<T>(
 export async function generateDebriefBody(ctx: DebriefContext): Promise<string> {
   if (mockMode()) return mockDebrief(ctx).body;
 
-  const system = await loadDebriefPrompt();
   const stable = renderStableContext(ctx);
   const volatile = renderVolatileContext(ctx);
+  const system = await buildSystemPrompt({
+    surface: "post-run-debrief.md",
+    posture: "interpretive",
+    shared: ["heartRate", "demographics"],
+    context: stable,
+  });
 
   const response = await callWithRetry(() =>
     anthropic().messages.create({
       model: SONNET_MODEL,
       max_tokens: 900,
       temperature: 1.0,
-      system: [
-        { type: "text", text: system, cache_control: { type: "ephemeral" } },
-        { type: "text", text: stable, cache_control: { type: "ephemeral" } },
-      ],
+      system,
       messages: [
         {
           role: "user",
@@ -413,6 +305,11 @@ export async function generateDebriefBody(ctx: DebriefContext): Promise<string> 
       .map((b) => b.text)
       .join("\n")
       .trim() || "";
+  logVoiceFindings(text, {
+    surface: "post-run-debrief",
+    athleteId: ctx.athleteId,
+    athleteName: ctx.displayName,
+  });
   return text;
 }
 
@@ -426,19 +323,20 @@ export async function generateConversationalFollowUp(
 ): Promise<string | null> {
   if (mockMode()) return mockDebrief(ctx).followUp;
 
-  const system = await loadConversationalPrompt();
   const stable = renderStableContext(ctx);
   const volatile = renderVolatileContext(ctx);
+  const system = await buildSystemPrompt({
+    surface: "post-run-followup-conversational.md",
+    posture: "interpretive",
+    context: stable,
+  });
 
   const response = await callWithRetry(() =>
     anthropic().messages.create({
       model: SONNET_MODEL,
       max_tokens: 160,
       temperature: 0.9,
-      system: [
-        { type: "text", text: system, cache_control: { type: "ephemeral" } },
-        { type: "text", text: stable, cache_control: { type: "ephemeral" } },
-      ],
+      system,
       messages: [
         {
           role: "user",
@@ -455,6 +353,11 @@ export async function generateConversationalFollowUp(
       .join("\n")
       .trim() || "";
   if (!text || text.toUpperCase() === "SKIP") return null;
+  logVoiceFindings(text, {
+    surface: "post-run-followup-conversational",
+    athleteId: ctx.athleteId,
+    athleteName: ctx.displayName,
+  });
   return text;
 }
 
@@ -471,19 +374,20 @@ export async function generateStructuredFollowUp(
     return "What's on the plan for this week, roughly?";
   }
 
-  const system = await loadStructuredPrompt();
   const stable = renderStableContext(ctx);
   const volatile = renderVolatileContext(ctx);
+  const system = await buildSystemPrompt({
+    surface: "post-run-followup-structured.md",
+    posture: "interpretive",
+    context: stable,
+  });
 
   const response = await callWithRetry(() =>
     anthropic().messages.create({
       model: SONNET_MODEL,
       max_tokens: 160,
       temperature: 0.7,
-      system: [
-        { type: "text", text: system, cache_control: { type: "ephemeral" } },
-        { type: "text", text: stable, cache_control: { type: "ephemeral" } },
-      ],
+      system,
       messages: [
         {
           role: "user",
@@ -500,6 +404,11 @@ export async function generateStructuredFollowUp(
       .join("\n")
       .trim() || "";
   if (!text || text.toUpperCase() === "DEFER") return null;
+  logVoiceFindings(text, {
+    surface: "post-run-followup-structured",
+    athleteId: ctx.athleteId,
+    athleteName: ctx.displayName,
+  });
   return text;
 }
 
@@ -556,19 +465,20 @@ export async function generateFollowUp(
 export async function generateStravaBlurb(ctx: DebriefContext): Promise<string | null> {
   if (mockMode()) return mockDebrief(ctx).stravaBlurb;
 
-  const system = await loadStravaBlurbPrompt();
   const stable = renderStableContext(ctx);
   const volatile = renderVolatileContext(ctx);
+  const system = await buildSystemPrompt({
+    surface: "strava-blurb.md",
+    voice: "eavesdropping",
+    context: stable,
+  });
 
   const response = await callWithRetry(() =>
     anthropic().messages.create({
       model: SONNET_MODEL,
       max_tokens: 120,
       temperature: 1.0,
-      system: [
-        { type: "text", text: system, cache_control: { type: "ephemeral" } },
-        { type: "text", text: stable, cache_control: { type: "ephemeral" } },
-      ],
+      system,
       messages: [
         {
           role: "user",
@@ -590,6 +500,12 @@ export async function generateStravaBlurb(ctx: DebriefContext): Promise<string |
   const unquoted = raw.replace(/^[\"'“‘]+|[\"'”’]+$/g, "").trim();
   if (!unquoted) return null;
   if (unquoted.length > STRAVA_BLURB_MAX_CHARS) return null;
+  logVoiceFindings(unquoted, {
+    surface: "strava-blurb",
+    athleteId: ctx.athleteId,
+    profile: "eavesdropping",
+    athleteName: ctx.displayName,
+  });
   if (!passesStravaBlurbVoiceCheck(unquoted)) return null;
   return unquoted;
 }

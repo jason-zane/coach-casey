@@ -1,8 +1,15 @@
 import "server-only";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import type Anthropic from "@anthropic-ai/sdk";
 import { anthropic, SONNET_MODEL } from "./anthropic";
+import { buildSystemPrompt } from "./prompts";
+import {
+  formatPace,
+  renderActivePlanBlock,
+  renderAthleteBlock,
+  renderMemoryItemsBlock,
+} from "./context-render";
+import { mockCrossTrainingAck, mockMode } from "./mocks";
+import { logVoiceFindings } from "./voice-check";
 import type {
   CrossTrainingActivity,
   CrossTrainingContext,
@@ -156,18 +163,6 @@ function renderActivity(a: CrossTrainingActivity): string {
   return lines.join("\n");
 }
 
-function renderMemoryItems(items: CrossTrainingMemoryItem[], heading: string, empty: string): string {
-  if (items.length === 0) return `# ${heading}\n${empty}`;
-  const lines = items
-    .slice(0, 12)
-    .map(
-      (m) =>
-        `- [${m.createdAt.slice(0, 10)}] ${m.content}${m.tags.length ? ` (${m.tags.join(", ")})` : ""}`,
-    )
-    .join("\n");
-  return `# ${heading}\n${lines}`;
-}
-
 function renderRecentRuns(ctx: CrossTrainingContext): string {
   if (ctx.recentRuns.length === 0) {
     return "# Recent runs (running picture)\n(no recent runs in the arc window)";
@@ -182,13 +177,6 @@ function renderRecentRuns(ctx: CrossTrainingContext): string {
   return `# Recent runs (running picture)\n${lines.join("\n")}`;
 }
 
-function formatPace(secPerKm: number | null | undefined): string {
-  if (!secPerKm) return "n/a";
-  const m = Math.floor(secPerKm / 60);
-  const s = Math.round(secPerKm % 60);
-  return `${m}:${String(s).padStart(2, "0")}/km`;
-}
-
 function renderPattern(pattern: CrossTrainingPattern): string {
   if (!pattern.isPattern || !pattern.description) {
     return "# Pattern\nNo established pattern for this activity on this day-of-week.";
@@ -197,14 +185,19 @@ function renderPattern(pattern: CrossTrainingPattern): string {
 }
 
 function renderStableContext(ctx: CrossTrainingContext): string {
-  const parts: string[] = [];
-  parts.push(`# Athlete\n${ctx.displayName ?? "(unnamed)"}`);
-  if (ctx.activePlanText) {
-    parts.push(`# Active training plan\n${ctx.activePlanText.trim()}`);
-  } else {
-    parts.push("# Active training plan\nNo plan uploaded.");
-  }
-  parts.push(renderMemoryItems(ctx.injuries, "Active injuries and niggles", "None on file."));
+  const parts: string[] = [
+    renderAthleteBlock({ displayName: ctx.displayName }),
+  ];
+  const planBlock = renderActivePlanBlock(ctx.activePlanText, { fallback: "say-none" });
+  if (planBlock) parts.push(planBlock);
+
+  const injuriesBlock = renderMemoryItemsBlock(
+    "Active injuries and niggles",
+    ctx.injuries,
+    { emptyFallback: "none-on-file" },
+  );
+  if (injuriesBlock) parts.push(injuriesBlock);
+
   return parts.join("\n\n");
 }
 
@@ -216,13 +209,16 @@ function renderVolatileContext(
   parts.push(`# The cross-training session\n${renderActivity(ctx.activity)}`);
   parts.push(renderPattern(ctx.pattern));
   parts.push(renderRecentRuns(ctx));
-  parts.push(
-    renderMemoryItems(
-      ctx.lifeContext,
-      "Recent life context (last 14 days)",
-      "Nothing logged.",
-    ),
+  const lifeBlock = renderMemoryItemsBlock(
+    "Recent life context (last 14 days)",
+    ctx.lifeContext,
+    {
+      limit: 12,
+      dateLeading: true,
+      emptyFallback: "none-logged",
+    },
   );
+  if (lifeBlock) parts.push(lifeBlock);
 
   const kb = knowledgeFor(ctx.activity.activityType);
   parts.push(
@@ -243,41 +239,6 @@ function renderVolatileContext(
   );
 
   return parts.join("\n\n");
-}
-
-let cachedSystemPrompt: string | null = null;
-async function loadSystemPrompt(): Promise<string> {
-  if (!cachedSystemPrompt) {
-    const p = path.join(process.cwd(), "prompts/cross-training-acknowledgement.md");
-    cachedSystemPrompt = await readFile(p, "utf8");
-  }
-  return cachedSystemPrompt;
-}
-
-function mockMode(): boolean {
-  if (process.env.LLM_MODE === "mock") return true;
-  if (process.env.LLM_MODE === "real") return false;
-  return !process.env.ANTHROPIC_API_KEY;
-}
-
-function mockAck(ctx: CrossTrainingContext, isSubstitution: boolean): string {
-  const a = ctx.activity;
-  const kb = knowledgeFor(a.activityType);
-  const dur = formatDuration(a.durationMinutes);
-  const titlePart = a.name && a.name.trim() ? `"${a.name.trim()}" ` : "";
-
-  if (isSubstitution) {
-    const niggle = ctx.injuries[0];
-    const niggleLine = niggle
-      ? ` ${niggle.tags[0] ?? "the niggle"} still talking?`
-      : " Anything going on, or just shuffling things?";
-    return `Saw the ${kb.typeLabel} today instead of the planned run.${niggleLine}`;
-  }
-
-  if (ctx.pattern.isPattern) {
-    return `${ctx.pattern.description}, ${titlePart}${dur}.`;
-  }
-  return `${dur} ${titlePart}on the ${kb.typeLabel}.`;
 }
 
 type CallWithRetryOpts = { attempts?: number; baseDelayMs?: number };
@@ -319,26 +280,28 @@ export async function generateCrossTrainingAck(
   { isSubstitution = false }: { isSubstitution?: boolean } = {},
 ): Promise<CrossTrainingOutcome> {
   if (mockMode()) {
+    const kb = knowledgeFor(ctx.activity.activityType);
     return {
       kind: "ack",
-      body: mockAck(ctx, isSubstitution),
+      body: mockCrossTrainingAck(ctx, isSubstitution, kb, formatDuration),
       isSubstitution,
     };
   }
 
-  const system = await loadSystemPrompt();
   const stable = renderStableContext(ctx);
   const volatile = renderVolatileContext(ctx, isSubstitution);
+  const system = await buildSystemPrompt({
+    surface: "cross-training-acknowledgement.md",
+    shared: ["heartRate"],
+    context: stable,
+  });
 
   const response = await callWithRetry(() =>
     anthropic().messages.create({
       model: SONNET_MODEL,
       max_tokens: 350,
       temperature: 1.0,
-      system: [
-        { type: "text", text: system, cache_control: { type: "ephemeral" } },
-        { type: "text", text: stable, cache_control: { type: "ephemeral" } },
-      ],
+      system,
       messages: [
         {
           role: "user",
@@ -359,5 +322,10 @@ export async function generateCrossTrainingAck(
     return { kind: "skip", reason: "missing_data" };
   }
 
+  logVoiceFindings(text, {
+    surface: "cross-training-acknowledgement",
+    athleteId: ctx.athleteId,
+    athleteName: ctx.displayName,
+  });
   return { kind: "ack", body: text, isSubstitution };
 }

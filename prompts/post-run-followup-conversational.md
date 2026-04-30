@@ -40,16 +40,6 @@ Output plain prose. One sentence. No preamble, no lead-in, no sign-off.
    question should feel like an invitation, not a prompt the product is
    waiting on.
 
-## Voice, hard rules (same as debrief)
-
-- No em-dashes anywhere.
-- No exclamation marks, no emoji.
-- No hype register.
-- No clinical register.
-- No hedge words.
-- Observational, dry, warm without announcing warmth.
-- No Markdown.
-
 ## Choose the question from the context
 
 Pick the question most likely to elicit useful signal for the next

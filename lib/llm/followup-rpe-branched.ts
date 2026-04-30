@@ -1,38 +1,11 @@
 import "server-only";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import type Anthropic from "@anthropic-ai/sdk";
 import { anthropic, SONNET_MODEL } from "./anthropic";
+import { buildSystemPrompt } from "./prompts";
+import { mockMode, mockRpeBranchedFollowUp } from "./mocks";
+import { logVoiceFindings } from "./voice-check";
 import type { DebriefContext } from "@/lib/thread/debrief-context";
 import type { RpeBranch } from "./followup-picker";
-
-let cachedPrompt: string | null = null;
-
-async function loadPrompt(): Promise<string> {
-  if (!cachedPrompt) {
-    const p = path.join(process.cwd(), "prompts/post-run-followup-rpe-branched.md");
-    cachedPrompt = await readFile(p, "utf8");
-  }
-  return cachedPrompt;
-}
-
-function mockMode(): boolean {
-  if (process.env.LLM_MODE === "mock") return true;
-  if (process.env.LLM_MODE === "real") return false;
-  return !process.env.ANTHROPIC_API_KEY;
-}
-
-/**
- * Mock copy that satisfies voice rules, no em-dashes, no exclamation
- * marks. Lets dev iteration on the picker/UI proceed without burning
- * dev credits or requiring an API key.
- */
-function mockBranched(branch: RpeBranch, rpeValue: number): string {
-  if (branch === "high_on_easy") {
-    return `Came in higher than the shape of the run suggests, ${rpeValue} on something easy. What was going on?`;
-  }
-  return `Softer number than I'd have expected for that one. Conservative, or feeling sharp?`;
-}
 
 /**
  * Render the same volatile + stable context the debrief saw, plus a
@@ -45,14 +18,15 @@ export async function generateRpeBranchedFollowUp(
   branch: RpeBranch,
   rpeValue: number,
 ): Promise<string | null> {
-  if (mockMode()) return mockBranched(branch, rpeValue);
+  if (mockMode()) return mockRpeBranchedFollowUp(branch, rpeValue);
 
-  const system = await loadPrompt();
-  // Reuse the debrief context renderers indirectly by passing the
-  // pre-built activity description. Keeping this prompt scoped to the
-  // branch + value reduces the surface for prompt regressions.
   const a = ctx.activity;
   const stable = `# Athlete\n${ctx.displayName ?? "(unnamed)"}`;
+  const system = await buildSystemPrompt({
+    surface: "post-run-followup-rpe-branched.md",
+    posture: "interpretive",
+    context: stable,
+  });
   const volatile = [
     `# The run`,
     `Date: ${a.date.slice(0, 10)} (${a.dayOfWeek})`,
@@ -87,10 +61,7 @@ export async function generateRpeBranchedFollowUp(
     model: SONNET_MODEL,
     max_tokens: 160,
     temperature: 0.85,
-    system: [
-      { type: "text", text: system, cache_control: { type: "ephemeral" } },
-      { type: "text", text: stable, cache_control: { type: "ephemeral" } },
-    ],
+    system,
     messages: [
       {
         role: "user",
@@ -105,5 +76,11 @@ export async function generateRpeBranchedFollowUp(
       .map((b) => b.text)
       .join("\n")
       .trim() || "";
-  return text || null;
+  if (!text) return null;
+  logVoiceFindings(text, {
+    surface: "post-run-followup-rpe-branched",
+    athleteId: ctx.athleteId,
+    athleteName: ctx.displayName,
+  });
+  return text;
 }
