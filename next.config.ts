@@ -2,6 +2,15 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   devIndicators: false,
+  // Prompt files are loaded at runtime via readFile from lib/llm/prompts.ts.
+  // The path is resolved dynamically (import.meta.url + relative segments) so
+  // @vercel/nft cannot statically detect the references. Without an explicit
+  // include, the prompts/ directory is excluded from the function bundle and
+  // every debrief/cross-training/chat call fails ENOENT at runtime. See
+  // node_modules/next/dist/docs/.../output.md for outputFileTracingIncludes.
+  outputFileTracingIncludes: {
+    "/*": ["./prompts/**/*.md"],
+  },
   async rewrites() {
     return [
       {
