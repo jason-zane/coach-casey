@@ -188,12 +188,23 @@ async function buildWelcomeBody(
   ].join("\n\n");
 }
 
-export async function seedEmptyStateIfNeeded(threadId: string, athleteId: string) {
+export async function seedEmptyStateIfNeeded(threadId: string) {
+  const athleteId = await requireAthleteId();
   const supabase = await createClient();
+  const { data: thread } = await supabase
+    .from("threads")
+    .select("id")
+    .eq("id", threadId)
+    .eq("athlete_id", athleteId)
+    .maybeSingle();
+  if (!thread) throw new Error("thread not found");
+
   const { count } = await supabase
     .from("messages")
     .select("id", { count: "exact", head: true })
-    .eq("thread_id", threadId);
+    .eq("thread_id", threadId)
+    .eq("athlete_id", athleteId)
+    .is("deleted_at", null);
   if ((count ?? 0) > 0) return;
 
   // First-load welcome, folds the old onboarding "welcome" step into the

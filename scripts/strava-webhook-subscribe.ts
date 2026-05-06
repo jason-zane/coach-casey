@@ -9,6 +9,9 @@
  *   STRAVA_WEBHOOK_VERIFY_TOKEN  , any sufficiently long random string;
  *                                    Strava echoes it back during the GET
  *                                    challenge to prove we own the endpoint.
+ *   STRAVA_WEBHOOK_EVENT_SECRET  , any sufficiently long random string;
+ *                                    added to the callback URL because
+ *                                    Strava does not sign event POSTs.
  *   NEXT_PUBLIC_APP_URL          , base URL for the callback
  *
  * Usage:
@@ -56,13 +59,15 @@ async function create(): Promise<Subscription> {
   const id = need("STRAVA_CLIENT_ID");
   const secret = need("STRAVA_CLIENT_SECRET");
   const verify = need("STRAVA_WEBHOOK_VERIFY_TOKEN");
+  const eventSecret = need("STRAVA_WEBHOOK_EVENT_SECRET");
   const appUrl = need("NEXT_PUBLIC_APP_URL").replace(/\/$/, "");
-  const callback = `${appUrl}/api/strava/webhook`;
+  const callbackUrl = new URL(`${appUrl}/api/strava/webhook`);
+  callbackUrl.searchParams.set("secret", eventSecret);
 
   const body = new URLSearchParams({
     client_id: id,
     client_secret: secret,
-    callback_url: callback,
+    callback_url: callbackUrl.toString(),
     verify_token: verify,
   });
 
@@ -101,6 +106,9 @@ async function main() {
     case "create": {
       const sub = await create();
       console.log("created:", JSON.stringify(sub, null, 2));
+      console.log(
+        "Set STRAVA_WEBHOOK_SUBSCRIPTION_ID to this subscription id in every deployed environment.",
+      );
       break;
     }
     case "delete": {

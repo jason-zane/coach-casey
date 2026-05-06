@@ -60,6 +60,7 @@ export async function buildChatContext(
         .from("messages")
         .select("id, thread_id, athlete_id, kind, body, meta, created_at")
         .eq("thread_id", threadId)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(historyTurns),
       admin

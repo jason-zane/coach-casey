@@ -21,6 +21,7 @@ export async function datesWithActivity(
       .from("messages")
       .select("created_at")
       .eq("thread_id", threadId)
+      .is("deleted_at", null)
       .gte("created_at", start.toISOString())
       .lt("created_at", end.toISOString()),
     supabase
@@ -60,6 +61,7 @@ export async function nearestDateWithActivityBefore(
       .from("messages")
       .select("created_at")
       .eq("thread_id", threadId)
+      .is("deleted_at", null)
       .lt("created_at", end.toISOString())
       .order("created_at", { ascending: false })
       .limit(1),

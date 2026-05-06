@@ -181,12 +181,13 @@ Upload as PNGs or JPEGs.
    working at the 1-athlete / 1k-requests-per-day cap.
 3. On approval: register the production webhook subscription:
    ```sh
-   pnpm tsx scripts/strava-webhook-subscribe.ts
+   pnpm tsx scripts/strava-webhook-subscribe.ts create
    ```
    This reads `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`,
-   `STRAVA_WEBHOOK_VERIFY_TOKEN`, and `NEXT_PUBLIC_APP_URL` from the
-   environment, registers the subscription, and prints the resulting
-   `subscription_id`.
+   `STRAVA_WEBHOOK_VERIFY_TOKEN`, `STRAVA_WEBHOOK_EVENT_SECRET`, and
+   `NEXT_PUBLIC_APP_URL` from the environment, registers the subscription,
+   and prints the resulting `subscription_id`. Store that id as
+   `STRAVA_WEBHOOK_SUBSCRIPTION_ID` in every deployed environment.
 
 ---
 

@@ -340,7 +340,6 @@ export function HomeSurface({
           }
         };
 
-        // eslint-disable-next-line no-constant-condition
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -499,7 +498,6 @@ export function HomeSurface({
     // read, separate from the render-driven updates the rule guards against.
     const restored = readQueue();
     if (restored.length > 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMessages((prev) => {
         const existingIds = new Set(prev.map((m) => m.id));
         const toInsert = restored

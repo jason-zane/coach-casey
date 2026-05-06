@@ -16,6 +16,16 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+function sameOriginPath(value, fallback) {
+  try {
+    const url = new URL(value || fallback, self.location.origin);
+    if (url.origin !== self.location.origin) return fallback;
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return fallback;
+  }
+}
+
 self.addEventListener("push", (event) => {
   let payload = {};
   try {
@@ -29,14 +39,14 @@ self.addEventListener("push", (event) => {
   const title = payload.title || "Coach Casey";
   const options = {
     body: payload.body || "",
-    icon: payload.icon || "/icon-192.png",
+    icon: sameOriginPath(payload.icon, "/icon-192.png"),
     badge: "/icon-192.png",
     tag: payload.tag,
     // renotify=true forces the device to re-alert when an existing tag is
     // replaced — important so an updated debrief doesn't slide in silently.
     renotify: Boolean(payload.tag),
     data: {
-      url: payload.url || "/app",
+      url: sameOriginPath(payload.url, "/app"),
     },
   };
 
@@ -45,7 +55,10 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const target = (event.notification.data && event.notification.data.url) || "/app";
+  const target = sameOriginPath(
+    event.notification.data && event.notification.data.url,
+    "/app",
+  );
 
   event.waitUntil(
     (async () => {

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { generateDebriefForActivity } from "@/app/actions/debrief";
-import { generateCrossTrainingAckForActivity } from "@/app/actions/cross-training";
+import { generateDebriefForActivity } from "@/lib/server/debrief-pipeline";
+import { generateCrossTrainingAckForActivity } from "@/lib/server/cross-training-pipeline";
 import { classifyActivityType } from "@/lib/strava/activity-types";
 
 export const runtime = "nodejs";

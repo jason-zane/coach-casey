@@ -92,8 +92,7 @@ export default function PrivacyPage() {
             <p>
               When you connect Strava, we receive the data Strava&apos;s API
               returns under the scopes you grant (
-              <code>read</code>, <code>activity:read_all</code>,{" "}
-              <code>activity:write</code>,{" "}
+              <code>read</code>, <code>activity:read_all</code>, and{" "}
               <code>profile:read_all</code>):
             </p>
             <ul>
@@ -109,15 +108,10 @@ export default function PrivacyPage() {
               </li>
             </ul>
             <p>
-              <strong>What we write back to Strava.</strong> After each
-              post-run debrief, we append a single short coach&apos;s note
-              from Coach Casey to the end of that activity&apos;s
-              description, followed by an attribution line. We do not
-              modify activity titles, distance, time, or any other field,
-              and we never delete or replace anything you wrote, your
-              own description text is preserved above ours. You can edit
-              or remove the appended note in Strava at any time, and you
-              can disconnect Strava entirely from your settings page.
+              <strong>Strava access is read-only.</strong> Coach Casey does
+              not write anything back to Strava. Debriefs, follow-up
+              questions, notes, and training context stay inside Coach Casey,
+              and you can disconnect Strava entirely from your settings page.
             </p>
 
             <h3>Information collected automatically</h3>

@@ -2,9 +2,17 @@ import { NextResponse } from "next/server";
 import { after } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { fetchActivityDetail } from "@/lib/strava/client";
-import { generateDebriefForActivity } from "@/app/actions/debrief";
-import { generateCrossTrainingAckForActivity } from "@/app/actions/cross-training";
+import { generateDebriefForActivity } from "@/lib/server/debrief-pipeline";
+import { generateCrossTrainingAckForActivity } from "@/lib/server/cross-training-pipeline";
 import { classifyActivityType } from "@/lib/strava/activity-types";
+import {
+  EVENT_SECRET_HEADER,
+  authorizeWebhookSecret,
+  authorizeWebhookSubscription,
+  liveWebhookSecurityRequired,
+  parseStravaWebhookEvent,
+  type StravaWebhookEvent,
+} from "@/lib/strava/webhook-event";
 
 export const runtime = "nodejs";
 // Webhook ACKs are tiny; the real work runs in `after()`. Keeping a tight
@@ -22,21 +30,13 @@ export const maxDuration = 60;
  *
  * POST, events. Strava delivers { aspect_type, object_type, object_id,
  *   owner_id, subscription_id, updates }. We ACK with 200 in under two
- *   seconds and do the real work in an async hook (`after()`).
+ *   seconds and do the real work in an async hook (`after()`). The callback
+ *   URL must include `?secret=$STRAVA_WEBHOOK_EVENT_SECRET`; Strava does not
+ *   sign events, so this is our application-level shared secret.
  *
  * One subscription per application. Managed via
  * `scripts/strava-webhook-subscribe.ts`.
  */
-
-type StravaWebhookEvent = {
-  aspect_type: "create" | "update" | "delete";
-  event_time: number;
-  object_id: number; // activity id (or athlete id for athlete events)
-  object_type: "activity" | "athlete";
-  owner_id: number; // strava athlete id
-  subscription_id: number;
-  updates?: Record<string, unknown>;
-};
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -61,12 +61,29 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  let event: StravaWebhookEvent;
+  const auth = authorizeWebhookPost(request);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
+  let raw: unknown;
   try {
-    event = (await request.json()) as StravaWebhookEvent;
+    raw = await request.json();
   } catch {
-    // Malformed body, acknowledge anyway so Strava doesn't retry endlessly.
-    return new Response(null, { status: 200 });
+    return NextResponse.json({ error: "malformed webhook body" }, { status: 400 });
+  }
+
+  const event = parseStravaWebhookEvent(raw);
+  if (!event) {
+    return NextResponse.json({ error: "invalid webhook event" }, { status: 400 });
+  }
+
+  const subscription = authorizeSubscription(event);
+  if (!subscription.ok) {
+    return NextResponse.json(
+      { error: subscription.error },
+      { status: subscription.status },
+    );
   }
 
   // Handle the event off the response path. `after()` runs after the 200 is
@@ -83,6 +100,25 @@ export async function POST(request: Request) {
   });
 
   return new Response(null, { status: 200 });
+}
+
+function authorizeWebhookPost(request: Request) {
+  const url = new URL(request.url);
+  const provided =
+    request.headers.get(EVENT_SECRET_HEADER) ?? url.searchParams.get("secret") ?? "";
+  return authorizeWebhookSecret({
+    expected: process.env.STRAVA_WEBHOOK_EVENT_SECRET,
+    provided,
+    required: liveWebhookSecurityRequired(),
+  });
+}
+
+function authorizeSubscription(event: StravaWebhookEvent) {
+  return authorizeWebhookSubscription(
+    event,
+    process.env.STRAVA_WEBHOOK_SUBSCRIPTION_ID,
+    liveWebhookSecurityRequired(),
+  );
 }
 
 async function handleEvent(event: StravaWebhookEvent): Promise<void> {

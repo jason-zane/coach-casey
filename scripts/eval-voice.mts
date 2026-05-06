@@ -54,12 +54,6 @@ const MOCK_FOLLOWUPS = [
   "Was today meant to be threshold, or did you end up there by feel?",
 ];
 
-const MOCK_STRAVA_BLURBS = [
-  "Three reps, three of the same pace. That's not luck, that's pacing.",
-  "An easy run that stayed easy. Underrated.",
-  "Held the line on an easy day. The unsexy move that makes Sunday's long run possible.",
-];
-
 const MOCK_RPE_BRANCHED = [
   "Came in higher than the shape of the run suggests, 8 on something easy. What was going on?",
   "Softer number than I'd have expected for that one. Conservative, or feeling sharp?",
@@ -128,9 +122,6 @@ function buildCorpus(): Sample[] {
   );
   MOCK_FOLLOWUPS.forEach((text, i) =>
     samples.push({ label: `mock.followup.${i}`, text }),
-  );
-  MOCK_STRAVA_BLURBS.forEach((text, i) =>
-    samples.push({ label: `mock.strava-blurb.${i}`, text, profile: "eavesdropping" }),
   );
   MOCK_RPE_BRANCHED.forEach((text, i) =>
     samples.push({ label: `mock.rpe-branched.${i}`, text }),

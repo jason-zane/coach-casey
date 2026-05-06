@@ -51,7 +51,7 @@ export async function generateNextValidationObservation(): Promise<{
   if (done) return { text: "", done: true, sequenceIdx: priorList.length };
 
   const nextIdx = priorList.length;
-  const { data: inserted, error } = await admin
+  const { error } = await admin
     .from("validation_observations")
     .insert({
       athlete_id: athlete.id,

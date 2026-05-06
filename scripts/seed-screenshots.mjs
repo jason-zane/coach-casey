@@ -11,8 +11,8 @@
 // seeded `goal_races` row replaces any existing active row so the
 // about-you page screenshots cleanly.
 //
-// Synthetic activities have synthetic strava_ids; the Strava description
-// writeback path will silently no-op (no real activity to update).
+// Synthetic activities have synthetic strava_ids; external Strava links are
+// only illustrative in seeded screenshots.
 
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";

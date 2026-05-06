@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { generateCrossTrainingAckForActivity } from "@/app/actions/cross-training";
+import { generateCrossTrainingAckForActivity } from "@/lib/server/cross-training-pipeline";
 
 /**
  * Dev trigger for the cross-training acknowledgement pipeline. Mirrors

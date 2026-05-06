@@ -27,7 +27,7 @@ export default async function HomePage() {
   if (!athlete.onboarding_completed_at) redirect("/onboarding");
 
   const threadId = await ensureThread(athlete.id as string);
-  await seedEmptyStateIfNeeded(threadId, athlete.id as string);
+  await seedEmptyStateIfNeeded(threadId);
 
   const [thread, window] = await Promise.all([
     loadThread(athlete.id as string),

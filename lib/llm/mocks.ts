@@ -35,12 +35,11 @@ export function mockMode(): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Debrief, follow-up, strava-blurb (one shape, three outputs)
+// Debrief and follow-up (one shape, two outputs)
 
 export type MockDebriefOutput = {
   body: string;
   followUp: string | null;
-  stravaBlurb: string | null;
 };
 
 export function mockDebrief(ctx: DebriefContext): MockDebriefOutput {
@@ -72,11 +71,7 @@ export function mockDebrief(ctx: DebriefContext): MockDebriefOutput {
       ? "Calf still holding up alright after that one?"
       : null;
 
-  const stravaBlurb = a.hasWorkoutShape
-    ? "Three reps, three of the same pace. That's not luck, that's pacing."
-    : "An easy run that stayed easy. Underrated.";
-
-  return { body, followUp, stravaBlurb };
+  return { body, followUp };
 }
 
 // ---------------------------------------------------------------------------

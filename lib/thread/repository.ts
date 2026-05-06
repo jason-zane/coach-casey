@@ -80,6 +80,7 @@ async function loadWindow(
     .from("messages")
     .select(MESSAGE_COLUMNS)
     .eq("thread_id", threadId)
+    .is("deleted_at", null)
     .gte("created_at", start.toISOString())
     .order("created_at", { ascending: true });
 
@@ -95,6 +96,7 @@ async function loadWindow(
     .from("messages")
     .select("id", { count: "exact", head: true })
     .eq("thread_id", threadId)
+    .is("deleted_at", null)
     .lt("created_at", start.toISOString());
 
   // When the window is empty but the thread has older history, advance the
@@ -153,6 +155,7 @@ export async function loadAroundDate(
     .from("messages")
     .select(MESSAGE_COLUMNS)
     .eq("thread_id", threadId)
+    .is("deleted_at", null)
     .gte("created_at", start.toISOString())
     .lt("created_at", end.toISOString())
     .order("created_at", { ascending: true });
@@ -215,6 +218,7 @@ export async function countUnread(
     .from("messages")
     .select("id", { count: "exact", head: true })
     .eq("thread_id", threadId)
+    .is("deleted_at", null)
     .neq("kind", "chat_user");
   if (lastViewedAt) query = query.gt("created_at", lastViewedAt);
 
