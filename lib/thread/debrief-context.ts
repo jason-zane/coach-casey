@@ -100,6 +100,12 @@ export type DebriefContext = {
   arcWeeks: DebriefWeekAggregate[];
   arcRuns: DebriefArcRun[];
   activePlanText: string | null;
+  /**
+   * ISO timestamp of the active plan's upload. Lets the prompt renderer
+   * surface plan staleness so Casey can recognise (and optionally prompt
+   * for) a plan that's drifted out of date. Null when there's no plan.
+   */
+  activePlanUploadedAt: string | null;
   injuries: MemoryItem[];
   lifeContext: MemoryItem[];
   goalRaces: DebriefGoalRace[];
@@ -328,7 +334,7 @@ export async function buildDebriefContext(
       .limit(80),
     admin
       .from("training_plans")
-      .select("raw_text")
+      .select("raw_text, created_at")
       .eq("athlete_id", athleteId)
       .eq("is_active", true)
       .order("created_at", { ascending: false })
@@ -487,6 +493,8 @@ export async function buildDebriefContext(
     arcWeeks: aggregateWeeks(arcRuns),
     arcRuns,
     activePlanText: (planRes.data?.raw_text as string | null) ?? null,
+    activePlanUploadedAt:
+      ((planRes.data as { created_at?: string } | null)?.created_at as string | null) ?? null,
     injuries,
     lifeContext,
     goalRaces,

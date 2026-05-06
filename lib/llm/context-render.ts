@@ -99,16 +99,41 @@ export function renderGoalRacesBlock(races: GoalRaceInput[]): string | null {
 
 export function renderActivePlanBlock(
   planText: string | null,
-  opts: { fallback?: "omit" | "say-none" } = {},
+  opts: {
+    fallback?: "omit" | "say-none";
+    /**
+     * ISO timestamp of when this plan was uploaded. When present, the
+     * renderer adds a "(uploaded N days ago)" tag on the heading so the
+     * LLM can read staleness without a separate field. Useful for
+     * "your plan is two blocks old, want to upload again?" follow-ups.
+     */
+    uploadedAt?: string | null;
+  } = {},
 ): string | null {
-  const { fallback = "omit" } = opts;
+  const { fallback = "omit", uploadedAt = null } = opts;
   if (planText && planText.trim().length > 0) {
-    return `# Active training plan\n${planText.trim()}`;
+    const header = uploadedAt
+      ? `# Active training plan (uploaded ${describePlanAge(uploadedAt)})`
+      : "# Active training plan";
+    return `${header}\n${planText.trim()}`;
   }
   if (fallback === "say-none") {
     return "# Active training plan\nNo plan uploaded.";
   }
   return null;
+}
+
+function describePlanAge(uploadedAtIso: string): string {
+  const ms = Date.now() - new Date(uploadedAtIso).getTime();
+  if (Number.isNaN(ms) || ms < 0) return "recently";
+  const days = Math.floor(ms / (24 * 60 * 60 * 1000));
+  if (days <= 0) return "today";
+  if (days === 1) return "1 day ago";
+  if (days < 7) return `${days} days ago`;
+  if (days < 14) return "about a week ago";
+  if (days < 30) return `about ${Math.round(days / 7)} weeks ago`;
+  if (days < 60) return "about a month ago";
+  return `${Math.floor(days / 30)} months ago`;
 }
 
 // ---------------------------------------------------------------------------
