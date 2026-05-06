@@ -14,6 +14,7 @@ import {
   formatNiggleHeader,
   loadAthletePageData,
 } from "@/lib/athlete/page-data";
+import { isAdminEmail } from "@/lib/admin/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,7 @@ export default async function AthletePage() {
 
   const data = await loadAthletePageData(athlete.id as string);
   const { profile, goalRace, weekly, niggles, lifeContext, memory, activePlan } = data;
+  const isAdmin = isAdminEmail(user.email ?? null);
 
   const { data: conn } = await supabase
     .from("strava_connections")
@@ -322,6 +324,23 @@ export default async function AthletePage() {
             </div>
           </div>
         </Section>
+
+        {isAdmin && (
+          <Section title="Admin">
+            <p className="text-[13px] leading-[1.55] text-ink-muted">
+              Cohort overview and admin controls. Only visible to addresses
+              listed in ADMIN_EMAILS.
+            </p>
+            <div className="pt-2">
+              <Link
+                href="/app/admin"
+                className="inline-flex items-center h-9 px-3 rounded-[6px] border border-rule text-ink text-[13px] font-medium hover:bg-rule/40 transition-colors duration-150"
+              >
+                Open admin
+              </Link>
+            </div>
+          </Section>
+        )}
 
         <Section title="Privacy">
           <p className="text-[13px] leading-[1.55] text-ink-muted">
