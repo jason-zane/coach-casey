@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/admin/auth";
 import { loadAdminPageData } from "@/lib/admin/page-data";
 import { TestUserToggle } from "./_test-user-toggle";
 import { GenerateWeeklyReviewButton } from "./_generate-weekly-review-button";
+import { RegenerateDebriefButton } from "./_regenerate-debrief-button";
 
 export const dynamic = "force-dynamic";
 
@@ -116,7 +117,10 @@ export default async function AdminPage() {
                       />
                     </Td>
                     <Td>
-                      <GenerateWeeklyReviewButton athleteId={a.id} />
+                      <div className="flex flex-col gap-1">
+                        <GenerateWeeklyReviewButton athleteId={a.id} />
+                        <RegenerateDebriefButton athleteId={a.id} />
+                      </div>
                     </Td>
                   </tr>
                 ))}

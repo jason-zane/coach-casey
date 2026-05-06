@@ -5,6 +5,9 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/admin/auth";
 import { generateWeeklyReviewForAthlete } from "@/app/actions/weekly-review";
+import { generateDebriefForActivity } from "@/lib/server/debrief-pipeline";
+import { generateCrossTrainingAckForActivity } from "@/lib/server/cross-training-pipeline";
+import { classifyActivityType } from "@/lib/strava/activity-types";
 
 /**
  * Toggle the is_test_user flag on an athlete. Used to mark friends /
@@ -59,6 +62,53 @@ export async function adminGenerateWeeklyReview(formData: FormData) {
     weekStartIso: weekStart,
     weekEndIso: weekEnd,
   });
+
+  revalidatePath("/app/admin");
+}
+
+/**
+ * Force-regenerate the debrief (or cross-training ack) for the most
+ * recent activity owned by this athlete. The 30-min cron only scans the
+ * last 48h, so when a debrief is missing for an older activity (a
+ * webhook drop coinciding with a deploy bounce or transient LLM
+ * failure), the cron can't recover it. This action lets an admin
+ * recover that activity by hand.
+ *
+ * Always passes `force: true` so it both creates a missing debrief and
+ * replaces a stale one.
+ */
+export async function adminRegenerateLatestDebrief(formData: FormData) {
+  const gate = await requireAdmin();
+  if (!gate.ok) redirect(gate.redirect);
+
+  const athleteId = String(formData.get("athlete_id") ?? "").trim();
+  if (!athleteId) {
+    throw new Error("adminRegenerateLatestDebrief: athlete_id required");
+  }
+
+  const admin = createAdminClient();
+  const { data: latest } = await admin
+    .from("activities")
+    .select("id, activity_type")
+    .eq("athlete_id", athleteId)
+    .order("start_date_local", { ascending: false })
+    .limit(1)
+    .maybeSingle<{ id: string; activity_type: string | null }>();
+
+  if (!latest) {
+    throw new Error("adminRegenerateLatestDebrief: athlete has no activities");
+  }
+
+  const cls = classifyActivityType(latest.activity_type);
+  if (cls === "run") {
+    await generateDebriefForActivity(athleteId, latest.id, { force: true });
+  } else if (cls === "cross_training" || cls === "catch_all") {
+    await generateCrossTrainingAckForActivity(athleteId, latest.id, { force: true });
+  } else {
+    throw new Error(
+      `adminRegenerateLatestDebrief: latest activity ${latest.id} is type ${latest.activity_type}, no handler`,
+    );
+  }
 
   revalidatePath("/app/admin");
 }
