@@ -31,11 +31,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  checkVoice,
-  type VoiceProfile,
-  type VoiceCheckResult,
-} from "../lib/llm/voice-check.ts";
+import { checkVoice, type VoiceProfile } from "../lib/llm/voice-check.ts";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
