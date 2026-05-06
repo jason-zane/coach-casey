@@ -2,6 +2,7 @@ import "server-only";
 
 import type { CrossTrainingContext } from "@/lib/thread/cross-training-context";
 import type { DebriefContext } from "@/lib/thread/debrief-context";
+import type { WeeklyReviewContext } from "@/lib/thread/weekly-review-context";
 import type { ChatStreamEvent } from "./chat";
 import type { RpeBranch } from "./followup-picker";
 import { formatPace } from "./context-render";
@@ -136,6 +137,31 @@ export const MOCK_VALIDATION_OBSERVATIONS = [
  * stream. Picks a calf/knee-aware response when the user message
  * mentions either, else a generic check-in.
  */
+/**
+ * Deterministic weekly-review body for mock mode. Light enough to look
+ * like a real review, structurally faithful to the prompt's required
+ * shape (one-sentence opener + 3-5 short paragraphs, no markdown), and
+ * passes the voice-check regex set.
+ */
+export function mockWeeklyReview(ctx: WeeklyReviewContext): string {
+  const totalKm = ctx.weekRunKm.toFixed(1);
+  const runCount = ctx.weekRunCount;
+  if (runCount === 0 && ctx.weekCrossTraining.length === 0) {
+    return "Quiet one. If that was deliberate, fold the reason into next week's read; if not, talk to me when you can.";
+  }
+  if (runCount === 0) {
+    return `Cross-training only this week, ${ctx.weekCrossTraining.length} sessions, no runs. Easy week to read at the surface, harder to read underneath without the running data, so worth saying out loud how the body felt by Sunday.\n\nIn the four-week arc this lands as a deliberate dip rather than a drift, and the timing fits a pull-back week. Whatever sent the running away for the week, the cross-training kept the engine on.`;
+  }
+  const opener = `${runCount} runs this week, ${totalKm} km in the legs, the shape reads honestly against the four-week arc.`;
+  const arcLine = ctx.arcWeeks.length
+    ? `In the four-week arc this is a ${runCount >= 5 ? "build" : "hold"} week, the volume sitting where the prior weeks set you up to go.`
+    : "Early in the picture I have of you, so I'm reading this week mostly on its own merits.";
+  const planLine = ctx.activePlanText
+    ? "The week mostly tracked the plan, the workout day landed where it was meant to and the long run came in within range."
+    : "Without a plan to read against I'm reading the shape, not the prescription, and the shape is steady.";
+  return `${opener}\n\n${arcLine}\n\n${planLine}\n\nNothing flagged that needs an answer right now. Talk to me if anything in the week felt off.`;
+}
+
 export async function* mockChatStream(userText: string): AsyncGenerator<ChatStreamEvent> {
   const lower = userText.toLowerCase();
   const response =

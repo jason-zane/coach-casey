@@ -144,7 +144,10 @@ function renderStableContext(ctx: DebriefContext): string {
   const goalBlock = renderGoalRacesBlock(ctx.goalRaces);
   if (goalBlock) parts.push(goalBlock);
 
-  const planBlock = renderActivePlanBlock(ctx.activePlanText, { fallback: "omit" });
+  const planBlock = renderActivePlanBlock(ctx.activePlanText, {
+    fallback: "omit",
+    uploadedAt: ctx.activePlanUploadedAt,
+  });
   if (planBlock) parts.push(planBlock);
 
   const injuriesBlock = renderMemoryItemsBlock("Known injuries and niggles", ctx.injuries, {

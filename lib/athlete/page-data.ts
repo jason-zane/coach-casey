@@ -61,6 +61,18 @@ export type MemoryProgress = {
   caseyMessages: number;
 };
 
+export type ActivePlan = {
+  id: string;
+  source: "text" | "image" | "pdf";
+  sourceFilename: string | null;
+  rawText: string;
+  /** Whether the athlete reviewed an extraction. False for pasted plans. */
+  confirmed: boolean;
+  uploadedAt: string;
+  /** Days since upload, rounded down. Drives the "your plan is N weeks old" copy. */
+  ageDays: number;
+};
+
 export type AthletePageData = {
   profile: AthleteProfile;
   goalRace: GoalRace | null;
@@ -68,6 +80,7 @@ export type AthletePageData = {
   niggles: Niggle[];
   lifeContext: LifeContextItem[];
   memory: MemoryProgress;
+  activePlan: ActivePlan | null;
 };
 
 type MemoryRow = {
@@ -150,6 +163,7 @@ export async function loadAthletePageData(
     runsCountRes,
     xtCountRes,
     caseyCountRes,
+    activePlanRes,
   ] = await Promise.all([
     admin
       .from("athletes")
@@ -197,6 +211,14 @@ export async function loadAthletePageData(
       .select("id", { count: "exact", head: true })
       .eq("athlete_id", athleteId)
       .eq("kind", "chat_casey"),
+    admin
+      .from("training_plans")
+      .select("id, source, source_filename, raw_text, confirmed_at, created_at")
+      .eq("athlete_id", athleteId)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   if (athleteRes.error || !athleteRes.data) {
@@ -301,6 +323,39 @@ export async function loadAthletePageData(
     caseyMessages: caseyCountRes.count ?? 0,
   };
 
+  const planRow = activePlanRes.data as
+    | {
+        id: string;
+        source: string | null;
+        source_filename: string | null;
+        raw_text: string | null;
+        confirmed_at: string | null;
+        created_at: string;
+      }
+    | null;
+
+  let activePlan: ActivePlan | null = null;
+  if (planRow && planRow.raw_text) {
+    const sourceRaw = planRow.source ?? "text";
+    const source: ActivePlan["source"] =
+      sourceRaw === "pdf" || sourceRaw === "image" ? sourceRaw : "text";
+    const ageDays = Math.max(
+      0,
+      Math.floor(
+        (Date.now() - new Date(planRow.created_at).getTime()) / DAY_MS,
+      ),
+    );
+    activePlan = {
+      id: planRow.id,
+      source,
+      sourceFilename: planRow.source_filename,
+      rawText: planRow.raw_text,
+      confirmed: planRow.confirmed_at != null,
+      uploadedAt: planRow.created_at,
+      ageDays,
+    };
+  }
+
   return {
     profile,
     goalRace,
@@ -308,6 +363,7 @@ export async function loadAthletePageData(
     niggles,
     lifeContext,
     memory,
+    activePlan,
   };
 }
 
