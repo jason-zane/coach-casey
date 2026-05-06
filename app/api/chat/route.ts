@@ -7,22 +7,38 @@ import {
 } from "@/lib/thread/repository";
 import { buildChatContext } from "@/lib/thread/context";
 import { streamChat } from "@/lib/llm/chat";
+import {
+  MAX_CHAT_BODY_CHARS,
+  MAX_CHAT_REQUEST_BYTES,
+  PayloadTooLargeError,
+  checkChatRateLimit as checkChatRateLimitForBucket,
+  cleanMemoryContent,
+  cleanMemoryTag,
+  cleanMemoryTags,
+  isDeclaredPayloadTooLarge,
+  type ChatRateBucket,
+} from "@/lib/chat/security";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 type ChatRequest = { body?: string };
 
+const chatRateState = globalThis as typeof globalThis & {
+  __coachCaseyChatRate?: Map<string, ChatRateBucket>;
+};
+
 export async function POST(req: NextRequest) {
+  if (isDeclaredPayloadTooLarge(req.headers.get("content-length"))) {
+    return jsonError("request too large", 413);
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return new Response(JSON.stringify({ error: "unauthorized" }), {
-      status: 401,
-      headers: { "content-type": "application/json" },
-    });
+    return jsonError("unauthorized", 401);
   }
 
   const { data: athlete } = await supabase
@@ -31,22 +47,40 @@ export async function POST(req: NextRequest) {
     .eq("user_id", user.id)
     .maybeSingle();
   if (!athlete) {
-    return new Response(JSON.stringify({ error: "no athlete" }), {
-      status: 400,
-      headers: { "content-type": "application/json" },
-    });
+    return jsonError("no athlete", 400);
   }
 
-  const json: ChatRequest = await req.json().catch(() => ({}));
+  let json: ChatRequest;
+  try {
+    const raw = await readLimitedText(req, MAX_CHAT_REQUEST_BYTES);
+    const parsed = raw ? JSON.parse(raw) : {};
+    json =
+      parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as ChatRequest)
+        : {};
+  } catch (err) {
+    if (err instanceof PayloadTooLargeError) {
+      return jsonError("request too large", 413);
+    }
+    return jsonError("invalid json", 400);
+  }
+
   const userText = (json.body ?? "").trim();
   if (!userText) {
-    return new Response(JSON.stringify({ error: "empty body" }), {
-      status: 400,
-      headers: { "content-type": "application/json" },
-    });
+    return jsonError("empty body", 400);
+  }
+  if (userText.length > MAX_CHAT_BODY_CHARS) {
+    return jsonError("message too long", 413);
   }
 
   const athleteId = athlete.id as string;
+  const rate = checkChatRateLimit(athleteId);
+  if (!rate.ok) {
+    return jsonError("rate limit exceeded", 429, {
+      "retry-after": String(rate.retryAfterSeconds),
+    });
+  }
+
   const threadId = await ensureThread(athleteId);
   const userMessage = await appendAthleteMessage(threadId, athleteId, userText);
 
@@ -119,6 +153,58 @@ export async function POST(req: NextRequest) {
   });
 }
 
+function jsonError(
+  error: string,
+  status: number,
+  headers?: Record<string, string>,
+): Response {
+  return new Response(JSON.stringify({ error }), {
+    status,
+    headers: {
+      "content-type": "application/json",
+      ...headers,
+    },
+  });
+}
+
+async function readLimitedText(
+  req: NextRequest,
+  maxBytes: number,
+): Promise<string> {
+  if (!req.body) return "";
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (!value) continue;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => {});
+      throw new PayloadTooLargeError();
+    }
+    chunks.push(value);
+  }
+
+  const body = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(body);
+}
+
+function checkChatRateLimit(
+  athleteId: string,
+): { ok: true } | { ok: false; retryAfterSeconds: number } {
+  const buckets = chatRateState.__coachCaseyChatRate ?? new Map();
+  chatRateState.__coachCaseyChatRate = buckets;
+  return checkChatRateLimitForBucket(athleteId, buckets);
+}
+
 async function executeToolEffects(
   athleteId: string,
   tools: { name: string; input: Record<string, unknown> }[],
@@ -135,18 +221,15 @@ async function executeToolEffects(
 
   for (const t of tools) {
     if (t.name === "remember_context") {
-      const content = typeof t.input.content === "string" ? t.input.content.trim() : "";
+      const content = cleanMemoryContent(t.input.content);
       if (!content) continue;
-      const tags = Array.isArray(t.input.tags)
-        ? (t.input.tags as unknown[]).filter((x): x is string => typeof x === "string")
-        : [];
+      const tags = cleanMemoryTags(t.input.tags);
       rows.push({ athlete_id: athleteId, kind: "context", content, tags, source: "chat" });
     } else if (t.name === "remember_injury") {
-      const content = typeof t.input.content === "string" ? t.input.content.trim() : "";
-      const bodyPart =
-        typeof t.input.body_part === "string" ? t.input.body_part.trim() : "";
+      const content = cleanMemoryContent(t.input.content);
+      const bodyPart = cleanMemoryTag(t.input.body_part);
       if (!content) continue;
-      const tags = bodyPart ? [bodyPart.toLowerCase()] : [];
+      const tags = bodyPart ? [bodyPart] : [];
       rows.push({ athlete_id: athleteId, kind: "injury", content, tags, source: "chat" });
     }
   }

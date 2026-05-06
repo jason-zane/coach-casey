@@ -13,7 +13,6 @@ import { logVoiceFindings } from "./voice-check";
 import type {
   CrossTrainingActivity,
   CrossTrainingContext,
-  CrossTrainingMemoryItem,
   CrossTrainingPattern,
 } from "@/lib/thread/cross-training-context";
 

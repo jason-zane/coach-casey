@@ -29,7 +29,6 @@ export function BottomSheet({ open, onClose, ariaLabel, children }: Props) {
       return;
     }
     if (!render) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setExiting(true);
     const id = setTimeout(() => {
       setRender(false);

@@ -41,6 +41,7 @@ export async function searchThread(
     .from("messages")
     .select("id, kind, body, created_at")
     .eq("thread_id", threadId)
+    .is("deleted_at", null)
     .textSearch("search_tsv", tsQuery, { config: "simple" })
     .order("created_at", { ascending: false })
     .limit(limit);

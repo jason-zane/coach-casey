@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/server";
 import { buildCrossTrainingContext } from "@/lib/thread/cross-training-context";
@@ -59,6 +59,10 @@ async function findExistingAck(
  *  - Webhook (primary): Strava activity.create event for a non-run type.
  *  - Cron (safety net): `/api/cron/strava-poll` picks up missed activities.
  *  - Dev trigger: `/api/dev/cross-training` for local testing.
+ *
+ * This module is server-only because it uses the service-role client and can
+ * trigger LLM/push side effects. UI-triggered mutations must wrap it in a thin
+ * authenticated action rather than importing it into a Client Component.
  *
  * Substitution detection is dormant in V1, `planned_sessions` doesn't
  * exist yet (plans are stored as raw text). When plan extraction lands,

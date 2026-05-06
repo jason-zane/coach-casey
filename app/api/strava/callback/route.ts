@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import {
   exchangeCodeForToken,
   fetchAthleteProfileWithToken,
   isLiveMode,
 } from "@/lib/strava/client";
+
+const STRAVA_STATE_COOKIE = "strava_oauth_state";
 
 export async function GET(request: Request) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
@@ -13,15 +16,17 @@ export async function GET(request: Request) {
   const state = searchParams.get("state");
   const error = searchParams.get("error");
   const scope = searchParams.get("scope") ?? "";
+  const cookieStore = await cookies();
+  const expectedState = cookieStore.get(STRAVA_STATE_COOKIE)?.value ?? null;
 
   if (error || !code) {
-    return NextResponse.redirect(
+    return redirectClearingState(
       `${appUrl}/onboarding/strava?error=${encodeURIComponent(error ?? "no_code")}`,
     );
   }
 
   if (!isLiveMode()) {
-    return NextResponse.redirect(
+    return redirectClearingState(
       `${appUrl}/onboarding/strava?error=not_live`,
     );
   }
@@ -30,14 +35,20 @@ export async function GET(request: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user || (state && state !== user.id)) {
-    return NextResponse.redirect(`${appUrl}/signin`);
+  if (!user) {
+    return redirectClearingState(`${appUrl}/signin`);
+  }
+
+  if (!state || !expectedState || state !== expectedState) {
+    return redirectClearingState(
+      `${appUrl}/onboarding/strava?error=state_mismatch`,
+    );
   }
 
   // Minimum required scope: activity:read_all is needed to read the athlete's
   // private training data. Bail if the athlete de-selected it.
   if (!scope.includes("activity:read_all")) {
-    return NextResponse.redirect(
+    return redirectClearingState(
       `${appUrl}/onboarding/strava?error=missing_scope`,
     );
   }
@@ -49,7 +60,7 @@ export async function GET(request: Request) {
     .eq("user_id", user.id)
     .maybeSingle();
   if (!athlete) {
-    return NextResponse.redirect(`${appUrl}/signin`);
+    return redirectClearingState(`${appUrl}/signin`);
   }
 
   try {
@@ -143,11 +154,23 @@ export async function GET(request: Request) {
     // Don't run ingest inline, let the reading-state page do it behind
     // the designed loading moment. Keeps the callback fast so the browser
     // isn't hanging on the redirect back from Strava.
-    return NextResponse.redirect(`${appUrl}/onboarding/reading`);
+    return redirectClearingState(`${appUrl}/onboarding/reading`);
   } catch (e) {
     console.error("Strava callback failed", e);
-    return NextResponse.redirect(
+    return redirectClearingState(
       `${appUrl}/onboarding/strava?error=exchange_failed`,
     );
   }
+}
+
+function redirectClearingState(url: string): NextResponse {
+  const response = NextResponse.redirect(url);
+  response.cookies.set(STRAVA_STATE_COOKIE, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/api/strava",
+    maxAge: 0,
+  });
+  return response;
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { generateDebriefForActivity } from "@/app/actions/debrief";
+import { generateDebriefForActivity } from "@/lib/server/debrief-pipeline";
 
 /**
  * Dev trigger for the debrief pipeline. Webhooks cannot reach localhost, so

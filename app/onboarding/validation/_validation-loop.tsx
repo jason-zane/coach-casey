@@ -46,7 +46,7 @@ export function ValidationLoop({
     fetchedOnceRef.current = true;
     fetchNext();
 
-  }, []);
+  }, [entries.length]);
 
   async function fetchNext() {
     setLoading(true);

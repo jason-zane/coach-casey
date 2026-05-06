@@ -237,9 +237,8 @@ export default async function AthletePage() {
                 </Field>
               )}
               <p className="text-[13px] leading-[1.55] text-ink-muted pt-2">
-                Coach Casey reads your runs from Strava and writes a verdict
-                line back to each activity description. Disconnect at any
-                time.
+                Coach Casey reads your runs from Strava and keeps debriefs
+                inside the app. Disconnect at any time.
               </p>
               <div className="pt-3">
                 <DisconnectStravaButton action={disconnectStrava} />

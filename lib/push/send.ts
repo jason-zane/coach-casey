@@ -2,6 +2,7 @@ import "server-only";
 import webpush from "web-push";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getVapidConfig } from "./keys";
+import { sameOriginPath } from "@/lib/security/same-origin-path";
 
 let vapidConfigured = false;
 function ensureWebPushConfigured(): boolean {
@@ -70,7 +71,11 @@ export async function sendPushToAthlete(
   result.attempted = rows.length;
   if (rows.length === 0) return result;
 
-  const json = JSON.stringify(payload);
+  const json = JSON.stringify({
+    ...payload,
+    url: sameOriginPath(payload.url, "/app", appOrigin()),
+    icon: sameOriginPath(payload.icon, "/icon-192.png", appOrigin()),
+  });
 
   await Promise.all(
     rows.map(async (row) => {
@@ -128,4 +133,13 @@ function errorStatus(err: unknown): number | null {
     return typeof code === "number" ? code : null;
   }
   return null;
+}
+
+function appOrigin(): string {
+  try {
+    return new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://coachcasey.local")
+      .origin;
+  } catch {
+    return "https://coachcasey.local";
+  }
 }
