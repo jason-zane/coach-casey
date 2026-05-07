@@ -68,6 +68,18 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // iOS PWA splash images are device-specific and only ever
+        // re-generated when the icon or palette changes. Same
+        // immutable policy as the icons above.
+        source: "/splash/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
         // The manifest is small and rarely changes; treat it like the
         // icons but with revalidation so a tweak (say, a new theme
         // colour) propagates quickly.
