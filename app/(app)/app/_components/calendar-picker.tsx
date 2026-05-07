@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { fetchCalendarDates } from "@/app/actions/thread";
 import { BottomSheet } from "./bottom-sheet";
 
@@ -48,11 +48,25 @@ export function CalendarPicker({ threadId, open, onClose, onPick }: Props) {
   const [mode, setMode] = useState<PickerMode>("days");
   const [pending, startTransition] = useTransition();
 
+  // Per-month cache of marked dates. Switching months no longer re-fetches
+  // a month we've already loaded this session, the dot pattern doesn't
+  // change while the sheet is open. Cleared per session by component
+  // unmount; the home surface keeps this mounted once first opened.
+  const cacheRef = useRef<Map<string, Set<string>>>(new Map());
+
   useEffect(() => {
     if (!open || mode !== "days") return;
+    const key = `${year}-${month}`;
+    const cached = cacheRef.current.get(key);
+    if (cached) {
+      setMarked(cached);
+      return;
+    }
     startTransition(async () => {
       const dates = await fetchCalendarDates(threadId, year, month);
-      setMarked(new Set(dates));
+      const set = new Set(dates);
+      cacheRef.current.set(key, set);
+      setMarked(set);
     });
   }, [open, threadId, year, month, mode]);
 

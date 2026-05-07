@@ -8,11 +8,11 @@ export type AdminAthleteRow = {
   isTestUser: boolean;
   createdAt: string;
   onboardingCompletedAt: string | null;
-  /** Most recent activity start time, null when no activities. */
+  /** Most recent activity start time within the lookback window, null otherwise. */
   lastActivityAt: string | null;
-  /** Most recent debrief or weekly_review timestamp, null when none. */
+  /** Most recent debrief or weekly_review timestamp within the lookback window. */
   lastCaseyMessageAt: string | null;
-  /** Last weekly review's week_start_iso, null when never. */
+  /** Last weekly review's week_start_iso, null when never (within window). */
   lastWeeklyReviewWeekStart: string | null;
   /** Whether Strava is connected, ignoring tokens (just presence). */
   stravaConnected: boolean;
@@ -34,45 +34,77 @@ export type AdminPageData = {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+/**
+ * Lookback window for the "last activity / last message" derivations on
+ * the admin table. Old rows beyond this window display as null in the
+ * UI. The pre-V1 path scanned every activity and every message in the
+ * system on each render, no time filter, no row cap, which made the
+ * admin page steadily slower as the data grew.
+ */
+const ADMIN_LOOKBACK_DAYS = 90;
 
 export async function loadAdminPageData(): Promise<AdminPageData> {
   const admin = createAdminClient();
+
+  const now = Date.now();
+  const sevenDaysAgoIso = new Date(now - 7 * DAY_MS).toISOString();
+  const lookbackIso = new Date(
+    now - ADMIN_LOOKBACK_DAYS * DAY_MS,
+  ).toISOString();
 
   const [
     athleteRes,
     activitiesRes,
     messagesRes,
-    weeklyReviewsRes,
     stravaRes,
+    debriefs7dRes,
+    reviews7dRes,
   ] = await Promise.all([
+    // Athletes list with user_id baked in so we can drop the legacy
+    // second lookup query.
     admin
       .from("athletes")
       .select(
-        "id, email, display_name, is_test_user, created_at, onboarding_completed_at, deleted_at",
+        "id, user_id, email, display_name, is_test_user, created_at, onboarding_completed_at",
       )
       .is("deleted_at", null)
       .order("created_at", { ascending: false }),
+    // Bounded to the lookback window. Last-activity derivations use the
+    // newest row per athlete inside the window, "active 7d" is computed
+    // from the same fetched set.
     admin
       .from("activities")
       .select("athlete_id, start_date_local")
+      .gte("start_date_local", lookbackIso)
       .order("start_date_local", { ascending: false }),
+    // Coach-Casey side messages within the window. Covers debrief +
+    // weekly_review for the "last Casey message" column and the weekly
+    // review meta lookup.
     admin
       .from("messages")
       .select("athlete_id, kind, created_at, meta")
       .in("kind", ["debrief", "cross_training_ack", "weekly_review"])
-      .order("created_at", { ascending: false }),
-    admin
-      .from("messages")
-      .select("athlete_id, meta, created_at")
-      .eq("kind", "weekly_review")
+      .gte("created_at", lookbackIso)
       .order("created_at", { ascending: false }),
     admin.from("strava_connections").select("athlete_id"),
+    // Stats counts run as head-only aggregates so they never return rows.
+    admin
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("kind", "debrief")
+      .gte("created_at", sevenDaysAgoIso),
+    admin
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("kind", "weekly_review")
+      .gte("created_at", sevenDaysAgoIso),
   ]);
 
   if (athleteRes.error) throw athleteRes.error;
 
   const athletes = (athleteRes.data ?? []) as Array<{
     id: string;
+    user_id: string;
     email: string | null;
     display_name: string | null;
     is_test_user: boolean | null;
@@ -80,7 +112,6 @@ export async function loadAdminPageData(): Promise<AdminPageData> {
     onboarding_completed_at: string | null;
   }>;
 
-  // Per-athlete derivations. Build maps once, then assemble.
   const lastActivity = new Map<string, string>();
   for (const row of (activitiesRes.data ?? []) as Array<{
     athlete_id: string;
@@ -92,27 +123,21 @@ export async function loadAdminPageData(): Promise<AdminPageData> {
   }
 
   const lastCaseyMessage = new Map<string, string>();
-  const debriefDates: string[] = [];
-  const weeklyReviewDates: string[] = [];
+  const lastWeeklyReviewWeekStart = new Map<string, string>();
   for (const row of (messagesRes.data ?? []) as Array<{
     athlete_id: string;
     kind: string;
     created_at: string;
+    meta: { week_start_iso?: string } | null;
   }>) {
     if (!lastCaseyMessage.has(row.athlete_id)) {
       lastCaseyMessage.set(row.athlete_id, row.created_at);
     }
-    if (row.kind === "debrief") debriefDates.push(row.created_at);
-    if (row.kind === "weekly_review") weeklyReviewDates.push(row.created_at);
-  }
-
-  const lastWeeklyReviewWeekStart = new Map<string, string>();
-  for (const row of (weeklyReviewsRes.data ?? []) as Array<{
-    athlete_id: string;
-    meta: { week_start_iso?: string } | null;
-    created_at: string;
-  }>) {
-    if (!lastWeeklyReviewWeekStart.has(row.athlete_id) && row.meta?.week_start_iso) {
+    if (
+      row.kind === "weekly_review" &&
+      !lastWeeklyReviewWeekStart.has(row.athlete_id) &&
+      row.meta?.week_start_iso
+    ) {
       lastWeeklyReviewWeekStart.set(row.athlete_id, row.meta.week_start_iso);
     }
   }
@@ -122,8 +147,8 @@ export async function loadAdminPageData(): Promise<AdminPageData> {
     stravaConnected.add(row.athlete_id);
   }
 
-  // Pull last_sign_in_at from auth.users via admin auth API. One call,
-  // small set, fine to slot in here. Skipped silently if it errors.
+  // Auth listing for last_sign_in_at. We already have user_id on each
+  // athlete row above, so no second athletes query needed.
   const lastSignIn = new Map<string, string>();
   try {
     const { data: authPage } = await admin.auth.admin.listUsers({
@@ -132,63 +157,41 @@ export async function loadAdminPageData(): Promise<AdminPageData> {
     });
     for (const u of authPage?.users ?? []) {
       if (u.last_sign_in_at) {
-        // The `athletes.user_id` foreign key resolves to `auth.users.id`,
-        // not `email`. We don't have user_id on the rows fetched above,
-        // so re-fetch a lookup table athlete-id by user_id. Cheaper: have
-        // already-fetched athletes carry user_id.
         lastSignIn.set(u.id, u.last_sign_in_at);
       }
     }
   } catch {
-    // ignore, just leave lastSignInAt as null
+    // Ignore, just leave lastSignInAt as null on every row.
   }
 
-  // Re-fetch the user_id for each athlete so we can match against the
-  // auth-listing lookups. Single cheap query.
-  const userIdRes = await admin
-    .from("athletes")
-    .select("id, user_id")
-    .is("deleted_at", null);
-  const athleteUserId = new Map<string, string>();
-  for (const row of (userIdRes.data ?? []) as Array<{
-    id: string;
-    user_id: string;
-  }>) {
-    athleteUserId.set(row.id, row.user_id);
+  const sevenDaysAgoMs = now - 7 * DAY_MS;
+  const activeAthletes = new Set<string>();
+  for (const [athleteId, when] of lastActivity) {
+    if (new Date(when).getTime() >= sevenDaysAgoMs) {
+      activeAthletes.add(athleteId);
+    }
   }
 
-  const rows: AdminAthleteRow[] = athletes.map((a) => {
-    const userId = athleteUserId.get(a.id);
-    return {
-      id: a.id,
-      email: a.email,
-      displayName: a.display_name,
-      isTestUser: a.is_test_user === true,
-      createdAt: a.created_at,
-      onboardingCompletedAt: a.onboarding_completed_at,
-      lastActivityAt: lastActivity.get(a.id) ?? null,
-      lastCaseyMessageAt: lastCaseyMessage.get(a.id) ?? null,
-      lastWeeklyReviewWeekStart: lastWeeklyReviewWeekStart.get(a.id) ?? null,
-      stravaConnected: stravaConnected.has(a.id),
-      lastSignInAt: userId ? (lastSignIn.get(userId) ?? null) : null,
-    };
-  });
+  const rows: AdminAthleteRow[] = athletes.map((a) => ({
+    id: a.id,
+    email: a.email,
+    displayName: a.display_name,
+    isTestUser: a.is_test_user === true,
+    createdAt: a.created_at,
+    onboardingCompletedAt: a.onboarding_completed_at,
+    lastActivityAt: lastActivity.get(a.id) ?? null,
+    lastCaseyMessageAt: lastCaseyMessage.get(a.id) ?? null,
+    lastWeeklyReviewWeekStart: lastWeeklyReviewWeekStart.get(a.id) ?? null,
+    stravaConnected: stravaConnected.has(a.id),
+    lastSignInAt: lastSignIn.get(a.user_id) ?? null,
+  }));
 
-  const sevenDaysAgo = Date.now() - 7 * DAY_MS;
   const stats: AdminCohortStats = {
     totalAthletes: rows.length,
     testUsers: rows.filter((r) => r.isTestUser).length,
-    activeLast7Days: rows.filter(
-      (r) =>
-        r.lastActivityAt &&
-        new Date(r.lastActivityAt).getTime() >= sevenDaysAgo,
-    ).length,
-    weeklyReviewsLast7Days: weeklyReviewDates.filter(
-      (d) => new Date(d).getTime() >= sevenDaysAgo,
-    ).length,
-    debriefsLast7Days: debriefDates.filter(
-      (d) => new Date(d).getTime() >= sevenDaysAgo,
-    ).length,
+    activeLast7Days: activeAthletes.size,
+    weeklyReviewsLast7Days: reviews7dRes.count ?? 0,
+    debriefsLast7Days: debriefs7dRes.count ?? 0,
   };
 
   return { athletes: rows, stats };

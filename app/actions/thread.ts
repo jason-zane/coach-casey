@@ -181,14 +181,26 @@ async function buildWelcomeBody(
   ].join("\n\n");
 }
 
-export async function seedEmptyStateIfNeeded(threadId: string) {
-  const athleteId = await requireAthleteId();
+/**
+ * Seed the welcome message when the thread is genuinely empty.
+ *
+ * The home page now only calls this on the cold path (first-ever visit
+ * with an empty recent window), so the count check that used to fire on
+ * every render is gone from the hot path. When the caller already knows
+ * which athlete owns the thread, it should pass `athleteId` to skip the
+ * action's own auth/athletes lookup.
+ */
+export async function seedEmptyStateIfNeeded(
+  threadId: string,
+  athleteId?: string,
+) {
+  const resolvedAthleteId = athleteId ?? (await requireAthleteId());
   const supabase = await createClient();
   const { data: thread } = await supabase
     .from("threads")
     .select("id")
     .eq("id", threadId)
-    .eq("athlete_id", athleteId)
+    .eq("athlete_id", resolvedAthleteId)
     .maybeSingle();
   if (!thread) throw new Error("thread not found");
 
@@ -196,20 +208,20 @@ export async function seedEmptyStateIfNeeded(threadId: string) {
     .from("messages")
     .select("id", { count: "exact", head: true })
     .eq("thread_id", threadId)
-    .eq("athlete_id", athleteId)
+    .eq("athlete_id", resolvedAthleteId)
     .is("deleted_at", null);
   if ((count ?? 0) > 0) return;
 
   // First-load welcome, folds the old onboarding "welcome" step into the
   // chat as Casey's opening message, personalized to whatever the athlete
   // told us during onboarding (runs, plan status, race, injury).
-  const body = await buildWelcomeBody(athleteId);
+  const body = await buildWelcomeBody(resolvedAthleteId);
 
   const { createAdminClient } = await import("@/lib/supabase/server");
   const admin = createAdminClient();
   await admin.from("messages").insert({
     thread_id: threadId,
-    athlete_id: athleteId,
+    athlete_id: resolvedAthleteId,
     kind: "chat_casey",
     body,
     meta: { seed: true, welcome: true },
