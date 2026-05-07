@@ -1,11 +1,11 @@
 import { loadGoalRace } from "@/lib/athlete/page-data";
 import { GoalRaceEditor } from "../_goal-race-editor";
-import { Section } from "./section-shell";
+import { Subsection } from "./section-shell";
 
 export async function GoalsSection({ athleteId }: { athleteId: string }) {
   const goalRace = await loadGoalRace(athleteId);
   return (
-    <Section title="Goals">
+    <Subsection label="Your goal race">
       <GoalRaceEditor
         initial={
           goalRace
@@ -17,6 +17,6 @@ export async function GoalsSection({ athleteId }: { athleteId: string }) {
             : null
         }
       />
-    </Section>
+    </Subsection>
   );
 }

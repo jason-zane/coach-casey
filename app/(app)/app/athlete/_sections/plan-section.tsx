@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { type ActivePlan, loadActivePlan } from "@/lib/athlete/page-data";
-import { Field, Section } from "./section-shell";
+import { Field, Subsection } from "./section-shell";
 
 export async function PlanSection({ athleteId }: { athleteId: string }) {
   const plan = await loadActivePlan(athleteId);
   return (
-    <Section title="Training plan">
+    <Subsection label="Plan">
       <PlanSummary plan={plan} />
-    </Section>
+    </Subsection>
   );
 }
 
@@ -16,9 +16,9 @@ function PlanSummary({ plan }: { plan: ActivePlan | null }) {
     return (
       <>
         <p className="text-[13px] leading-[1.55] text-ink-muted">
-          No plan on file. Coach Casey works without one, but with a plan, the
-          interpretation gets sharper, what was today supposed to be? Did the
-          run match?
+          No plan on file. Coach Casey works without one. With a plan, the
+          interpretation gets sharper. What was today supposed to be? Did
+          the run match?
         </p>
         <div className="pt-3">
           <Link

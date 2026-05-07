@@ -1,23 +1,44 @@
 /**
- * Shared chrome for athlete-page sections. The Suspense fallback uses
- * the matching skeleton primitives so the section's title is always
- * present, only the body fills in when its query resolves.
+ * Heading primitives for the athlete page. The page now reads as an
+ * editorial reflection of what Casey holds, not a settings form, so
+ * top-level sections use the serif voice and subsections use a quiet
+ * bold-sans label rather than mono uppercase. Field rows inside the
+ * editors keep the mono uppercase treatment, that's form chrome and
+ * the right register for a label sitting next to an Edit button.
  */
 
-export function Section({
-  title,
+export function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h2
+      className="text-[22px] sm:text-[24px] leading-tight font-medium text-ink"
+      style={{ fontFamily: "var(--font-serif)", letterSpacing: "-0.015em" }}
+    >
+      {children}
+    </h2>
+  );
+}
+
+export function Subsection({
+  label,
+  helper,
   children,
 }: {
-  title: string;
+  label: string;
+  helper?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-3">
-      <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-muted">
-        {title}
-      </h2>
-      <div className="space-y-2 border-t border-rule/60 pt-4">{children}</div>
-    </section>
+    <div className="border-t border-rule/40 pt-5 space-y-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="text-[13px] font-semibold text-ink">{label}</h3>
+        {helper && (
+          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-subtle">
+            {helper}
+          </span>
+        )}
+      </div>
+      <div className="space-y-2">{children}</div>
+    </div>
   );
 }
 
@@ -37,3 +58,4 @@ export function Field({
     </div>
   );
 }
+

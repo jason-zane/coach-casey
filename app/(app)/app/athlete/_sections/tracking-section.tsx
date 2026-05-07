@@ -1,15 +1,18 @@
 import { formatNiggleHeader, loadTrackingItems } from "@/lib/athlete/page-data";
 import { MemoryListEditor } from "../_memory-list-editor";
-import { Section } from "./section-shell";
+import { Subsection } from "./section-shell";
 
+/**
+ * Niggles + life context as two separate subsections. Voice rename:
+ * "Niggles" became "On the radar" because the section heading should
+ * carry the coach voice, not a clinical category label. The editor
+ * underneath still treats them as kind=injury memory items.
+ */
 export async function TrackingSection({ athleteId }: { athleteId: string }) {
   const { niggles, lifeContext } = await loadTrackingItems(athleteId);
   return (
-    <Section title="What Casey is tracking">
-      <div className="space-y-3">
-        <h3 className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-subtle">
-          Niggles
-        </h3>
+    <>
+      <Subsection label="On the radar">
         <MemoryListEditor
           kind="injury"
           addLabel={niggles.length > 0 ? "Add another" : "Add a niggle"}
@@ -29,12 +32,9 @@ export async function TrackingSection({ athleteId }: { athleteId: string }) {
             header: formatNiggleHeader(n),
           }))}
         />
-      </div>
+      </Subsection>
 
-      <div className="space-y-3 pt-4">
-        <h3 className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-subtle">
-          Life context (last 14 days)
-        </h3>
+      <Subsection label="Life context" helper="Last 14 days">
         <MemoryListEditor
           kind="context"
           addLabel={
@@ -53,7 +53,7 @@ export async function TrackingSection({ athleteId }: { athleteId: string }) {
             header: null,
           }))}
         />
-      </div>
-    </Section>
+      </Subsection>
+    </>
   );
 }
