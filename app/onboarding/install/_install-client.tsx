@@ -13,11 +13,23 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
+function isStandalonePwa(): boolean {
+  if (typeof window === "undefined") return false;
+  // Spec: matchMedia "display-mode: standalone" covers Android Chrome,
+  // desktop Chrome, and modern iOS Safari PWA installs.
+  if (window.matchMedia?.("(display-mode: standalone)")?.matches) return true;
+  // Legacy iOS Safari: navigator.standalone is set by webkit. Some older
+  // builds don't update display-mode reliably so check both.
+  const nav = window.navigator as Navigator & { standalone?: boolean };
+  return nav.standalone === true;
+}
+
 export function InstallClient({ platform }: { platform: MobilePlatform }) {
   const [deferred, setDeferred] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [autoAdvancing, setAutoAdvancing] = useState(false);
 
   useEffect(() => {
     const onBefore = (e: Event) => {
@@ -31,6 +43,21 @@ export function InstallClient({ platform }: { platform: MobilePlatform }) {
       window.removeEventListener("beforeinstallprompt", onBefore);
       window.removeEventListener("appinstalled", onInstalled);
     };
+  }, []);
+
+  // Auto-advance when the athlete is already running inside the installed
+  // PWA, opening onboarding from the home-screen icon means the install
+  // step is a tautology. Without this, anyone who installed and re-entered
+  // onboarding would stare at "add me to your home screen" instructions
+  // they've already followed. Mount-only check; standalone-mode doesn't
+  // toggle mid-session.
+  useEffect(() => {
+    if (!isStandalonePwa()) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAutoAdvancing(true);
+    startTransition(async () => {
+      await markInstalledAndAdvance();
+    });
   }, []);
 
   async function triggerNativeInstall() {
@@ -56,6 +83,14 @@ export function InstallClient({ platform }: { platform: MobilePlatform }) {
     startTransition(async () => {
       await skipInstall();
     });
+  }
+
+  if (autoAdvancing) {
+    return (
+      <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-subtle breath">
+        Already installed, continuing…
+      </p>
+    );
   }
 
   return (
@@ -144,77 +179,100 @@ function IOSSafariInstructions() {
 
 function IOSChromeInstructions() {
   return (
-    <div className="space-y-4 font-sans text-sm text-ink">
-      <p className="font-sans text-sm text-ink">
-        Two paths from Chrome. Either works.
+    <div className="space-y-5 font-sans text-sm text-ink">
+      <p className="text-ink">
+        On iPhone, only <strong>Safari</strong> can install Coach Casey as a
+        real app, with the splash, no browser bar, and notifications. Two
+        minutes to switch.
       </p>
 
-      <div className="space-y-2">
-        <p className="font-mono text-xs uppercase tracking-wider text-ink-subtle">
-          Quickest, stay in Chrome
+      <div className="space-y-3 rounded-md border border-rule bg-surface p-4">
+        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-subtle">
+          In Safari
         </p>
-        <ol className="space-y-3">
+        <CopyLinkButton primary />
+        <ol className="space-y-3 pt-1">
+          <li className="flex gap-3">
+            <span className="font-mono text-ink-subtle w-5">1.</span>
+            <span>Open <strong>Safari</strong> and paste the link.</span>
+          </li>
+          <li className="flex gap-3">
+            <span className="font-mono text-ink-subtle w-5">2.</span>
+            <span>
+              Tap the <strong>Share</strong> icon → scroll down → tap{" "}
+              <strong>Add to Home Screen</strong>.
+            </span>
+          </li>
+          <li className="flex gap-3">
+            <span className="font-mono text-ink-subtle w-5">3.</span>
+            <span>
+              Tap <strong>Add</strong>, then open Coach Casey from your home
+              screen.
+            </span>
+          </li>
+        </ol>
+      </div>
+
+      <details className="space-y-2 text-xs">
+        <summary className="cursor-pointer text-ink-muted hover:text-ink">
+          Or stick with Chrome (works, but you&rsquo;ll see the browser bar
+          and miss notifications)
+        </summary>
+        <ol className="space-y-2 pt-3 text-ink-muted">
           <li className="flex gap-3">
             <span className="font-mono text-ink-subtle w-5">1.</span>
             <span>
-              Tap the <strong>Share</strong> icon (in Chrome&rsquo;s address
-              bar or the bottom menu).
+              Tap Chrome&rsquo;s <strong>Share</strong> icon (address bar or
+              bottom menu).
             </span>
           </li>
           <li className="flex gap-3">
             <span className="font-mono text-ink-subtle w-5">2.</span>
             <span>
               Scroll and tap <strong>Add to Home Screen</strong>, then{" "}
-              <strong>Add</strong>.
+              <strong>Add</strong>. Tapping the icon will open in Chrome.
             </span>
           </li>
         </ol>
-      </div>
-
-      <div className="space-y-2 border-t border-rule/60 pt-4">
-        <p className="font-mono text-xs uppercase tracking-wider text-ink-subtle">
-          Want push notifications? Open in Safari first
-        </p>
-        <p className="text-ink-muted text-xs">
-          On iPhone, only Safari&rsquo;s install supports push. If
-          notifications matter to you, tap copy and paste into Safari.
-        </p>
-        <CopyLinkButton />
-      </div>
+      </details>
     </div>
   );
 }
 
 function IOSFirefoxInstructions() {
   return (
-    <div className="space-y-4 font-sans text-sm text-ink">
-      <ol className="space-y-3">
-        <li className="flex gap-3">
-          <span className="font-mono text-ink-subtle w-5">1.</span>
-          <span>
-            Tap Firefox&rsquo;s <strong>menu</strong> (three lines, bottom
-            right), then <strong>Share</strong>.
-          </span>
-        </li>
-        <li className="flex gap-3">
-          <span className="font-mono text-ink-subtle w-5">2.</span>
-          <span>
-            Scroll the share sheet and tap <strong>Add to Home Screen</strong>.
-          </span>
-        </li>
-        <li className="flex gap-3">
-          <span className="font-mono text-ink-subtle w-5">3.</span>
-          <span>
-            Tap <strong>Add</strong>. Then come back and continue.
-          </span>
-        </li>
-      </ol>
-      <p className="text-ink-subtle text-xs">
-        If you don&rsquo;t see Add to Home Screen, open this page in Safari
-        instead.
+    <div className="space-y-5 font-sans text-sm text-ink">
+      <p className="text-ink">
+        On iPhone, only <strong>Safari</strong> can install Coach Casey as a
+        real app, with the splash, no browser bar, and notifications. Two
+        minutes to switch.
       </p>
-      <div>
-        <CopyLinkButton />
+
+      <div className="space-y-3 rounded-md border border-rule bg-surface p-4">
+        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-subtle">
+          In Safari
+        </p>
+        <CopyLinkButton primary />
+        <ol className="space-y-3 pt-1">
+          <li className="flex gap-3">
+            <span className="font-mono text-ink-subtle w-5">1.</span>
+            <span>Open <strong>Safari</strong> and paste the link.</span>
+          </li>
+          <li className="flex gap-3">
+            <span className="font-mono text-ink-subtle w-5">2.</span>
+            <span>
+              Tap the <strong>Share</strong> icon → scroll down → tap{" "}
+              <strong>Add to Home Screen</strong>.
+            </span>
+          </li>
+          <li className="flex gap-3">
+            <span className="font-mono text-ink-subtle w-5">3.</span>
+            <span>
+              Tap <strong>Add</strong>, then open Coach Casey from your home
+              screen.
+            </span>
+          </li>
+        </ol>
       </div>
     </div>
   );
@@ -222,33 +280,44 @@ function IOSFirefoxInstructions() {
 
 function IOSGenericInstructions() {
   return (
-    <div className="space-y-4 font-sans text-sm text-ink">
-      <ol className="space-y-3">
-        <li className="flex gap-3">
-          <span className="font-mono text-ink-subtle w-5">1.</span>
-          <span>
-            Open the browser&rsquo;s <strong>Share</strong> sheet.
-          </span>
-        </li>
-        <li className="flex gap-3">
-          <span className="font-mono text-ink-subtle w-5">2.</span>
-          <span>
-            Scroll and tap <strong>Add to Home Screen</strong>.
-          </span>
-        </li>
-      </ol>
-      <p className="text-ink-subtle text-xs">
-        If your browser doesn&rsquo;t show that option, open this page in
-        Safari.
+    <div className="space-y-5 font-sans text-sm text-ink">
+      <p className="text-ink">
+        On iPhone, only <strong>Safari</strong> can install Coach Casey as a
+        real app, with the splash, no browser bar, and notifications. Two
+        minutes to switch.
       </p>
-      <div>
-        <CopyLinkButton />
+
+      <div className="space-y-3 rounded-md border border-rule bg-surface p-4">
+        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-subtle">
+          In Safari
+        </p>
+        <CopyLinkButton primary />
+        <ol className="space-y-3 pt-1">
+          <li className="flex gap-3">
+            <span className="font-mono text-ink-subtle w-5">1.</span>
+            <span>Open <strong>Safari</strong> and paste the link.</span>
+          </li>
+          <li className="flex gap-3">
+            <span className="font-mono text-ink-subtle w-5">2.</span>
+            <span>
+              Tap the <strong>Share</strong> icon → scroll down → tap{" "}
+              <strong>Add to Home Screen</strong>.
+            </span>
+          </li>
+          <li className="flex gap-3">
+            <span className="font-mono text-ink-subtle w-5">3.</span>
+            <span>
+              Tap <strong>Add</strong>, then open Coach Casey from your home
+              screen.
+            </span>
+          </li>
+        </ol>
       </div>
     </div>
   );
 }
 
-function CopyLinkButton() {
+function CopyLinkButton({ primary = false }: { primary?: boolean } = {}) {
   const [copied, setCopied] = useState(false);
   async function copy() {
     try {
@@ -264,9 +333,14 @@ function CopyLinkButton() {
     <button
       type="button"
       onClick={copy}
-      className="inline-flex items-center gap-2 rounded-md border border-rule px-4 py-2 font-sans text-sm text-ink hover:border-rule-strong"
+      className={
+        primary
+          ? "inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2.5 font-sans text-sm font-medium text-accent-ink hover:bg-accent/90"
+          : "inline-flex items-center gap-2 rounded-md border border-rule px-4 py-2 font-sans text-sm text-ink hover:border-rule-strong"
+      }
     >
-      {copied ? "Copied" : "Copy link"}
+      {copied ? "Copied " : "Copy link "}
+      <span aria-hidden className="font-mono text-xs opacity-70">↗</span>
     </button>
   );
 }
