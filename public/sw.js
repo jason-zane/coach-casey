@@ -26,7 +26,7 @@
  * current version, so a new SW deploy invalidates the prior shell.
  */
 
-const CACHE_VERSION = "v3-cached-shell-2026-05-07";
+const CACHE_VERSION = "v4-precache-shell-2026-05-08";
 const PRECACHE = `precache-${CACHE_VERSION}`;
 const SHELL = `shell-${CACHE_VERSION}`;
 const STATIC = `static-${CACHE_VERSION}`;
@@ -42,6 +42,27 @@ const PRECACHE_URLS = [
   "/favicon-16.png",
 ];
 
+async function tryPrecacheShell() {
+  // Best-effort precache of the /app shell so the FIRST PWA tap after a
+  // deploy can hit cache instead of the network. cache-on-first-fetch
+  // (in shellCacheFirst) covers steady state; this covers the first tap.
+  //
+  // The fetch carries the document's cookies (SW fetch defaults to
+  // credentials: same-origin), so for an authed athlete this returns
+  // the 200 static shell. Unauthed, /app 307s to /signin, which we
+  // skip via response.redirected. Either way install completes.
+  try {
+    const cache = await caches.open(SHELL);
+    const response = await fetch("/app", { credentials: "same-origin" });
+    if (response.ok && !response.redirected) {
+      await cache.put("/app", response);
+    }
+  } catch {
+    // Network failure during install is fine; shellCacheFirst will
+    // populate on the next /app navigation.
+  }
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
@@ -51,6 +72,7 @@ self.addEventListener("install", (event) => {
       await Promise.allSettled(
         PRECACHE_URLS.map((url) => cache.add(url).catch(() => {})),
       );
+      await tryPrecacheShell();
       await self.skipWaiting();
     })(),
   );
