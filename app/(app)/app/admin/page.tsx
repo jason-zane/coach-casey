@@ -31,7 +31,7 @@ export default async function AdminPage({
   const regenError = sp.regen_error ?? null;
 
   return (
-    <div className="min-h-svh bg-paper text-ink">
+    <div className="min-h-svh bg-paper text-ink overflow-x-hidden">
       <div className="mx-auto max-w-[960px] px-5 sm:px-8 py-10 space-y-8">
         <header className="space-y-2">
           <Link
