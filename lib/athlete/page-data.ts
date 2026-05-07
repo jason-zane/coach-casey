@@ -8,7 +8,10 @@
  */
 
 import { createAdminClient } from "@/lib/supabase/server";
-import { classifyActivityType } from "@/lib/strava/activity-types";
+import {
+  classifyActivityType,
+  CROSS_TRAINING_TYPES,
+} from "@/lib/strava/activity-types";
 import { backfillStravaProfile } from "@/lib/athlete/profile-sync";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -145,11 +148,6 @@ function startOfThisWeekIso(tz: string | null): string {
 export async function loadAthletePageData(
   athleteId: string,
 ): Promise<AthletePageData> {
-  // Self-heal: if the athlete connected Strava before the callback seeded
-  // sex/weight, fill those in from the live Strava profile. Idempotent and
-  // best-effort, never fails the page.
-  await backfillStravaProfile(athleteId);
-
   const admin = createAdminClient();
 
   const fourWeeksAgo = new Date(Date.now() - 28 * DAY_MS).toISOString();
@@ -199,13 +197,19 @@ export async function loadAthletePageData(
       .order("created_at", { ascending: false }),
     admin
       .from("activities")
-      .select("activity_type", { count: "exact", head: false })
+      .select("id", { count: "exact", head: true })
       .eq("athlete_id", athleteId)
       .ilike("activity_type", "%run%"),
+    // Head-only count of cross-training activities. The pre-V1 path pulled
+    // every row's activity_type to filter in JS, which returned hundreds of
+    // rows per render for power users. CROSS_TRAINING_TYPES is the exact
+    // set classifyActivityType maps to "cross_training", so .in() is
+    // equivalent to the previous filter and runs index-only.
     admin
       .from("activities")
-      .select("activity_type")
-      .eq("athlete_id", athleteId),
+      .select("id", { count: "exact", head: true })
+      .eq("athlete_id", athleteId)
+      .in("activity_type", CROSS_TRAINING_TYPES as unknown as string[]),
     admin
       .from("messages")
       .select("id", { count: "exact", head: true })
@@ -235,6 +239,15 @@ export async function loadAthletePageData(
     weight_kg: number | null;
     sex: string | null;
   };
+
+  // Self-heal Strava-sourced fields. Hot path is the snapshot bail in
+  // backfillStravaProfile, zero queries when sex+weight are already
+  // populated. Runs after the main read so we can reuse those values
+  // and skip the legacy two-query existence check.
+  await backfillStravaProfile(athleteId, {
+    sex: a.sex,
+    weight_kg: a.weight_kg,
+  });
   const prefRow = preferencesRes.data as {
     coaching_mode: string | null;
   } | null;
@@ -308,18 +321,11 @@ export async function loadAthletePageData(
     }));
 
   // Run count via ilike over activity_type covers Run / TrailRun / VirtualRun.
-  // Cross-training count is everything else that isn't ambient or null 
-  // computed locally from the small all-types result rather than as a
-  // separate filtered query, which would need a NOT-ilike clause Supabase
-  // doesn't support cleanly.
-  const allTypes = (xtCountRes.data ?? []) as { activity_type: string | null }[];
-  const crossTrainingCount = allTypes.filter(
-    (r) => classifyActivityType(r.activity_type) === "cross_training",
-  ).length;
-
+  // Cross-training count is a head-only .in() against CROSS_TRAINING_TYPES,
+  // index-aligned with the data and never returns rows over the wire.
   const memory: MemoryProgress = {
     runs: runsCountRes.count ?? 0,
-    crossTraining: crossTrainingCount,
+    crossTraining: xtCountRes.count ?? 0,
     caseyMessages: caseyCountRes.count ?? 0,
   };
 

@@ -1,30 +1,24 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentSession } from "@/lib/auth/current";
 import { loadAthletePageData } from "@/lib/athlete/page-data";
 import { PlanReuploadClient } from "./_plan-reupload-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function PlanReuploadPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/signin");
-
-  const { data: athlete } = await supabase
-    .from("athletes")
-    .select("id, deleted_at")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const session = await getCurrentSession();
+  if (!session) redirect("/signin");
+  const { athlete } = session;
   if (!athlete) redirect("/signin");
   if (athlete.deleted_at) {
+    const supabase = await createClient();
     await supabase.auth.signOut();
     redirect("/?deleted=1");
   }
 
-  const data = await loadAthletePageData(athlete.id as string);
+  const data = await loadAthletePageData(athlete.id);
   const { activePlan, profile } = data;
 
   return (

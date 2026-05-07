@@ -1,7 +1,24 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { useRef, useState } from "react";
+
+/**
+ * Debounced pending indicator for <Link>s that target dynamic routes.
+ * Stays invisible while navigation is fast (most prefetch hits) and only
+ * fades in if the round trip has been pending more than the CSS animation
+ * delay. The route-level loading.tsx is what the user actually waits on,
+ * this is just the immediate "yes, I heard you" affordance.
+ */
+function NavPendingDot() {
+  const { pending } = useLinkStatus();
+  return (
+    <span
+      aria-hidden
+      className={`nav-pending-dot ${pending ? "is-pending" : ""}`}
+    />
+  );
+}
 
 type Props = {
   onOpenCalendar: () => void;
@@ -179,9 +196,10 @@ export function MenuBar({ onOpenCalendar, onOpenSearch }: Props) {
       <Link
         href="/app/athlete"
         aria-label="Athlete page"
-        className="h-11 w-11 grid place-items-center text-ink-muted"
+        className="relative h-11 w-11 grid place-items-center text-ink-muted"
       >
         <IconAthlete />
+        <NavPendingDot />
       </Link>
     </nav>
   );
@@ -212,9 +230,10 @@ export function DesktopControls({ onOpenCalendar, onOpenSearch }: Props) {
         href="/app/athlete"
         aria-label="Athlete page"
         title="Athlete page"
-        className="h-9 w-9 grid place-items-center text-ink-muted hover:text-ink rounded-sm"
+        className="relative h-9 w-9 grid place-items-center text-ink-muted hover:text-ink rounded-sm"
       >
         <IconAthlete />
+        <NavPendingDot />
       </Link>
     </div>
   );
