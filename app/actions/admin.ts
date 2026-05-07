@@ -112,16 +112,25 @@ export async function adminRegenerateLatestDebrief(formData: FormData) {
     }
   } catch (err) {
     const e = err as { status?: number; message?: string; error?: unknown };
+    const detail = JSON.stringify(
+      {
+        status: e?.status,
+        message: e?.message,
+        anthropicError: e?.error,
+      },
+      null,
+      0,
+    );
     console.error("[admin-regen-debrief] failed", {
       athleteId,
       activityId: latest.id,
       activityType: latest.activity_type,
       classification: cls,
-      status: e?.status,
-      message: e?.message,
-      anthropicError: e?.error,
+      detail,
     });
-    throw err;
+    redirect(
+      `/app/admin?regen_error=${encodeURIComponent(detail.slice(0, 1500))}`,
+    );
   }
 
   revalidatePath("/app/admin");

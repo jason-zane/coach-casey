@@ -17,12 +17,18 @@ export const dynamic = "force-dynamic";
  * than /app/admin returning a 404, so the existence of the surface
  * isn't a side-channel signal.
  */
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ regen_error?: string }>;
+}) {
   const gate = await requireAdmin();
   if (!gate.ok) redirect(gate.redirect);
 
   const data = await loadAdminPageData();
   const { athletes, stats } = data;
+  const sp = await searchParams;
+  const regenError = sp.regen_error ?? null;
 
   return (
     <div className="min-h-svh bg-paper text-ink">
@@ -46,6 +52,12 @@ export default async function AdminPage() {
             weekly reviews. Use sparingly.
           </p>
         </header>
+
+        {regenError && (
+          <pre className="text-[11px] leading-[1.4] font-mono text-red-700 bg-red-50 border border-red-200 rounded-md p-3 whitespace-pre-wrap break-all">
+            regen error: {regenError}
+          </pre>
+        )}
 
         <section className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           <Stat label="Athletes" value={stats.totalAthletes} />
