@@ -1,6 +1,6 @@
 import { loadAthleteProfile } from "@/lib/athlete/page-data";
 import { YouEditor } from "../_you-editor";
-import { Section } from "./section-shell";
+import { Subsection } from "./section-shell";
 
 export async function YouSection({
   athleteId,
@@ -11,7 +11,7 @@ export async function YouSection({
 }) {
   const profile = await loadAthleteProfile(athleteId);
   return (
-    <Section title="You">
+    <Subsection label="You">
       <YouEditor
         initial={{
           displayName: profile.displayName,
@@ -36,6 +36,6 @@ export async function YouSection({
           {profile.timezone ?? ""}
         </span>
       </div>
-    </Section>
+    </Subsection>
   );
 }

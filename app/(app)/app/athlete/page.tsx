@@ -3,22 +3,25 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentSession } from "@/lib/auth/current";
-import { signOut } from "@/app/actions/auth";
-import { requestAccountDeletion } from "@/app/actions/account";
-import { DeleteAccountButton } from "./_delete-account-button";
-import { isAdminEmail } from "@/lib/admin/auth";
-import { SkeletonSection } from "../_components/skeleton";
-import { Section } from "./_sections/section-shell";
+import { SkeletonBar } from "../_components/skeleton";
+import { SectionHeading } from "./_sections/section-shell";
 import { YouSection } from "./_sections/you-section";
 import { GoalsSection } from "./_sections/goals-section";
 import { PlanSection } from "./_sections/plan-section";
 import { TrainingSection } from "./_sections/training-section";
 import { TrackingSection } from "./_sections/tracking-section";
-import { MemorySection } from "./_sections/memory-section";
-import { StravaSection } from "./_sections/strava-section";
+import { HeroMemoryLine } from "./_hero-memory-line";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * The athlete page is the moat made legible. The hero line shows what
+ * Casey is holding (time together, runs read, messages, niggles still
+ * on the radar). The body groups the editable parts into two areas:
+ * what Casey knows about the athlete, and the athlete's training.
+ * Everything that's actually settings (sign out, Strava connection,
+ * data export, delete, privacy, admin) lives at /app/settings.
+ */
 export default async function AthletePage() {
   const session = await getCurrentSession();
   if (!session) redirect("/signin");
@@ -32,19 +35,28 @@ export default async function AthletePage() {
 
   const athleteId = athlete.id;
   const userEmail = user.email ?? "";
-  const isAdmin = isAdminEmail(user.email ?? null);
+  const joinedAt = user.created_at;
 
   return (
     <div className="min-h-svh bg-paper text-ink overflow-x-hidden">
-      <div className="mx-auto max-w-[640px] px-5 sm:px-8 py-10 space-y-12">
-        <header className="space-y-2">
-          <Link
-            href="/app"
-            className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-subtle hover:text-ink-muted transition-colors duration-150 inline-flex items-center gap-1"
-          >
-            <span aria-hidden>‹</span>
-            <span>Back to thread</span>
-          </Link>
+      <div className="mx-auto max-w-[640px] px-5 sm:px-8 py-10 space-y-14">
+        <header className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              href="/app"
+              className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-subtle hover:text-ink-muted transition-colors duration-150 inline-flex items-center gap-1"
+            >
+              <span aria-hidden>‹</span>
+              <span>Back to thread</span>
+            </Link>
+            <Link
+              href="/app/settings"
+              className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-subtle hover:text-ink-muted transition-colors duration-150 inline-flex items-center gap-1"
+            >
+              <span>Settings</span>
+              <span aria-hidden>›</span>
+            </Link>
+          </div>
           <h1
             className="text-[32px] leading-tight font-medium text-ink"
             style={{ fontFamily: "var(--font-serif)" }}
@@ -54,119 +66,58 @@ export default async function AthletePage() {
           <p className="text-[14px] leading-[1.55] text-ink-muted">
             What Coach Casey knows about you.
           </p>
+          <Suspense
+            fallback={<SkeletonBar className="h-3 mt-1" width="70%" />}
+          >
+            <HeroMemoryLine athleteId={athleteId} joinedAt={joinedAt} />
+          </Suspense>
         </header>
 
-        <Suspense fallback={<SkeletonSection title="You" rows={4} />}>
-          <YouSection athleteId={athleteId} fallbackEmail={userEmail} />
-        </Suspense>
+        <section className="space-y-0">
+          <Suspense
+            fallback={<SubsectionSkeleton label="You" rows={5} />}
+          >
+            <YouSection athleteId={athleteId} fallbackEmail={userEmail} />
+          </Suspense>
+          <Suspense
+            fallback={<SubsectionSkeleton label="Your goal race" rows={2} />}
+          >
+            <GoalsSection athleteId={athleteId} />
+          </Suspense>
+          <Suspense
+            fallback={<SubsectionSkeleton label="On the radar" rows={2} />}
+          >
+            <TrackingSection athleteId={athleteId} />
+          </Suspense>
+        </section>
 
-        <Suspense fallback={<SkeletonSection title="Goals" rows={2} />}>
-          <GoalsSection athleteId={athleteId} />
-        </Suspense>
+        <section className="space-y-5">
+          <SectionHeading>Your training</SectionHeading>
+          <Suspense fallback={<SkeletonBar className="h-3" width="80%" />}>
+            <TrainingSection athleteId={athleteId} />
+          </Suspense>
+          <Suspense
+            fallback={<SubsectionSkeleton label="Plan" rows={3} />}
+          >
+            <PlanSection athleteId={athleteId} />
+          </Suspense>
+        </section>
+      </div>
+    </div>
+  );
+}
 
-        <Suspense fallback={<SkeletonSection title="Training plan" rows={3} />}>
-          <PlanSection athleteId={athleteId} />
-        </Suspense>
-
-        <Suspense fallback={<SkeletonSection title="Training" rows={1} />}>
-          <TrainingSection athleteId={athleteId} />
-        </Suspense>
-
-        <Suspense
-          fallback={<SkeletonSection title="What Casey is tracking" rows={3} />}
-        >
-          <TrackingSection athleteId={athleteId} />
-        </Suspense>
-
-        <Suspense fallback={<SkeletonSection title="Memory" rows={1} />}>
-          <MemorySection athleteId={athleteId} />
-        </Suspense>
-
-        <Suspense
-          fallback={<SkeletonSection title="Strava connection" rows={2} />}
-        >
-          <StravaSection athleteId={athleteId} />
-        </Suspense>
-
-        <Section title="Account">
-          <p className="text-[13px] leading-[1.55] text-ink-muted">
-            Sign out of this device. Your data and Strava connection stay
-            intact.
-          </p>
-          <form action={signOut} className="pt-2">
-            <button
-              type="submit"
-              className="inline-flex items-center h-9 px-3 rounded-[6px] border border-rule text-ink text-[13px] font-medium hover:bg-rule/40 transition-colors duration-150"
-            >
-              Sign out
-            </button>
-          </form>
-
-          <div className="border-t border-rule/60 pt-5 mt-3 space-y-2">
-            <p className="text-[13px] leading-[1.55] text-ink-muted">
-              Download a copy of everything Coach Casey holds about you, your
-              account, plan, activities, conversations, and notes. Returned as
-              a single JSON file.
-            </p>
-            <div className="pt-2">
-              <a
-                href="/api/account/export"
-                className="inline-flex items-center h-9 px-3 rounded-[6px] border border-rule text-ink text-[13px] font-medium hover:bg-rule/40 transition-colors duration-150"
-              >
-                Export my data
-              </a>
-            </div>
-          </div>
-
-          <div className="border-t border-rule/60 pt-5 mt-3 space-y-2">
-            <p className="text-[13px] leading-[1.55] text-ink-muted">
-              Permanently delete your account and all your data. We&apos;ll
-              soft-delete immediately and hard-delete within 30 days. Strava
-              is disconnected as part of this.
-            </p>
-            <div className="pt-1">
-              <DeleteAccountButton action={requestAccountDeletion} />
-            </div>
-          </div>
-        </Section>
-
-        {isAdmin && (
-          <Section title="Admin">
-            <p className="text-[13px] leading-[1.55] text-ink-muted">
-              Cohort overview and admin controls. Only visible to addresses
-              listed in ADMIN_EMAILS.
-            </p>
-            <div className="pt-2">
-              <Link
-                href="/app/admin"
-                className="inline-flex items-center h-9 px-3 rounded-[6px] border border-rule text-ink text-[13px] font-medium hover:bg-rule/40 transition-colors duration-150"
-              >
-                Open admin
-              </Link>
-            </div>
-          </Section>
-        )}
-
-        <Section title="Privacy">
-          <p className="text-[13px] leading-[1.55] text-ink-muted">
-            See how Coach Casey handles your data, or read the terms of
-            service.
-          </p>
-          <div className="flex gap-4 pt-1 text-[13px]">
-            <Link
-              href="/privacy"
-              className="text-ink underline underline-offset-2 decoration-ink/30 hover:decoration-ink transition-colors"
-            >
-              Privacy policy
-            </Link>
-            <Link
-              href="/terms"
-              className="text-ink underline underline-offset-2 decoration-ink/30 hover:decoration-ink transition-colors"
-            >
-              Terms of service
-            </Link>
-          </div>
-        </Section>
+function SubsectionSkeleton({ label, rows }: { label: string; rows: number }) {
+  return (
+    <div className="border-t border-rule/40 pt-5 space-y-3">
+      <h3 className="text-[13px] font-semibold text-ink">{label}</h3>
+      <div className="space-y-3">
+        {Array.from({ length: rows }).map((_, i) => (
+          <SkeletonBar
+            key={i}
+            width={i === 0 ? "70%" : i === rows - 1 ? "45%" : "85%"}
+          />
+        ))}
       </div>
     </div>
   );

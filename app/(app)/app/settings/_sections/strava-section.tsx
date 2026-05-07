@@ -7,7 +7,7 @@ import { Field, Section } from "./section-shell";
 export async function StravaSection({ athleteId }: { athleteId: string }) {
   const conn = await loadStravaConnection(athleteId);
   return (
-    <Section title="Strava connection">
+    <Section title="Strava">
       {conn.isConnected ? (
         <>
           <Field label="Status">
