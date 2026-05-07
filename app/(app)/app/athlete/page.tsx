@@ -35,7 +35,7 @@ export default async function AthletePage() {
   const isAdmin = isAdminEmail(user.email ?? null);
 
   return (
-    <div className="min-h-svh bg-paper text-ink">
+    <div className="min-h-svh bg-paper text-ink overflow-x-hidden">
       <div className="mx-auto max-w-[640px] px-5 sm:px-8 py-10 space-y-12">
         <header className="space-y-2">
           <Link
