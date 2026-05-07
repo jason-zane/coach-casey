@@ -26,7 +26,7 @@
  * current version, so a new SW deploy invalidates the prior shell.
  */
 
-const CACHE_VERSION = "v4-precache-shell-2026-05-08";
+const CACHE_VERSION = "v5-shell-shrink-2026-05-08";
 const PRECACHE = `precache-${CACHE_VERSION}`;
 const SHELL = `shell-${CACHE_VERSION}`;
 const STATIC = `static-${CACHE_VERSION}`;
@@ -151,7 +151,10 @@ async function staleWhileRevalidate(request, cacheName) {
  */
 async function shellCacheFirst(request) {
   const cache = await caches.open(SHELL);
-  const cached = await cache.match("/app");
+  // ignoreSearch so any iOS-injected query params on the PWA launch URL
+  // (e.g. utm_source=homescreen, source=pwa) don't cause a cache miss
+  // for what is fundamentally the same shell document.
+  const cached = await cache.match("/app", { ignoreSearch: true });
   if (cached) {
     fetch(request)
       .then((response) => {

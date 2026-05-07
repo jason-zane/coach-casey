@@ -1,9 +1,22 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import type { HomeBootstrapResponse } from "@/app/api/home/bootstrap/route";
 import { HomeBootShell } from "./home-boot-shell";
-import { HomeSurface } from "./home-surface";
+
+/**
+ * HomeSurface is the heavy chat surface (~34 KB component pulling in
+ * Composer, MenuBar, message renderers, calendar/search modal stubs,
+ * etc.). next/dynamic with ssr:false splits it into its own chunk
+ * that only loads after the bootstrap fetch resolves, so the static
+ * /app HTML the SW serves on cold-tap pulls in just the boot-shell +
+ * tiny bootstrap JS. On a slow device that's a real first-paint win.
+ */
+const HomeSurface = dynamic(
+  () => import("./home-surface").then((m) => m.HomeSurface),
+  { ssr: false, loading: () => <HomeBootShell /> },
+);
 
 /**
  * Client bootstrap that the static /app page renders. The shell paints
