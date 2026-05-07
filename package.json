@@ -11,7 +11,8 @@
     "test": "node --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/*.test.ts",
     "eval:voice": "node --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/eval-voice.mts",
     "eval:surfaces": "node --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/eval-surfaces.mts",
-    "eval": "pnpm eval:voice && pnpm eval:surfaces"
+    "eval": "pnpm eval:voice && pnpm eval:surfaces",
+    "gen:splash": "node --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/generate-splash.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
@@ -33,6 +34,7 @@
     "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "typescript": "^5"
   },
