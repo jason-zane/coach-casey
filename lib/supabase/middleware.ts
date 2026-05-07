@@ -51,9 +51,13 @@ export async function updateSession(request: NextRequest) {
   if (!user) return supabaseResponse;
 
   // Authed from here on. Look up onboarding state once per request.
+  // date_of_birth is included so the DOB backfill redirect (athletes
+  // who completed onboarding before the about-you step existed) can
+  // run here instead of inside (app)/layout.tsx, which lets that
+  // layout stay sync and lets /app statically prerender for SW caching.
   const { data: athlete } = await supabase
     .from("athletes")
-    .select("onboarding_current_step, onboarding_completed_at")
+    .select("onboarding_current_step, onboarding_completed_at, date_of_birth")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -81,6 +85,20 @@ export async function updateSession(request: NextRequest) {
   if (pathname === "/onboarding" || pathname === "/onboarding/") {
     const url = request.nextUrl.clone();
     url.pathname = `/onboarding/${currentStep}`;
+    return NextResponse.redirect(url);
+  }
+
+  // DOB backfill: athletes whose onboarding pre-dates the about-you
+  // step have a completed_at but no date_of_birth. Hold them on the
+  // backfill step until they fill it in.
+  if (
+    pathname.startsWith("/app") &&
+    onboardingComplete &&
+    !athlete?.date_of_birth
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/onboarding/about-you";
+    url.searchParams.set("backfill", "1");
     return NextResponse.redirect(url);
   }
 
