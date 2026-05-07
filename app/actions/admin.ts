@@ -100,14 +100,28 @@ export async function adminRegenerateLatestDebrief(formData: FormData) {
   }
 
   const cls = classifyActivityType(latest.activity_type);
-  if (cls === "run") {
-    await generateDebriefForActivity(athleteId, latest.id, { force: true });
-  } else if (cls === "cross_training" || cls === "catch_all") {
-    await generateCrossTrainingAckForActivity(athleteId, latest.id, { force: true });
-  } else {
-    throw new Error(
-      `adminRegenerateLatestDebrief: latest activity ${latest.id} is type ${latest.activity_type}, no handler`,
-    );
+  try {
+    if (cls === "run") {
+      await generateDebriefForActivity(athleteId, latest.id, { force: true });
+    } else if (cls === "cross_training" || cls === "catch_all") {
+      await generateCrossTrainingAckForActivity(athleteId, latest.id, { force: true });
+    } else {
+      throw new Error(
+        `adminRegenerateLatestDebrief: latest activity ${latest.id} is type ${latest.activity_type}, no handler`,
+      );
+    }
+  } catch (err) {
+    const e = err as { status?: number; message?: string; error?: unknown };
+    console.error("[admin-regen-debrief] failed", {
+      athleteId,
+      activityId: latest.id,
+      activityType: latest.activity_type,
+      classification: cls,
+      status: e?.status,
+      message: e?.message,
+      anthropicError: e?.error,
+    });
+    throw err;
   }
 
   revalidatePath("/app/admin");
