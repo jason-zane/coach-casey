@@ -7,6 +7,7 @@
  * arrive in a follow-up PR.
  */
 
+import { cache } from "react";
 import { createAdminClient } from "@/lib/supabase/server";
 import {
   classifyActivityType,
@@ -76,16 +77,6 @@ export type ActivePlan = {
   ageDays: number;
 };
 
-export type AthletePageData = {
-  profile: AthleteProfile;
-  goalRace: GoalRace | null;
-  weekly: WeeklyTraining;
-  niggles: Niggle[];
-  lifeContext: LifeContextItem[];
-  memory: MemoryProgress;
-  activePlan: ActivePlan | null;
-};
-
 type MemoryRow = {
   id: string;
   kind: string;
@@ -145,24 +136,22 @@ function startOfThisWeekIso(tz: string | null): string {
   return localMidnight.toISOString();
 }
 
-export async function loadAthletePageData(
+/**
+ * Per-section loaders. The athlete page Suspense-streams each section
+ * independently so the editorial chrome lands instantly and individual
+ * sections fill in as their queries resolve. Power users with hundreds
+ * of activity rows used to make every athlete-page render wait on the
+ * full activities scan, now the You / Goals / Memory sections show
+ * before that finishes.
+ */
+
+export const loadAthleteProfile = cache(_loadAthleteProfile);
+
+async function _loadAthleteProfile(
   athleteId: string,
-): Promise<AthletePageData> {
+): Promise<AthleteProfile> {
   const admin = createAdminClient();
-
-  const fourWeeksAgo = new Date(Date.now() - 28 * DAY_MS).toISOString();
-
-  const [
-    athleteRes,
-    preferencesRes,
-    goalRes,
-    activitiesRes,
-    memoryRes,
-    runsCountRes,
-    xtCountRes,
-    caseyCountRes,
-    activePlanRes,
-  ] = await Promise.all([
+  const [{ data: athleteRow, error }, { data: prefRow }] = await Promise.all([
     admin
       .from("athletes")
       .select(
@@ -174,62 +163,14 @@ export async function loadAthletePageData(
       .from("preferences")
       .select("coaching_mode")
       .eq("athlete_id", athleteId)
-      .maybeSingle(),
-    admin
-      .from("goal_races")
-      .select("name, race_date, goal_time_seconds")
-      .eq("athlete_id", athleteId)
-      .eq("is_active", true)
-      .order("race_date", { ascending: true })
-      .limit(1)
-      .maybeSingle(),
-    admin
-      .from("activities")
-      .select("start_date_local, activity_type, distance_m")
-      .eq("athlete_id", athleteId)
-      .gte("start_date_local", fourWeeksAgo)
-      .order("start_date_local", { ascending: false }),
-    admin
-      .from("memory_items")
-      .select("id, kind, content, tags, created_at")
-      .eq("athlete_id", athleteId)
-      .in("kind", ["injury", "context"])
-      .order("created_at", { ascending: false }),
-    admin
-      .from("activities")
-      .select("id", { count: "exact", head: true })
-      .eq("athlete_id", athleteId)
-      .ilike("activity_type", "%run%"),
-    // Head-only count of cross-training activities. The pre-V1 path pulled
-    // every row's activity_type to filter in JS, which returned hundreds of
-    // rows per render for power users. CROSS_TRAINING_TYPES is the exact
-    // set classifyActivityType maps to "cross_training", so .in() is
-    // equivalent to the previous filter and runs index-only.
-    admin
-      .from("activities")
-      .select("id", { count: "exact", head: true })
-      .eq("athlete_id", athleteId)
-      .in("activity_type", CROSS_TRAINING_TYPES as unknown as string[]),
-    admin
-      .from("messages")
-      .select("id", { count: "exact", head: true })
-      .eq("athlete_id", athleteId)
-      .eq("kind", "chat_casey"),
-    admin
-      .from("training_plans")
-      .select("id, source, source_filename, raw_text, confirmed_at, created_at")
-      .eq("athlete_id", athleteId)
-      .eq("is_active", true)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .maybeSingle<{ coaching_mode: string | null }>(),
   ]);
 
-  if (athleteRes.error || !athleteRes.data) {
+  if (error || !athleteRow) {
     throw new Error(`athlete ${athleteId} not found`);
   }
 
-  const a = athleteRes.data as {
+  const a = athleteRow as {
     id: string;
     email: string | null;
     display_name: string | null;
@@ -240,23 +181,21 @@ export async function loadAthletePageData(
     sex: string | null;
   };
 
-  // Self-heal Strava-sourced fields. Hot path is the snapshot bail in
-  // backfillStravaProfile, zero queries when sex+weight are already
-  // populated. Runs after the main read so we can reuse those values
-  // and skip the legacy two-query existence check.
+  // Self-heal Strava-sourced fields. The snapshot keeps backfill in its
+  // zero-query bail when sex+weight are already populated, so this stays
+  // cheap on the steady-state hot path. Runs in the You section so other
+  // sections aren't blocked on it.
   await backfillStravaProfile(athleteId, {
     sex: a.sex,
     weight_kg: a.weight_kg,
   });
-  const prefRow = preferencesRes.data as {
-    coaching_mode: string | null;
-  } | null;
+
   const coachingMode =
     prefRow?.coaching_mode === "coach" || prefRow?.coaching_mode === "self"
       ? prefRow.coaching_mode
       : null;
 
-  const profile: AthleteProfile = {
+  return {
     id: a.id,
     email: a.email,
     displayName: a.display_name,
@@ -267,41 +206,118 @@ export async function loadAthletePageData(
     sex: a.sex,
     coachingMode,
   };
+}
 
-  const goalRow = goalRes.data as {
-    name: string | null;
-    race_date: string | null;
-    goal_time_seconds: number | null;
-  } | null;
-  const goalRace: GoalRace | null = goalRow
-    ? {
-        name: goalRow.name,
-        raceDate: goalRow.race_date,
-        goalTimeSeconds: goalRow.goal_time_seconds,
-      }
-    : null;
+export async function loadGoalRace(
+  athleteId: string,
+): Promise<GoalRace | null> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("goal_races")
+    .select("name, race_date, goal_time_seconds")
+    .eq("athlete_id", athleteId)
+    .eq("is_active", true)
+    .order("race_date", { ascending: true })
+    .limit(1)
+    .maybeSingle<{
+      name: string | null;
+      race_date: string | null;
+      goal_time_seconds: number | null;
+    }>();
+  if (!data) return null;
+  return {
+    name: data.name,
+    raceDate: data.race_date,
+    goalTimeSeconds: data.goal_time_seconds,
+  };
+}
 
-  const activityRows = (activitiesRes.data ?? []) as ActivityRow[];
-  const runRows = activityRows.filter(
+export async function loadActivePlan(
+  athleteId: string,
+): Promise<ActivePlan | null> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("training_plans")
+    .select("id, source, source_filename, raw_text, confirmed_at, created_at")
+    .eq("athlete_id", athleteId)
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<{
+      id: string;
+      source: string | null;
+      source_filename: string | null;
+      raw_text: string | null;
+      confirmed_at: string | null;
+      created_at: string;
+    }>();
+  if (!data || !data.raw_text) return null;
+  const sourceRaw = data.source ?? "text";
+  const source: ActivePlan["source"] =
+    sourceRaw === "pdf" || sourceRaw === "image" ? sourceRaw : "text";
+  const ageDays = Math.max(
+    0,
+    Math.floor((Date.now() - new Date(data.created_at).getTime()) / DAY_MS),
+  );
+  return {
+    id: data.id,
+    source,
+    sourceFilename: data.source_filename,
+    rawText: data.raw_text,
+    confirmed: data.confirmed_at != null,
+    uploadedAt: data.created_at,
+    ageDays,
+  };
+}
+
+export async function loadWeeklyTraining(
+  athleteId: string,
+  timezone: string | null,
+): Promise<WeeklyTraining> {
+  const admin = createAdminClient();
+  const fourWeeksAgo = new Date(Date.now() - 28 * DAY_MS).toISOString();
+  const { data } = await admin
+    .from("activities")
+    .select("start_date_local, activity_type, distance_m")
+    .eq("athlete_id", athleteId)
+    .gte("start_date_local", fourWeeksAgo)
+    .order("start_date_local", { ascending: false });
+  const rows = (data ?? []) as ActivityRow[];
+  const runRows = rows.filter(
     (r) => classifyActivityType(r.activity_type) === "run",
   );
   const fourWeekRunMetres = runRows.reduce(
     (sum, r) => sum + (r.distance_m ?? 0),
     0,
   );
-  const thisWeekStart = startOfThisWeekIso(profile.timezone);
+  const thisWeekStart = startOfThisWeekIso(timezone);
   const thisWeekRunMetres = runRows
     .filter((r) => r.start_date_local >= thisWeekStart)
     .reduce((sum, r) => sum + (r.distance_m ?? 0), 0);
-
-  const weekly: WeeklyTraining = {
+  return {
     fourWeekAvgRunMetres: fourWeekRunMetres / 4,
     thisWeekRunMetres,
     hasAnyRuns: runRows.length > 0,
   };
+}
 
-  const memoryRows = (memoryRes.data ?? []) as MemoryRow[];
-  const niggles: Niggle[] = memoryRows
+export type TrackingItems = {
+  niggles: Niggle[];
+  lifeContext: LifeContextItem[];
+};
+
+export async function loadTrackingItems(
+  athleteId: string,
+): Promise<TrackingItems> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("memory_items")
+    .select("id, kind, content, tags, created_at")
+    .eq("athlete_id", athleteId)
+    .in("kind", ["injury", "context"])
+    .order("created_at", { ascending: false });
+  const rows = (data ?? []) as MemoryRow[];
+  const niggles: Niggle[] = rows
     .filter((m) => m.kind === "injury")
     .map((m) => ({
       id: m.id,
@@ -309,9 +325,8 @@ export async function loadAthletePageData(
       tags: m.tags ?? [],
       firstMentionedAt: m.created_at,
     }));
-
   const fourteenDaysAgoIso = new Date(Date.now() - 14 * DAY_MS).toISOString();
-  const lifeContext: LifeContextItem[] = memoryRows
+  const lifeContext: LifeContextItem[] = rows
     .filter((m) => m.kind === "context" && m.created_at >= fourteenDaysAgoIso)
     .map((m) => ({
       id: m.id,
@@ -319,57 +334,62 @@ export async function loadAthletePageData(
       tags: m.tags ?? [],
       recordedAt: m.created_at,
     }));
+  return { niggles, lifeContext };
+}
 
-  // Run count via ilike over activity_type covers Run / TrailRun / VirtualRun.
-  // Cross-training count is a head-only .in() against CROSS_TRAINING_TYPES,
-  // index-aligned with the data and never returns rows over the wire.
-  const memory: MemoryProgress = {
-    runs: runsCountRes.count ?? 0,
-    crossTraining: xtCountRes.count ?? 0,
-    caseyMessages: caseyCountRes.count ?? 0,
-  };
-
-  const planRow = activePlanRes.data as
-    | {
-        id: string;
-        source: string | null;
-        source_filename: string | null;
-        raw_text: string | null;
-        confirmed_at: string | null;
-        created_at: string;
-      }
-    | null;
-
-  let activePlan: ActivePlan | null = null;
-  if (planRow && planRow.raw_text) {
-    const sourceRaw = planRow.source ?? "text";
-    const source: ActivePlan["source"] =
-      sourceRaw === "pdf" || sourceRaw === "image" ? sourceRaw : "text";
-    const ageDays = Math.max(
-      0,
-      Math.floor(
-        (Date.now() - new Date(planRow.created_at).getTime()) / DAY_MS,
-      ),
-    );
-    activePlan = {
-      id: planRow.id,
-      source,
-      sourceFilename: planRow.source_filename,
-      rawText: planRow.raw_text,
-      confirmed: planRow.confirmed_at != null,
-      uploadedAt: planRow.created_at,
-      ageDays,
-    };
-  }
-
+export async function loadMemoryProgress(
+  athleteId: string,
+): Promise<MemoryProgress> {
+  const admin = createAdminClient();
+  const [runsRes, xtRes, caseyRes] = await Promise.all([
+    admin
+      .from("activities")
+      .select("id", { count: "exact", head: true })
+      .eq("athlete_id", athleteId)
+      .ilike("activity_type", "%run%"),
+    admin
+      .from("activities")
+      .select("id", { count: "exact", head: true })
+      .eq("athlete_id", athleteId)
+      .in("activity_type", CROSS_TRAINING_TYPES as unknown as string[]),
+    admin
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("athlete_id", athleteId)
+      .eq("kind", "chat_casey"),
+  ]);
   return {
-    profile,
-    goalRace,
-    weekly,
-    niggles,
-    lifeContext,
-    memory,
-    activePlan,
+    runs: runsRes.count ?? 0,
+    crossTraining: xtRes.count ?? 0,
+    caseyMessages: caseyRes.count ?? 0,
+  };
+}
+
+export type StravaConnectionInfo = {
+  connectedAt: string | null;
+  scope: string | null;
+  isMock: boolean;
+  isConnected: boolean;
+};
+
+export async function loadStravaConnection(
+  athleteId: string,
+): Promise<StravaConnectionInfo> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("strava_connections")
+    .select("connected_at, scope, is_mock")
+    .eq("athlete_id", athleteId)
+    .maybeSingle<{
+      connected_at: string | null;
+      scope: string | null;
+      is_mock: boolean | null;
+    }>();
+  return {
+    connectedAt: data?.connected_at ?? null,
+    scope: data?.scope ?? null,
+    isMock: data?.is_mock ?? false,
+    isConnected: Boolean(data),
   };
 }
 

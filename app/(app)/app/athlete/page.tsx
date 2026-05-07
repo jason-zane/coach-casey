@@ -1,30 +1,23 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentSession } from "@/lib/auth/current";
 import { signOut } from "@/app/actions/auth";
-import { disconnectStrava } from "@/app/actions/strava";
 import { requestAccountDeletion } from "@/app/actions/account";
-import { DisconnectStravaButton } from "./_disconnect-button";
 import { DeleteAccountButton } from "./_delete-account-button";
-import { GoalRaceEditor } from "./_goal-race-editor";
-import { MemoryListEditor } from "./_memory-list-editor";
-import { YouEditor } from "./_you-editor";
-import {
-  formatDistance,
-  formatNiggleHeader,
-  loadAthletePageData,
-} from "@/lib/athlete/page-data";
 import { isAdminEmail } from "@/lib/admin/auth";
+import { SkeletonSection } from "../_components/skeleton";
+import { Section } from "./_sections/section-shell";
+import { YouSection } from "./_sections/you-section";
+import { GoalsSection } from "./_sections/goals-section";
+import { PlanSection } from "./_sections/plan-section";
+import { TrainingSection } from "./_sections/training-section";
+import { TrackingSection } from "./_sections/tracking-section";
+import { MemorySection } from "./_sections/memory-section";
+import { StravaSection } from "./_sections/strava-section";
 
 export const dynamic = "force-dynamic";
-
-type StravaConnection = {
-  connected_at: string | null;
-  scope: string | null;
-  is_mock: boolean | null;
-  strava_athlete_id: number | null;
-};
 
 export default async function AthletePage() {
   const session = await getCurrentSession();
@@ -37,19 +30,9 @@ export default async function AthletePage() {
     redirect("/?deleted=1");
   }
 
-  const data = await loadAthletePageData(athlete.id);
-  const { profile, goalRace, weekly, niggles, lifeContext, memory, activePlan } = data;
+  const athleteId = athlete.id;
+  const userEmail = user.email ?? "";
   const isAdmin = isAdminEmail(user.email ?? null);
-
-  const supabase = await createClient();
-  const { data: conn } = await supabase
-    .from("strava_connections")
-    .select("connected_at, scope, is_mock, strava_athlete_id")
-    .eq("athlete_id", athlete.id)
-    .maybeSingle<StravaConnection>();
-
-  const isStravaConnected = Boolean(conn);
-  const isMock = conn?.is_mock ?? false;
 
   return (
     <div className="min-h-svh bg-paper text-ink">
@@ -66,217 +49,44 @@ export default async function AthletePage() {
             className="text-[32px] leading-tight font-medium text-ink"
             style={{ fontFamily: "var(--font-serif)" }}
           >
-            {profile.displayName ?? "Your athlete page"}
+            {athlete.display_name ?? "Your athlete page"}
           </h1>
           <p className="text-[14px] leading-[1.55] text-ink-muted">
             What Coach Casey knows about you.
           </p>
         </header>
 
-        <Section title="You">
-          <YouEditor
-            initial={{
-              displayName: profile.displayName,
-              units: profile.units,
-              dateOfBirth: profile.dateOfBirth,
-              weightKg: profile.weightKg,
-              sex: profile.sex,
-              coachingMode: profile.coachingMode,
-            }}
-          />
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[14px] pt-2">
-            <span className="text-ink-subtle font-mono text-[11px] uppercase tracking-[0.14em] min-w-[64px]">
-              Email
-            </span>
-            <span className="text-ink">{profile.email ?? user.email}</span>
-          </div>
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[14px]">
-            <span className="text-ink-subtle font-mono text-[11px] uppercase tracking-[0.14em] min-w-[64px]">
-              Timezone
-            </span>
-            <span className={profile.timezone ? "text-ink" : "text-ink-subtle"}>
-              {profile.timezone ?? ""}
-            </span>
-          </div>
-        </Section>
+        <Suspense fallback={<SkeletonSection title="You" rows={4} />}>
+          <YouSection athleteId={athleteId} fallbackEmail={userEmail} />
+        </Suspense>
 
-        <Section title="Goals">
-          <GoalRaceEditor
-            initial={
-              goalRace
-                ? {
-                    name: goalRace.name,
-                    raceDate: goalRace.raceDate,
-                    goalTimeSeconds: goalRace.goalTimeSeconds,
-                  }
-                : null
-            }
-          />
-        </Section>
+        <Suspense fallback={<SkeletonSection title="Goals" rows={2} />}>
+          <GoalsSection athleteId={athleteId} />
+        </Suspense>
 
-        <Section title="Training plan">
-          <PlanSummary plan={activePlan} />
-        </Section>
+        <Suspense fallback={<SkeletonSection title="Training plan" rows={3} />}>
+          <PlanSection athleteId={athleteId} />
+        </Suspense>
 
-        {weekly.hasAnyRuns && (
-          <Section title="Training">
-            <p className="text-[14px] leading-[1.6] text-ink">
-              You&rsquo;re averaging{" "}
-              <span className="font-medium">
-                {formatDistance(weekly.fourWeekAvgRunMetres, profile.units)}
-              </span>{" "}
-              a week over the last four weeks.{" "}
-              {weekly.thisWeekRunMetres > 0 ? (
-                <>
-                  This week so far:{" "}
-                  <span className="font-medium">
-                    {formatDistance(weekly.thisWeekRunMetres, profile.units)}
-                  </span>
-                  .
-                </>
-              ) : (
-                <>Nothing logged this week yet.</>
-              )}
-            </p>
-          </Section>
-        )}
+        <Suspense fallback={<SkeletonSection title="Training" rows={1} />}>
+          <TrainingSection athleteId={athleteId} />
+        </Suspense>
 
-        <Section title="What Casey is tracking">
-          <div className="space-y-3">
-            <h3 className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-subtle">
-              Niggles
-            </h3>
-            <MemoryListEditor
-              kind="injury"
-              addLabel={niggles.length > 0 ? "Add another" : "Add a niggle"}
-              contentPlaceholder="What's going on, when did it start, when does it flare?"
-              showTags={true}
-              items={niggles.map((n) => ({
-                id: n.id,
-                content: n.content,
-                tags: n.tags,
-                dateLabel: `First mentioned ${new Date(
-                  n.firstMentionedAt,
-                ).toLocaleDateString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}`,
-                header: formatNiggleHeader(n),
-              }))}
-            />
-          </div>
+        <Suspense
+          fallback={<SkeletonSection title="What Casey is tracking" rows={3} />}
+        >
+          <TrackingSection athleteId={athleteId} />
+        </Suspense>
 
-          <div className="space-y-3 pt-4">
-            <h3 className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-subtle">
-              Life context (last 14 days)
-            </h3>
-            <MemoryListEditor
-              kind="context"
-              addLabel={
-                lifeContext.length > 0
-                  ? "Add another"
-                  : "Add some life context"
-              }
-              contentPlaceholder="Travel, sleep, work pressure, anything Casey should hold for the next two weeks."
-              showTags={false}
-              items={lifeContext.map((c) => ({
-                id: c.id,
-                content: c.content,
-                tags: c.tags,
-                dateLabel: new Date(c.recordedAt).toLocaleDateString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                }),
-                header: null,
-              }))}
-            />
-          </div>
-        </Section>
+        <Suspense fallback={<SkeletonSection title="Memory" rows={1} />}>
+          <MemorySection athleteId={athleteId} />
+        </Suspense>
 
-        <Section title="Memory">
-          <p className="text-[14px] leading-[1.6] text-ink">
-            Casey knows{" "}
-            <span className="font-medium">
-              {memory.runs} {memory.runs === 1 ? "run" : "runs"}
-            </span>
-            ,{" "}
-            <span className="font-medium">
-              {memory.crossTraining} cross-training{" "}
-              {memory.crossTraining === 1 ? "session" : "sessions"}
-            </span>
-            , and you&rsquo;ve traded{" "}
-            <span className="font-medium">
-              {memory.caseyMessages}{" "}
-              {memory.caseyMessages === 1 ? "message" : "messages"}
-            </span>
-            .
-          </p>
-        </Section>
-
-        <Section title="Strava connection">
-          {isStravaConnected ? (
-            <>
-              <Field label="Status">
-                <span className="inline-flex items-center gap-2 text-ink">
-                  <span
-                    aria-hidden
-                    className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"
-                  />
-                  Connected{isMock ? " (mock)" : ""}
-                </span>
-              </Field>
-              {conn?.connected_at && (
-                <Field label="Since">
-                  <span className="text-ink">
-                    {new Date(conn.connected_at).toLocaleDateString(undefined, {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </span>
-                </Field>
-              )}
-              <p className="text-[13px] leading-[1.55] text-ink-muted pt-2">
-                Coach Casey reads your runs from Strava and keeps debriefs
-                inside the app. Disconnect at any time.
-              </p>
-              <div className="pt-3">
-                <DisconnectStravaButton action={disconnectStrava} />
-              </div>
-              <p className="text-[12px] leading-[1.5] text-ink-subtle pt-1">
-                You can also revoke access from{" "}
-                <a
-                  className="underline underline-offset-2 hover:text-ink-muted"
-                  href="https://www.strava.com/settings/apps"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Strava&apos;s authorised apps page
-                </a>
-                .
-              </p>
-            </>
-          ) : (
-            <>
-              <Field label="Status">
-                <span className="text-ink-muted">Not connected</span>
-              </Field>
-              <p className="text-[13px] leading-[1.55] text-ink-muted pt-2">
-                Connect Strava to let Coach Casey read your runs and write
-                debriefs.
-              </p>
-              <div className="pt-3">
-                <Link
-                  href="/onboarding/strava"
-                  className="inline-flex items-center h-9 px-3 rounded-[6px] border border-rule text-ink text-[13px] font-medium hover:bg-rule/40 transition-colors duration-150"
-                >
-                  Connect Strava
-                </Link>
-              </div>
-            </>
-          )}
-        </Section>
+        <Suspense
+          fallback={<SkeletonSection title="Strava connection" rows={2} />}
+        >
+          <StravaSection athleteId={athleteId} />
+        </Suspense>
 
         <Section title="Account">
           <p className="text-[13px] leading-[1.55] text-ink-muted">
@@ -359,107 +169,5 @@ export default async function AthletePage() {
         </Section>
       </div>
     </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="space-y-3">
-      <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-muted">
-        {title}
-      </h2>
-      <div className="space-y-2 border-t border-rule/60 pt-4">{children}</div>
-    </section>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[14px]">
-      <span className="text-ink-subtle font-mono text-[11px] uppercase tracking-[0.14em] min-w-[64px]">
-        {label}
-      </span>
-      <span>{children}</span>
-    </div>
-  );
-}
-
-function PlanSummary({ plan }: { plan: import("@/lib/athlete/page-data").ActivePlan | null }) {
-  if (!plan) {
-    return (
-      <>
-        <p className="text-[13px] leading-[1.55] text-ink-muted">
-          No plan on file. Coach Casey works without one, but with a plan, the
-          interpretation gets sharper, what was today supposed to be? Did the
-          run match?
-        </p>
-        <div className="pt-3">
-          <Link
-            href="/app/athlete/plan"
-            className="inline-flex items-center h-9 px-3 rounded-[6px] border border-rule text-ink text-[13px] font-medium hover:bg-rule/40 transition-colors duration-150"
-          >
-            Add a plan
-          </Link>
-        </div>
-      </>
-    );
-  }
-
-  const sourceLabel =
-    plan.source === "image"
-      ? "Screenshot"
-      : plan.source === "pdf"
-        ? "PDF"
-        : "Pasted text";
-  const filenameLabel = plan.sourceFilename
-    ? ` (${plan.sourceFilename})`
-    : "";
-  const ageLabel =
-    plan.ageDays === 0
-      ? "Today"
-      : plan.ageDays === 1
-        ? "1 day ago"
-        : plan.ageDays < 7
-          ? `${plan.ageDays} days ago`
-          : plan.ageDays < 14
-            ? "About a week ago"
-            : `${Math.floor(plan.ageDays / 7)} weeks ago`;
-  const stale = plan.ageDays >= 14;
-
-  return (
-    <>
-      <Field label="Source">
-        <span className="text-ink">
-          {sourceLabel}
-          <span className="text-ink-subtle">{filenameLabel}</span>
-        </span>
-      </Field>
-      <Field label="Uploaded">
-        <span className="text-ink">{ageLabel}</span>
-      </Field>
-      {stale && (
-        <p className="text-[13px] leading-[1.55] text-ink-muted pt-2">
-          Your plan is more than two weeks old. If you&rsquo;re into a new
-          block, upload the latest so I&rsquo;m reading you against the right
-          targets.
-        </p>
-      )}
-      <details className="pt-2">
-        <summary className="text-[13px] text-ink-muted cursor-pointer hover:text-ink">
-          View current plan text
-        </summary>
-        <pre className="mt-3 max-h-[260px] overflow-auto rounded-md border border-rule bg-surface p-3 text-[12px] leading-[1.55] text-ink whitespace-pre-wrap font-mono">
-          {plan.rawText}
-        </pre>
-      </details>
-      <div className="pt-3">
-        <Link
-          href="/app/athlete/plan"
-          className="inline-flex items-center h-9 px-3 rounded-[6px] border border-rule text-ink text-[13px] font-medium hover:bg-rule/40 transition-colors duration-150"
-        >
-          Update plan
-        </Link>
-      </div>
-    </>
   );
 }

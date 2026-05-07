@@ -2,7 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentSession } from "@/lib/auth/current";
-import { loadAthletePageData } from "@/lib/athlete/page-data";
+import {
+  loadActivePlan,
+  loadAthleteProfile,
+} from "@/lib/athlete/page-data";
 import { PlanReuploadClient } from "./_plan-reupload-client";
 
 export const dynamic = "force-dynamic";
@@ -18,8 +21,13 @@ export default async function PlanReuploadPage() {
     redirect("/?deleted=1");
   }
 
-  const data = await loadAthletePageData(athlete.id);
-  const { activePlan, profile } = data;
+  // Plan-reupload only needs activePlan + coachingMode. The aggregated
+  // loader was pulling 9 queries' worth of data that this page never
+  // rendered. Fire just the two we use, in parallel.
+  const [activePlan, profile] = await Promise.all([
+    loadActivePlan(athlete.id),
+    loadAthleteProfile(athlete.id),
+  ]);
 
   return (
     <div className="min-h-svh bg-paper text-ink">
