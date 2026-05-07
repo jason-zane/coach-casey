@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   fetchMessagesAroundDate,
@@ -16,8 +17,21 @@ import {
 } from "./message";
 import { Composer } from "./composer";
 import { MenuBar, DesktopControls } from "./menu-bar";
-import { CalendarPicker } from "./calendar-picker";
-import { SearchSurface } from "./search-surface";
+
+// Modal-only surfaces: defer their JS until first open. The home thread
+// is the most-loaded page in the app, every kilobyte we don't ship up
+// front is a kilobyte less for the browser to parse before chat is
+// interactive. Both components manage their own open/close animation
+// via a BottomSheet wrapper, so passing `open=false` keeps the modal
+// hidden but doesn't unmount it once loaded.
+const CalendarPicker = dynamic(
+  () => import("./calendar-picker").then((m) => m.CalendarPicker),
+  { ssr: false, loading: () => null },
+);
+const SearchSurface = dynamic(
+  () => import("./search-surface").then((m) => m.SearchSurface),
+  { ssr: false, loading: () => null },
+);
 
 type Props = {
   threadId: string;
@@ -96,6 +110,21 @@ export function HomeSurface({
   const [thinking, setThinking] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  // Latch each modal at first open so its chunk only loads on demand.
+  // Once mounted, the component stays mounted across close/open cycles
+  // so the BottomSheet exit animation can play. Without these latches,
+  // <CalendarPicker open={false}/> would still trigger the chunk fetch
+  // at initial home-page render, defeating the dynamic import.
+  const [calendarMounted, setCalendarMounted] = useState(false);
+  const [searchMounted, setSearchMounted] = useState(false);
+  const openCalendar = useCallback(() => {
+    setCalendarMounted(true);
+    setCalendarOpen(true);
+  }, []);
+  const openSearch = useCallback(() => {
+    setSearchMounted(true);
+    setSearchOpen(true);
+  }, []);
   const [showBackToNow, setShowBackToNow] = useState(false);
   const [failedSend, setFailedSend] = useState<PendingSend | null>(null);
   const [caseyAnnouncement, setCaseyAnnouncement] = useState("");
@@ -574,11 +603,11 @@ export function HomeSurface({
       if (dx > THRESHOLD) {
         // Swipe right
         if (searchOpen) setSearchOpen(false);
-        else if (!calendarOpen) setCalendarOpen(true);
+        else if (!calendarOpen) openCalendar();
       } else if (dx < -THRESHOLD) {
         // Swipe left
         if (calendarOpen) setCalendarOpen(false);
-        else if (!searchOpen) setSearchOpen(true);
+        else if (!searchOpen) openSearch();
       }
     }
 
@@ -590,7 +619,7 @@ export function HomeSurface({
       document.removeEventListener("touchmove", onTouchMove);
       document.removeEventListener("touchend", onTouchEnd);
     };
-  }, [calendarOpen, searchOpen]);
+  }, [calendarOpen, searchOpen, openCalendar, openSearch]);
 
   // --- Pull-to-refresh
   useEffect(() => {
@@ -678,10 +707,10 @@ export function HomeSurface({
       const key = e.key.toLowerCase();
       if (key === "k") {
         e.preventDefault();
-        setSearchOpen(true);
+        openSearch();
       } else if (key === "d") {
         e.preventDefault();
-        setCalendarOpen(true);
+        openCalendar();
       } else if (key === "/") {
         e.preventDefault();
         const input = document.getElementById("chat-input");
@@ -690,7 +719,7 @@ export function HomeSurface({
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, []);
+  }, [openCalendar, openSearch]);
 
   const grouped = useMemo(() => {
     const out: Array<{ day: string; items: Message[] }> = [];
@@ -729,8 +758,8 @@ export function HomeSurface({
           Coach Casey
         </div>
         <DesktopControls
-          onOpenCalendar={() => setCalendarOpen(true)}
-          onOpenSearch={() => setSearchOpen(true)}
+          onOpenCalendar={openCalendar}
+          onOpenSearch={openSearch}
         />
       </header>
 
@@ -915,28 +944,29 @@ export function HomeSurface({
         <Composer onSend={send} disabled={streamText !== null || thinking} />
       </div>
       {keyboardInset === 0 && (
-        <MenuBar
-          onOpenCalendar={() => setCalendarOpen(true)}
-          onOpenSearch={() => setSearchOpen(true)}
-        />
+        <MenuBar onOpenCalendar={openCalendar} onOpenSearch={openSearch} />
       )}
 
-      <CalendarPicker
-        threadId={threadId}
-        open={calendarOpen}
-        onClose={() => setCalendarOpen(false)}
-        onPick={(iso) => {
-          void jumpToDate(iso);
-        }}
-      />
-      <SearchSurface
-        threadId={threadId}
-        open={searchOpen}
-        onClose={() => setSearchOpen(false)}
-        onPick={(iso) => {
-          void jumpToDate(iso);
-        }}
-      />
+      {calendarMounted && (
+        <CalendarPicker
+          threadId={threadId}
+          open={calendarOpen}
+          onClose={() => setCalendarOpen(false)}
+          onPick={(iso) => {
+            void jumpToDate(iso);
+          }}
+        />
+      )}
+      {searchMounted && (
+        <SearchSurface
+          threadId={threadId}
+          open={searchOpen}
+          onClose={() => setSearchOpen(false)}
+          onPick={(iso) => {
+            void jumpToDate(iso);
+          }}
+        />
+      )}
     </div>
   );
 }
