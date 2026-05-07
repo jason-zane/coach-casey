@@ -2,26 +2,33 @@
  *
  * Two jobs:
  *   1. Web push notifications and notification-click routing.
- *   2. Asset caching so the PWA cold-start (tap home-screen icon →
- *      first paint) doesn't have to round-trip every JS / CSS / icon
- *      chunk over the network. Pre-V1 SW did caching: nothing, every
- *      cold launch was full-network, slow on cellular.
+ *   2. Asset + shell caching so the PWA cold-start (tap home-screen
+ *      icon → first paint) is instant. The home page is now a static
+ *      auth-agnostic shell that the SW serves cache-first; the page
+ *      then fires /api/home/bootstrap to load the personalized thread
+ *      and swaps it in. Pre-V3 SW kept HTML network-only, so cold
+ *      tap still waited on TTFB + middleware + auth before any pixels.
  *
  * Caching policy:
  *   - PRECACHE: small set of cold-start essentials (manifest, icons).
+ *   - SHELL (cache-first + background revalidate): /app document. Auth
+ *     redirects (307 to /signin etc.) are NEVER cached, so unauthed
+ *     users still go through middleware on first hit.
  *   - STATIC (cache-first, immutable): /_next/static/** chunks. Hashed
  *     filenames mean a cached copy is correct forever; we just keep
  *     them and let the browser bust on a new hash.
  *   - FONTS (stale-while-revalidate): Google Fonts CSS + woff2 files.
- *   - HTML and /api/**: NETWORK-ONLY. Never cache, auth state and user
+ *   - Other HTML and /api/**: NETWORK-ONLY. Auth state and per-user
  *     data must always come from the server.
  *
- * Bump CACHE_VERSION whenever the precache list or strategy changes.
- * The activate handler purges anything not on the current version.
+ * Bump CACHE_VERSION whenever the shell HTML, precache list, or
+ * strategy changes. The activate handler purges anything not on the
+ * current version, so a new SW deploy invalidates the prior shell.
  */
 
-const CACHE_VERSION = "v2-shell-2026-05-07";
+const CACHE_VERSION = "v3-cached-shell-2026-05-07";
 const PRECACHE = `precache-${CACHE_VERSION}`;
+const SHELL = `shell-${CACHE_VERSION}`;
 const STATIC = `static-${CACHE_VERSION}`;
 const FONTS = `fonts-${CACHE_VERSION}`;
 
@@ -52,7 +59,7 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
-      const keep = new Set([PRECACHE, STATIC, FONTS]);
+      const keep = new Set([PRECACHE, SHELL, STATIC, FONTS]);
       const names = await caches.keys();
       await Promise.all(
         names.filter((n) => !keep.has(n)).map((n) => caches.delete(n)),
@@ -103,6 +110,43 @@ async function staleWhileRevalidate(request, cacheName) {
   return cached || fetchPromise;
 }
 
+/**
+ * App-shell strategy for /app.
+ *
+ * Returns the cached shell HTML immediately if present (this is what
+ * makes the PWA tap feel instant: no network round-trip), and kicks
+ * off a background revalidate to keep the cache fresh.
+ *
+ * On first visit (no cache yet) we hit the network and ONLY cache
+ * 200-OK same-origin responses. Auth redirects (307 → /signin,
+ * /onboarding, etc.) and any error response are returned but NOT
+ * cached, so future cache hits are always the real shell.
+ *
+ * Same-origin scope is enforced via response.url because the
+ * Supabase auth refresh middleware can return a 307 whose location
+ * is same-origin but whose Response.redirected is true; we explicitly
+ * filter on `redirected` to keep redirect responses out of cache.
+ */
+async function shellCacheFirst(request) {
+  const cache = await caches.open(SHELL);
+  const cached = await cache.match("/app");
+  if (cached) {
+    fetch(request)
+      .then((response) => {
+        if (response.ok && !response.redirected) {
+          cache.put("/app", response.clone()).catch(() => {});
+        }
+      })
+      .catch(() => {});
+    return cached;
+  }
+  const response = await fetch(request);
+  if (response.ok && !response.redirected) {
+    cache.put("/app", response.clone()).catch(() => {});
+  }
+  return response;
+}
+
 self.addEventListener("fetch", (event) => {
   const request = event.request;
 
@@ -126,9 +170,23 @@ self.addEventListener("fetch", (event) => {
   // Never cache the SW itself.
   if (url.pathname === "/sw.js") return;
 
-  // HTML, server actions, and API routes: network-only. Auth state
-  // and per-user data flow through these and must always be fresh.
-  // Match by destination (HTML documents) and path.
+  // /app document: cache-first shell. The static auth-agnostic shell
+  // is what fires the bootstrap fetch and renders the personalized
+  // thread, so cold-start tap can paint pixels before any network
+  // hop completes. Anything else under /app/* (athlete, settings,
+  // admin) falls through to the network-only branch below.
+  if (
+    url.pathname === "/app" &&
+    request.destination === "document" &&
+    request.mode === "navigate"
+  ) {
+    event.respondWith(shellCacheFirst(request));
+    return;
+  }
+
+  // Other HTML, server actions, and API routes: network-only. Auth
+  // state and per-user data flow through these and must always be
+  // fresh. Match by destination (HTML documents) and path.
   if (
     url.pathname.startsWith("/api/") ||
     url.pathname.startsWith("/ingest/") ||

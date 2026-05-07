@@ -1,33 +1,20 @@
-import { Suspense } from "react";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { getCurrentSession } from "@/lib/auth/current";
-import { HomeBootShell } from "./_components/home-boot-shell";
-import { HomeContent } from "./_components/home-content";
+import { HomeShellBootstrap } from "./_components/home-shell-bootstrap";
 
-export const dynamic = "force-dynamic";
-
-export default async function HomePage() {
-  const session = await getCurrentSession();
-  if (!session) redirect("/signin");
-  const { user, athlete } = session;
-
-  if (!athlete) redirect("/signin");
-  if (athlete.deleted_at) {
-    const supabase = await createClient();
-    await supabase.auth.signOut();
-    redirect("/?deleted=1");
-  }
-  if (!athlete.onboarding_completed_at) redirect("/onboarding");
-
-  // Auth + onboarding gates passed. Render the branded shell instantly
-  // and stream the thread payload (ensureThread + loadRecentWindow +
-  // optional empty-state seed, ~3-5 DB round trips) in via Suspense so
-  // the PWA cold-start doesn't sit on a blank screen between iOS splash
-  // hand-off and first message paint.
-  return (
-    <Suspense fallback={<HomeBootShell />}>
-      <HomeContent athleteId={athlete.id} athleteEmail={user.email ?? ""} />
-    </Suspense>
-  );
+/**
+ * Home page is now a static, SW-cacheable shell. The branded
+ * HomeBootShell paints instantly from local cache the moment the iOS
+ * splash hands off, then HomeShellBootstrap fires the bootstrap fetch
+ * to load the personalized thread and swaps in HomeSurface.
+ *
+ * Auth + onboarding redirects still happen, just from the bootstrap
+ * API instead of inline server awaits, so this page can be statically
+ * generated at build time and served from the SW cache without ever
+ * round-tripping the origin on cold start.
+ *
+ * Middleware still runs on the FIRST visit (before SW intercepts) and
+ * redirects unauthed users to /signin then. Subsequent taps from the
+ * home-screen icon are SW-cached and cold-start instantly.
+ */
+export default function HomePage() {
+  return <HomeShellBootstrap />;
 }
