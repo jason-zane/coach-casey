@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentSession } from "@/lib/auth/current";
 import { signOut } from "@/app/actions/auth";
 import { disconnectStrava } from "@/app/actions/strava";
 import { requestAccountDeletion } from "@/app/actions/account";
@@ -26,31 +27,25 @@ type StravaConnection = {
 };
 
 export default async function AthletePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/signin");
-
-  const { data: athlete } = await supabase
-    .from("athletes")
-    .select("id, deleted_at")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const session = await getCurrentSession();
+  if (!session) redirect("/signin");
+  const { user, athlete } = session;
   if (!athlete) redirect("/signin");
   if (athlete.deleted_at) {
+    const supabase = await createClient();
     await supabase.auth.signOut();
     redirect("/?deleted=1");
   }
 
-  const data = await loadAthletePageData(athlete.id as string);
+  const data = await loadAthletePageData(athlete.id);
   const { profile, goalRace, weekly, niggles, lifeContext, memory, activePlan } = data;
   const isAdmin = isAdminEmail(user.email ?? null);
 
+  const supabase = await createClient();
   const { data: conn } = await supabase
     .from("strava_connections")
     .select("connected_at, scope, is_mock, strava_athlete_id")
-    .eq("athlete_id", athlete.id as string)
+    .eq("athlete_id", athlete.id)
     .maybeSingle<StravaConnection>();
 
   const isStravaConnected = Boolean(conn);

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentSession } from "@/lib/auth/current";
 import { ensureThread, loadRecentWindow, loadThread } from "@/lib/thread/repository";
 import { seedEmptyStateIfNeeded } from "@/app/actions/thread";
 import { HomeSurface } from "./_components/home-surface";
@@ -7,20 +8,13 @@ import { HomeSurface } from "./_components/home-surface";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/signin");
-
-  const { data: athlete } = await supabase
-    .from("athletes")
-    .select("id, display_name, onboarding_completed_at, deleted_at")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const session = await getCurrentSession();
+  if (!session) redirect("/signin");
+  const { user, athlete } = session;
 
   if (!athlete) redirect("/signin");
   if (athlete.deleted_at) {
+    const supabase = await createClient();
     await supabase.auth.signOut();
     redirect("/?deleted=1");
   }

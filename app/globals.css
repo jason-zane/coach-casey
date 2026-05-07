@@ -294,18 +294,60 @@ body {
   border-radius: 2px;
 }
 
-/* Click feedback — every button and submit-style control registers the press
-   visually. Scoped with :where so it loses specificity battles to utility
-   classes, letting individual buttons override if needed. */
-:where(button, [type="submit"], [role="button"]):not(:disabled) {
-  transition:
-    opacity 120ms ease,
-    transform 120ms ease,
-    background-color 120ms ease;
-  -webkit-tap-highlight-color: transparent;
+/* Click feedback — every button-ish control (including anchors used as
+   buttons and Next <Link>s) registers the press visually. Wrapped in
+   @layer base so Tailwind utilities (in @layer utilities) win the cascade
+   for any element that sets its own transition or transform. Anchors are
+   included because most nav targets in this app are <Link>s, not
+   <button>s, and they were getting no feedback at all. */
+@layer base {
+  :where(button, [type="submit"], [role="button"], a[href]):not(:disabled, [aria-disabled="true"]) {
+    transition:
+      opacity 120ms ease,
+      transform 120ms ease,
+      background-color 120ms ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :where(button, [type="submit"], [role="button"], a[href]):not(:disabled, [aria-disabled="true"]):active {
+    transform: scale(0.97);
+    opacity: 0.85;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :where(button, [type="submit"], [role="button"], a[href]):not(:disabled, [aria-disabled="true"]):active {
+      transform: none;
+    }
+  }
 }
 
-:where(button, [type="submit"], [role="button"]):not(:disabled):active {
-  transform: scale(0.97);
-  opacity: 0.85;
+/* Pending indicator for <Link>s on dynamic routes. Reserves layout space
+   while invisible so the dot can fade in without shifting the icon. The
+   delayed fade-in means fast prefetched navigations never show the dot
+   at all — only when the round trip actually takes a beat. */
+.nav-pending-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--accent);
+  opacity: 0;
+  visibility: hidden;
+}
+.nav-pending-dot.is-pending {
+  visibility: visible;
+  animation:
+    nav-pending-fade-in 220ms ease forwards,
+    breath 1.4s ease-in-out infinite;
+  animation-delay: 120ms, 120ms;
+}
+@keyframes nav-pending-fade-in {
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-pending-dot.is-pending {
+    animation: nav-pending-fade-in 80ms linear forwards;
+  }
 }

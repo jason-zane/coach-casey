@@ -2,7 +2,6 @@
 
 import { createClient } from "@/lib/supabase/server";
 import {
-  ensureThread,
   loadAroundDate,
   loadOlderWindow,
   loadRecentWindow,
@@ -64,19 +63,13 @@ export async function fetchCalendarDates(
   return [...set].sort();
 }
 
-export async function searchMessages(query: string) {
+export async function searchMessages(threadId: string, query: string) {
+  // Pre-V1 search did `requireAthleteId` + `threads` lookup before each
+  // keystroke. The client already has the thread id; we only need the
+  // athlete id for the activity-name filter. RLS still gates everything,
+  // so a forged thread id just yields zero results.
   const athleteId = await requireAthleteId();
-  const supabase = await createClient();
-  const { data: thread } = await supabase
-    .from("threads")
-    .select("id")
-    .eq("athlete_id", athleteId)
-    .maybeSingle();
-  if (!thread) {
-    await ensureThread(athleteId);
-    return [];
-  }
-  return searchThreadRepo(thread.id as string, athleteId, query);
+  return searchThreadRepo(threadId, athleteId, query);
 }
 
 export async function markThreadViewed(threadId: string) {

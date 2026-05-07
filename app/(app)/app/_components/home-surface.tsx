@@ -930,6 +930,7 @@ export function HomeSurface({
         }}
       />
       <SearchSurface
+        threadId={threadId}
         open={searchOpen}
         onClose={() => setSearchOpen(false)}
         onPick={(iso) => {

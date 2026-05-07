@@ -6,6 +6,7 @@ import type { SearchResult } from "@/lib/thread/search";
 import { BottomSheet } from "./bottom-sheet";
 
 type Props = {
+  threadId: string;
   open: boolean;
   onClose: () => void;
   onPick: (isoDate: string) => void;
@@ -66,7 +67,7 @@ function highlightMatches(snippet: string, query: string): React.ReactNode[] {
   );
 }
 
-export function SearchSurface({ open, onClose, onPick }: Props) {
+export function SearchSurface({ threadId, open, onClose, onPick }: Props) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [pending, startTransition] = useTransition();
@@ -93,12 +94,12 @@ export function SearchSurface({ open, onClose, onPick }: Props) {
     if (q.length < 2) return;
     const id = setTimeout(() => {
       startTransition(async () => {
-        const res = await searchMessages(q);
+        const res = await searchMessages(threadId, q);
         setResults(res);
       });
     }, 180);
     return () => clearTimeout(id);
-  }, [query, open]);
+  }, [query, open, threadId]);
 
   const resultsToShow = query.trim().length >= 2 ? results : [];
 
