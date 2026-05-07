@@ -87,8 +87,16 @@ export async function buildSystemPrompt(opts: {
 }): Promise<Anthropic.TextBlockParam[]> {
   const blocks: Anthropic.TextBlockParam[] = [];
 
-  // 1. Voice. Always first; identical across every call on the same
-  //    profile so the prefix cache hits hardest here.
+  // Anthropic accepts at most 4 cache_control breakpoints per request.
+  // Each breakpoint caches everything BEFORE it (cumulative), so we only
+  // need to mark the boundaries between cache-stability tiers, not every
+  // block. Two breakpoints get the most leverage:
+  //   1. After voice, hits across every Casey call regardless of surface.
+  //   2. After the surface prompt, hits across every call on the same
+  //      surface (debrief, follow-up, weekly review, ...). Context comes
+  //      after this and is per-call, so it's deliberately uncached.
+
+  // 1. Voice. Always first.
   const voicePath = VOICE_PROFILES[opts.voice ?? "default"];
   blocks.push({
     type: "text",
@@ -101,7 +109,6 @@ export async function buildSystemPrompt(opts: {
     blocks.push({
       type: "text",
       text: await loadFile(SHARED_BLOCKS[key]),
-      cache_control: { type: "ephemeral" },
     });
   }
 
@@ -110,23 +117,22 @@ export async function buildSystemPrompt(opts: {
     blocks.push({
       type: "text",
       text: await loadFile(POSTURE_BLOCKS[opts.posture]),
-      cache_control: { type: "ephemeral" },
     });
   }
 
-  // 4. Surface-specific prompt.
+  // 4. Surface-specific prompt. Cache breakpoint here covers voice +
+  //    shared + posture + surface as one cached chunk.
   blocks.push({
     type: "text",
     text: await loadFile(opts.surface),
     cache_control: { type: "ephemeral" },
   });
 
-  // 5. Per-call rendered context, if any.
+  // 5. Per-call rendered context, if any. Uncached on purpose.
   if (opts.context) {
     blocks.push({
       type: "text",
       text: opts.context,
-      cache_control: { type: "ephemeral" },
     });
   }
 
