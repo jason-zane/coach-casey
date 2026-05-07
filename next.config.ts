@@ -55,6 +55,30 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // PWA icons are content-addressed by name and never change in
+        // place (we'd ship a new filename if the design changed). One
+        // year, immutable, so the HTTP cache backs up the SW cache.
+        source: "/:icon(icon-192|icon-512|icon-maskable-512|apple-touch-icon|favicon-16|favicon-32).png",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        // The manifest is small and rarely changes; treat it like the
+        // icons but with revalidation so a tweak (say, a new theme
+        // colour) propagates quickly.
+        source: "/manifest.json",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
     ];
   },
 };

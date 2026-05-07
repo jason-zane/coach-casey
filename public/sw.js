@@ -1,19 +1,156 @@
 /* Coach Casey service worker.
  *
- * One job today: handle web push notifications and route notification clicks
- * back into the app. No offline shell, no background sync, no asset caching.
- * If we add those later, do it via Serwist or a hand-rolled cache strategy
- * — don't spread cache logic across the push handler.
+ * Two jobs:
+ *   1. Web push notifications and notification-click routing.
+ *   2. Asset caching so the PWA cold-start (tap home-screen icon →
+ *      first paint) doesn't have to round-trip every JS / CSS / icon
+ *      chunk over the network. Pre-V1 SW did caching: nothing, every
+ *      cold launch was full-network, slow on cellular.
+ *
+ * Caching policy:
+ *   - PRECACHE: small set of cold-start essentials (manifest, icons).
+ *   - STATIC (cache-first, immutable): /_next/static/** chunks. Hashed
+ *     filenames mean a cached copy is correct forever; we just keep
+ *     them and let the browser bust on a new hash.
+ *   - FONTS (stale-while-revalidate): Google Fonts CSS + woff2 files.
+ *   - HTML and /api/**: NETWORK-ONLY. Never cache, auth state and user
+ *     data must always come from the server.
+ *
+ * Bump CACHE_VERSION whenever the precache list or strategy changes.
+ * The activate handler purges anything not on the current version.
  */
 
+const CACHE_VERSION = "v2-shell-2026-05-07";
+const PRECACHE = `precache-${CACHE_VERSION}`;
+const STATIC = `static-${CACHE_VERSION}`;
+const FONTS = `fonts-${CACHE_VERSION}`;
+
+const PRECACHE_URLS = [
+  "/manifest.json",
+  "/icon-192.png",
+  "/icon-512.png",
+  "/icon-maskable-512.png",
+  "/apple-touch-icon.png",
+  "/favicon-32.png",
+  "/favicon-16.png",
+];
+
 self.addEventListener("install", (event) => {
-  // Take over immediately on first install so subscribe flows complete in the
-  // same session as registration. Standard for push-only SWs.
-  event.waitUntil(self.skipWaiting());
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(PRECACHE);
+      // Tolerate individual misses, e.g. a single icon 404 shouldn't
+      // block install. addAll is atomic; we want best-effort.
+      await Promise.allSettled(
+        PRECACHE_URLS.map((url) => cache.add(url).catch(() => {})),
+      );
+      await self.skipWaiting();
+    })(),
+  );
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      const keep = new Set([PRECACHE, STATIC, FONTS]);
+      const names = await caches.keys();
+      await Promise.all(
+        names.filter((n) => !keep.has(n)).map((n) => caches.delete(n)),
+      );
+      await self.clients.claim();
+    })(),
+  );
+});
+
+function isStaticChunk(url) {
+  return url.pathname.startsWith("/_next/static/");
+}
+
+function isFontRequest(url, request) {
+  if (url.hostname === "fonts.googleapis.com") return true;
+  if (url.hostname === "fonts.gstatic.com") return true;
+  // Self-hosted fonts (Next.js's font optimization rewrites Google
+  // Fonts to /_next/static, already covered by isStaticChunk).
+  return request.destination === "font";
+}
+
+function isPrecached(url) {
+  return PRECACHE_URLS.includes(url.pathname);
+}
+
+async function cacheFirst(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+  const response = await fetch(request);
+  if (response.ok && response.type !== "opaque") {
+    cache.put(request, response.clone()).catch(() => {});
+  }
+  return response;
+}
+
+async function staleWhileRevalidate(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
+  const fetchPromise = fetch(request)
+    .then((response) => {
+      if (response.ok && response.type !== "opaque") {
+        cache.put(request, response.clone()).catch(() => {});
+      }
+      return response;
+    })
+    .catch(() => cached);
+  return cached || fetchPromise;
+}
+
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+
+  // Only handle GETs. Anything else (chat POSTs, server actions, etc.)
+  // must hit the network unmediated.
+  if (request.method !== "GET") return;
+
+  let url;
+  try {
+    url = new URL(request.url);
+  } catch {
+    return;
+  }
+
+  // Cross-origin requests that aren't fonts: leave alone. PostHog,
+  // Supabase, Strava callbacks, etc. all go straight to the network.
+  if (url.origin !== self.location.origin && !isFontRequest(url, request)) {
+    return;
+  }
+
+  // Never cache the SW itself.
+  if (url.pathname === "/sw.js") return;
+
+  // HTML, server actions, and API routes: network-only. Auth state
+  // and per-user data flow through these and must always be fresh.
+  // Match by destination (HTML documents) and path.
+  if (
+    url.pathname.startsWith("/api/") ||
+    url.pathname.startsWith("/ingest/") ||
+    request.destination === "document"
+  ) {
+    return;
+  }
+
+  if (isStaticChunk(url) || request.destination === "script" || request.destination === "style") {
+    event.respondWith(cacheFirst(request, STATIC));
+    return;
+  }
+
+  if (isFontRequest(url, request)) {
+    event.respondWith(staleWhileRevalidate(request, FONTS));
+    return;
+  }
+
+  if (isPrecached(url) || request.destination === "image") {
+    event.respondWith(staleWhileRevalidate(request, PRECACHE));
+    return;
+  }
 });
 
 function sameOriginPath(value, fallback) {
