@@ -71,7 +71,9 @@ function SiteHeader() {
             <Link href="#how">How it works</Link>
             <Link href="#pricing">Pricing</Link>
             <Link href="#faq">FAQ</Link>
-            <Link href="/signin">Sign in</Link>
+            <Link className="cc-nav-cta" href="/signin">
+              Sign in
+            </Link>
             <Link className="cc-btn cc-btn-sm cc-nav-cta" href="/signup">
               Start free trial
             </Link>
