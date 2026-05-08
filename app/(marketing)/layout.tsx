@@ -1,3 +1,5 @@
+import "./marketing.css";
+
 export default function MarketingLayout({
   children,
 }: {

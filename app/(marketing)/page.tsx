@@ -1,18 +1,21 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1">
+    <div className="cc-shell flex flex-col flex-1">
       <SiteHeader />
       <main className="flex-1">
         <Hero />
         <SampleDebrief />
-        <MoreThanTheDebrief />
-        <TheMoat />
+        <PlansCantKnow />
+        <Moat />
+        <Memory />
         <WhoItsFor />
         <HowItWorks />
         <Pricing />
         <Faq />
+        <WhoBuilt />
         <FinalCta />
       </main>
       <SiteFooter />
@@ -22,37 +25,58 @@ export default function Home() {
 
 /* ─────────────────────────────────────────────────────────────────────── */
 
+function Section({
+  id,
+  tone = "paper",
+  kicker,
+  headline,
+  stand,
+  children,
+}: {
+  id?: string;
+  tone?: "paper" | "surface";
+  kicker?: ReactNode;
+  headline?: ReactNode;
+  stand?: ReactNode;
+  children: ReactNode;
+}) {
+  const cls = "cc-section" + (tone === "surface" ? " is-surface" : "");
+  return (
+    <section id={id} className={cls}>
+      <div className="cc-container">
+        <div className="cc-grid">
+          <header className="cc-rail">
+            {kicker && <span className="cc-kicker">{kicker}</span>}
+            {headline && <h2>{headline}</h2>}
+            {stand && <p className="cc-stand">{stand}</p>}
+          </header>
+          <div className="cc-body">{children}</div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────── */
+
 function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 backdrop-blur-sm bg-[color:var(--color-paper)]/85 border-b rule">
-      <div className="mx-auto max-w-[1180px] px-6 md:px-10 h-16 flex items-center justify-between">
-        <Link
-          href="/"
-          className="text-[color:var(--color-ink)] text-lg font-medium tracking-tight"
-          style={{ fontFamily: "var(--font-serif)" }}
-        >
-          Coach Casey
-        </Link>
-        <nav className="flex items-center gap-6 md:gap-8 text-[14px] text-[color:var(--color-ink-muted)]">
-          <Link href="#how" className="hidden sm:inline hover:text-[color:var(--color-ink)] transition-colors duration-150">
-            How it works
+    <header className="cc-header">
+      <div className="cc-container">
+        <div className="cc-header-inner">
+          <Link className="cc-wordmark" href="/">
+            Coach Casey
           </Link>
-          <Link href="#pricing" className="hidden sm:inline hover:text-[color:var(--color-ink)] transition-colors duration-150">
-            Pricing
-          </Link>
-          <Link href="#faq" className="hidden md:inline hover:text-[color:var(--color-ink)] transition-colors duration-150">
-            FAQ
-          </Link>
-          <Link href="/signin" className="hover:text-[color:var(--color-ink)] transition-colors duration-150">
-            Sign in
-          </Link>
-          <Link
-            href="/signup"
-            className="inline-flex items-center h-9 px-4 rounded-[6px] bg-[color:var(--color-accent)] text-[color:var(--color-accent-ink)] text-[14px] font-medium hover:opacity-90 transition-opacity duration-150"
-          >
-            Start free trial
-          </Link>
-        </nav>
+          <nav className="cc-nav" aria-label="primary">
+            <Link href="#how">How it works</Link>
+            <Link href="#pricing">Pricing</Link>
+            <Link href="#faq">FAQ</Link>
+            <Link href="/signin">Sign in</Link>
+            <Link className="cc-btn cc-btn-sm cc-nav-cta" href="/signup">
+              Start free trial
+            </Link>
+          </nav>
+        </div>
       </div>
     </header>
   );
@@ -62,46 +86,37 @@ function SiteHeader() {
 
 function Hero() {
   return (
-    <section className="relative">
-      <div className="mx-auto max-w-[1180px] px-6 md:px-10 pt-20 md:pt-32 pb-24 md:pb-40">
-        <h1 className="display-hero text-[color:var(--color-ink)] rise rise-1 max-w-[900px]">
-          Training plans know the <em className="italic">run</em>.{" "}
-          <span className="block">
-            <span
-              className="text-[color:var(--color-accent)]"
-              style={{ fontWeight: 600 }}
-            >
-              Coach Casey
-            </span>{" "}
-            knows the <em className="italic">runner</em>.
-          </span>
-        </h1>
-
-        <div className="mt-10 md:mt-14 max-w-[52ch] space-y-8 rise rise-2">
-          <p className="prose-serif text-[color:var(--color-ink-muted)]">
-            For runners following a plan. From a coach, a group, an app, a
-            chatbot, wherever. Coach Casey reads the runs, answers the
-            questions, and gets sharper the longer it knows you.
-          </p>
-
-          <div className="flex flex-wrap gap-3 rise rise-3">
-            <Link
-              href="/signup"
-              className="inline-flex items-center justify-center h-11 px-5 rounded-[6px] bg-[color:var(--color-accent)] text-[color:var(--color-accent-ink)] text-[15px] font-medium hover:opacity-90 transition-opacity duration-150"
-            >
-              Start 14-day free trial
-            </Link>
-            <Link
-              href="#how"
-              className="inline-flex items-center justify-center h-11 px-5 rounded-[6px] border rule-strong text-[color:var(--color-ink)] text-[15px] font-medium hover:border-[color:var(--color-accent)] hover:text-[color:var(--color-accent)] transition-all duration-150"
-            >
-              See how it works
-            </Link>
+    <section className="cc-hero">
+      <div className="cc-container">
+        <div className="cc-hero-grid">
+          <div>
+            <p className="cc-hero-eyebrow">
+              <span className="cc-tick" aria-hidden="true" />
+              For marathon runners
+            </p>
+            <h1 className="rise rise-1">
+              Training plans know <em>the run.</em>
+              <br />
+              <span className="cc-hero-plum">Coach Casey</span> knows the runner.
+            </h1>
           </div>
+          <aside className="cc-hero-aside rise rise-2">
+            <p>
+              Connect Strava. Keep the plan you&rsquo;ve already got. Coach
+              Casey reads every run, remembers the season, and writes back like
+              someone who&rsquo;s actually paying attention.
+            </p>
+            <div className="cc-cta-row rise rise-3">
+              <Link className="cc-btn" href="/signup">
+                Start 14-day free trial
+              </Link>
+              <Link className="cc-btn-ghost" href="#how">
+                See how it works
+              </Link>
+            </div>
+          </aside>
         </div>
       </div>
-
-      <div className="border-b rule" />
     </section>
   );
 }
@@ -110,368 +125,276 @@ function Hero() {
 
 function SampleDebrief() {
   return (
-    <section className="bg-[color:var(--color-surface)] border-b rule">
-      <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-24 md:py-36">
-        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.8fr)] gap-10 md:gap-20 items-start">
+    <Section
+      tone="surface"
+      kicker="After the run"
+      headline={
+        <>
+          A debrief, <em>written.</em>
+        </>
+      }
+      stand="Not a summary. Not a scoreboard. A read on what actually happened, in the voice of a coach who's been paying attention."
+    >
+      <article className="cc-debrief">
+        <p className="cc-debrief-kicker">
+          <span className="cc-debrief-kicker-accent">Debrief</span> · Thursday
+        </p>
+        <h3 className="cc-debrief-h">10 km around the park</h3>
+        <dl className="cc-debrief-metrics">
           <div>
-            <p className="text-[12px] font-medium text-[color:var(--color-accent)] uppercase tracking-[0.14em]">
-              After the run
-            </p>
-            <h2 className="display-section text-[color:var(--color-ink)] mt-4">
-              A debrief, written.
-            </h2>
-            <p className="mt-6 text-[15px] leading-relaxed text-[color:var(--color-ink-muted)] max-w-[36ch]">
-              Not a summary. Not a scoreboard. A read on what actually happened,
-              in the voice of a coach who&rsquo;s been paying attention.
-            </p>
+            <dt>Pace</dt>
+            <dd>
+              4:58<span>/km</span>
+            </dd>
           </div>
-
-          <article className="relative">
-            <div className="border-l-[2px] border-[color:var(--color-accent)] pl-6 md:pl-10">
-              <header className="flex flex-wrap items-baseline justify-between gap-4 pb-5 border-b rule">
-                <div>
-                  <p className="text-[12px] font-medium text-[color:var(--color-ink-subtle)] uppercase tracking-[0.12em]">
-                    Thursday · Easy run
-                  </p>
-                  <h3 className="display-sub text-[color:var(--color-ink)] mt-2">
-                    10&thinsp;km around the park
-                  </h3>
-                </div>
-                <p className="text-[13px] text-[color:var(--color-ink-subtle)]" style={{ fontFamily: "var(--font-mono)" }}>
-                  06:42
-                </p>
-              </header>
-
-              <dl className="grid grid-cols-4 gap-3 md:gap-6 py-6 border-b rule">
-                <Metric label="Pace" value="4:58" unit="/km" hint="avg" />
-                <Metric label="HR" value="142" unit="bpm" hint="avg" />
-                <Metric label="Distance" value="10.0" unit="km" />
-                <Metric label="Week" value="42" unit="km so far" />
-              </dl>
-
-              <div className="pt-6 prose-serif text-[color:var(--color-ink)] space-y-5 max-w-[62ch]">
-                <p>
-                  Quicker than an easy run usually lives for you. 4:58/km, about
-                  15s/km faster than your usual easy. HR stayed low, so nothing
-                  physical. But the plan wanted easy to be easy.
-                </p>
-                <p>
-                  Two things. You mentioned the calf on Tuesday. Easy runs are
-                  where you bank that signal, and 4:58 is harder to justify if
-                  the calf&rsquo;s still talking.{" "}
-                  <span className="text-[color:var(--color-accent)]">
-                    Not my call
-                  </span>
-                  , but worth sitting with before tomorrow.
-                </p>
-              </div>
-
-              <footer className="pt-6 mt-8 border-t rule">
-                <p className="text-[13px] text-[color:var(--color-ink-subtle)]">
-                  &mdash;&thinsp;Coach Casey
-                </p>
-              </footer>
-            </div>
-          </article>
+          <div>
+            <dt>HR</dt>
+            <dd>
+              142<span>bpm</span>
+            </dd>
+          </div>
+          <div>
+            <dt>Distance</dt>
+            <dd>
+              10.0<span>km</span>
+            </dd>
+          </div>
+          <div>
+            <dt>Week</dt>
+            <dd>
+              42<span>km</span>
+            </dd>
+          </div>
+        </dl>
+        <div className="cc-debrief-prose">
+          <p>
+            Quicker than an easy run usually lives for you. 4:58/km, about
+            15s/km faster than your usual easy. HR stayed low, so nothing
+            physical. But the plan wanted easy to be easy.
+          </p>
+          <p>
+            You mentioned the calf on Tuesday. Easy runs are where you bank
+            that signal, and 4:58 is harder to justify if the calf&rsquo;s
+            still talking. <span className="accent">Not my call</span>, but
+            worth sitting with before tomorrow.
+          </p>
         </div>
-      </div>
-    </section>
-  );
-}
-
-function Metric({
-  label,
-  value,
-  unit,
-  hint,
-}: {
-  label: string;
-  value: string;
-  unit: string;
-  hint?: string;
-}) {
-  return (
-    <div>
-      <dt className="text-[11px] font-medium text-[color:var(--color-ink-subtle)] uppercase tracking-[0.12em]">
-        {label}
-      </dt>
-      <dd className="mt-2 flex items-baseline gap-1">
-        <span className="text-[22px] md:text-[26px] font-medium text-[color:var(--color-ink)] tabular-nums" style={{ fontFamily: "var(--font-sans)", letterSpacing: "-0.01em" }}>
-          {value}
-        </span>
-        <span className="text-[12px] text-[color:var(--color-ink-muted)]" style={{ fontFamily: "var(--font-mono)" }}>
-          {unit}
-        </span>
-      </dd>
-      {hint && (
-        <p className="mt-1 text-[11px] text-[color:var(--color-ink-subtle)]">{hint}</p>
-      )}
-    </div>
+      </article>
+    </Section>
   );
 }
 
 /* ─────────────────────────────────────────────────────────────────────── */
 
-function MoreThanTheDebrief() {
+function PlansCantKnow() {
   return (
-    <section className="border-b rule">
-      <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-32 md:py-44">
-        <div className="max-w-[64ch]">
-          <p className="text-[12px] font-medium text-[color:var(--color-accent)] uppercase tracking-[0.14em]">
-            What a plan can&rsquo;t know
-          </p>
-          <h2
-            className="mt-7 text-[color:var(--color-ink)]"
-            style={{
-              fontFamily: "var(--font-serif)",
-              fontWeight: 450,
-              letterSpacing: "-0.035em",
-              lineHeight: 0.98,
-              fontSize: "clamp(2.75rem, 6.5vw, 5.25rem)",
-            }}
-          >
-            The life <em className="italic">around</em> the runs.
-          </h2>
-          <p className="mt-8 prose-serif text-[color:var(--color-ink-muted)] max-w-[58ch]">
-            A plan tells you Tuesday is a tempo. It can&rsquo;t know the calf
-            has been niggling since the long run. It can&rsquo;t know about the
-            work trip Thursday, or that the kids haven&rsquo;t been sleeping,
-            or that race day is the reason any of this matters. Coach Casey
-            holds the rest of the picture, and brings it to every read.
-          </p>
-        </div>
-
-        <div className="mt-16 md:mt-20">
-          <ChatExample />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function ChatExample() {
-  return (
-    <div className="max-w-[640px] space-y-6">
-      {/* User question, matches in-app chat_user: plum bubble, right-aligned */}
-      <div className="flex justify-end">
-        <div
-          className="rounded-[18px] rounded-br-[6px] bg-[color:var(--color-accent)] text-[color:var(--color-accent-ink)] px-4 py-2.5 max-w-[78%] break-words"
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: "15px",
-            lineHeight: 1.45,
-          }}
-        >
+    <Section
+      kicker="What a plan can't know"
+      headline={
+        <>
+          The life <em>around</em> the runs.
+        </>
+      }
+      stand="A plan is a prescription. It can't read what came before, what came after, or the day you actually had."
+    >
+      <p className="cc-lede">
+        A plan tells you Tuesday is a tempo. It can&rsquo;t know the calf has
+        been niggling since the long run, that you&rsquo;ve got a work trip
+        Thursday, that the kids haven&rsquo;t been sleeping, or that race day
+        is the reason any of this matters.{" "}
+        <span className="cc-accent">
+          Coach Casey holds the rest of the picture, and brings it to every
+          read.
+        </span>
+      </p>
+      <div className="cc-chat">
+        <div className="cc-chat-user">
           Should I swap tomorrow&rsquo;s tempo given the calf?
         </div>
+        <div className="cc-chat-casey">
+          <p>
+            Plan wants 8&times;3min tempo. But you mentioned the calf on
+            Tuesday, and you&rsquo;ve got the work trip this week. Not a great
+            week to push through something that&rsquo;s already talking.
+          </p>
+          <p>
+            I&rsquo;d swap for an easy 45 and save tempo for Saturday.{" "}
+            <span className="cc-accent">Your call.</span>
+          </p>
+        </div>
       </div>
-
-      {/* Casey reply, matches in-app chat_casey: left-rail text, no bubble */}
-      <article
-        className="border-l-[2px] border-[color:var(--color-accent)]/80 pl-4 sm:pl-5 max-w-[88%] text-[color:var(--color-ink)]"
-        style={{
-          fontFamily: "var(--font-sans)",
-          fontSize: "15px",
-          lineHeight: 1.55,
-        }}
-      >
-        <p>
-          Plan wants 8&times;3min tempo. But you mentioned the calf on Tuesday,
-          and you&rsquo;ve got the work trip this week. Not a great week to
-          push through something that&rsquo;s already talking.
-        </p>
-        <p className="mt-3">
-          I&rsquo;d swap for an easy 45 and save tempo for Saturday.{" "}
-          <span className="text-[color:var(--color-accent)]">Your call.</span>
-        </p>
-      </article>
-    </div>
+    </Section>
   );
 }
 
 /* ─────────────────────────────────────────────────────────────────────── */
 
-function TheMoat() {
-  const stages = [
-    {
-      label: "Week 1",
-      line: "Reads your runs. Catches the obvious stuff.",
-    },
-    {
-      label: "Month 3",
-      line: "Knows your easy pace isn&rsquo;t the book&rsquo;s easy pace. Remembers the calf from February.",
-    },
-    {
-      label: "Month 12",
-      line: "Knows which races matter. Knows the kid, the sleep, the patterns you didn&rsquo;t know you had.",
-    },
-  ];
-
+function Moat() {
   return (
-    <section className="bg-[color:var(--color-surface)] border-b rule">
-      <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-24 md:py-36">
-        <div className="max-w-[52ch]">
-          <p className="text-[12px] font-medium text-[color:var(--color-accent)] uppercase tracking-[0.14em]">
-            The hidden part
+    <Section
+      tone="surface"
+      kicker="The hidden part"
+      headline={<>Sharper, the longer it knows you.</>}
+      stand="Most of what makes a coach good isn't in your Strava data. It compounds."
+    >
+      <p className="cc-lede">
+        The first month is useful. The third is sharp. By month twelve, Coach
+        Casey knows things about your running that you&rsquo;d struggle to
+        write down.
+      </p>
+      <div className="cc-timeline">
+        <div className="cc-timeline-row">
+          <span className="cc-timeline-when">Week 1</span>
+          <p className="cc-timeline-said">
+            Reads your runs. Catches the obvious.
           </p>
-          <h2 className="display-section text-[color:var(--color-ink)] mt-4">
-            Coach Casey gets sharper the longer it knows you.
-          </h2>
         </div>
-
-        <ol className="mt-14 md:mt-20 grid grid-cols-1 md:grid-cols-3 border-y rule-strong">
-          {stages.map((s, i) => (
-            <li
-              key={s.label}
-              className={`py-10 md:py-12 md:px-10 ${
-                i > 0 ? "border-t md:border-t-0 md:border-l rule" : ""
-              } ${i === 0 ? "md:pl-0" : ""} ${i === stages.length - 1 ? "md:pr-0" : ""}`}
-            >
-              <p className="text-[12px] font-medium text-[color:var(--color-accent)] uppercase tracking-[0.12em]">
-                {s.label}
-              </p>
-              <p
-                className="mt-4 text-[color:var(--color-ink)]"
-                style={{
-                  fontFamily: "var(--font-serif)",
-                  fontWeight: 450,
-                  fontSize: "clamp(1.125rem, 1.6vw, 1.375rem)",
-                  lineHeight: 1.3,
-                  letterSpacing: "-0.01em",
-                }}
-                dangerouslySetInnerHTML={{ __html: s.line }}
-              />
-            </li>
-          ))}
-        </ol>
-
-        <p className="mt-14 md:mt-16 prose-serif text-[color:var(--color-ink-muted)] max-w-[62ch]">
-          None of that&rsquo;s in your Strava data. It&rsquo;s in the slow
-          accumulation of everything you&rsquo;ve told Coach Casey along the
-          way. That&rsquo;s the part that compounds, and the part that
-          doesn&rsquo;t exist anywhere else.
-        </p>
+        <div className="cc-timeline-row">
+          <span className="cc-timeline-when">Month 3</span>
+          <p className="cc-timeline-said">
+            Knows your <em>easy</em> isn&rsquo;t the book&rsquo;s easy.
+            Remembers the calf from February. Knows the kids have been sick.
+          </p>
+        </div>
+        <div className="cc-timeline-row">
+          <span className="cc-timeline-when">Month 12</span>
+          <p className="cc-timeline-said">
+            Knows which races matter. Knows the kid, the sleep, the work
+            patterns, the way you fall apart in February. The patterns you
+            didn&rsquo;t know you had.
+          </p>
+        </div>
       </div>
-    </section>
+    </Section>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────── */
+
+function Memory() {
+  return (
+    <Section
+      kicker="Memory, in practice"
+      headline={
+        <>
+          It remembers what <em>you&rsquo;d</em> remember.
+        </>
+      }
+      stand="Months later, in the middle of a different conversation, the right detail comes back."
+    >
+      <div className="cc-memory">
+        <div className="cc-memory-block">
+          <span className="cc-memory-when">April 14</span>
+          <p className="cc-memory-said">
+            &ldquo;Pulled up sore on the left calf around the 8k mark. Backed
+            off.&rdquo;
+          </p>
+        </div>
+        <div className="cc-memory-arrow">Four months later</div>
+        <div className="cc-memory-block">
+          <span className="cc-memory-when is-recall">
+            August 22 · long run debrief
+          </span>
+          <p className="cc-memory-said">
+            &ldquo;Calf chatter on the descent at 19k. Same side as April.
+            Worth keeping an eye on, not worth panicking about.&rdquo;
+          </p>
+        </div>
+      </div>
+    </Section>
   );
 }
 
 /* ─────────────────────────────────────────────────────────────────────── */
 
 function WhoItsFor() {
-  const segments = [
-    { label: "A coach", example: "The block they wrote for you." },
-    { label: "An app", example: "Runna, TrainingPeaks, Garmin." },
-    { label: "A group", example: "Sessions you show up to each week." },
-    { label: "A chatbot", example: "A plan ChatGPT sketched for you." },
-  ];
-
   return (
-    <section className="border-b rule">
-      <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-24 md:py-32">
-        <div className="max-w-[60ch]">
-          <p className="text-[12px] font-medium text-[color:var(--color-accent)] uppercase tracking-[0.14em]">
-            Who it&rsquo;s for
-          </p>
-          <h2 className="display-section text-[color:var(--color-ink)] mt-4">
-            Anyone following a plan.
-          </h2>
-          <p className="mt-6 prose-serif text-[color:var(--color-ink-muted)] max-w-[52ch]">
-            If you&rsquo;re showing up to the runs, you&rsquo;ve done the hard
-            part. The plan can come from anywhere.
-          </p>
-        </div>
-
-        <div className="mt-14 md:mt-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-10 gap-y-10">
-          {segments.map((s) => (
-            <div key={s.label} className="space-y-3">
-              <div className="h-[2px] w-8 bg-[color:var(--color-accent)]" />
-              <h3
-                className="text-[color:var(--color-ink)]"
-                style={{
-                  fontFamily: "var(--font-serif)",
-                  fontWeight: 500,
-                  fontSize: "clamp(1.25rem, 1.7vw, 1.5rem)",
-                  letterSpacing: "-0.015em",
-                  lineHeight: 1.15,
-                }}
-              >
-                {s.label}
-              </h3>
-              <p className="text-[14px] leading-[1.55] text-[color:var(--color-ink-muted)]">
-                {s.example}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <p className="mt-16 md:mt-20 text-[15px] leading-relaxed text-[color:var(--color-ink-subtle)] max-w-[58ch]">
-          Not the thing to write your training, pump you up, or replace a coach
-          who already watches every run. Coach Casey sits alongside what
-          you&rsquo;ve got.
-        </p>
-      </div>
-    </section>
+    <Section
+      tone="surface"
+      kicker="Who it's for"
+      headline={<>Built for runners with a goal race.</>}
+      stand="Coach Casey sits alongside the plan you've already got, written by you, by a coach, by an app, by anyone."
+    >
+      <ul className="cc-who-list">
+        <li>
+          <span className="cc-who-label">Marathon runners</span>
+          <span className="cc-who-detail">
+            With a date on the calendar and a plan to get there.
+          </span>
+        </li>
+        <li>
+          <span className="cc-who-label">Already on Strava</span>
+          <span className="cc-who-detail">
+            It&rsquo;s the only feed Coach Casey reads. No new app on the run.
+          </span>
+        </li>
+        <li>
+          <span className="cc-who-label">Following any plan</span>
+          <span className="cc-who-detail">
+            From a coach, a group, an app, a chatbot, or yourself.
+          </span>
+        </li>
+        <li>
+          <span className="cc-who-label">After a read, not a rewrite</span>
+          <span className="cc-who-detail">
+            Coach Casey doesn&rsquo;t write your training. It reads what
+            you&rsquo;re doing.
+          </span>
+        </li>
+      </ul>
+      <p className="cc-meta">
+        Not the right fit if you don&rsquo;t have a goal race in front of you,
+        or if you already have a coach who watches every run. Coach Casey
+        complements that work. It doesn&rsquo;t replace it.
+      </p>
+    </Section>
   );
 }
 
 /* ─────────────────────────────────────────────────────────────────────── */
 
 function HowItWorks() {
-  const steps = [
-    {
-      n: "1",
-      title: "Connect Strava. Share what you&rsquo;re training for.",
-      body:
-        "Strava gets your runs in automatically. The plan tells Coach Casey what they were meant to be. Upload it, paste it, describe it, whatever you&rsquo;ve got. Five minutes, once.",
-    },
-    {
-      n: "2",
-      title: "Run the runs you were going to run.",
-      body:
-        "No new app during the run. No new habit. No check-ins. Keep training exactly the way you were. Coach Casey reads what Strava picks up.",
-    },
-    {
-      n: "3",
-      title: "Read what Coach Casey has to say.",
-      body:
-        "A debrief after every run. A review at the end of every week. Chat, whenever you want. The longer you use it, the sharper it gets.",
-    },
-  ];
-
   return (
-    <section id="how" className="bg-[color:var(--color-surface)] border-b rule">
-      <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-24 md:py-36">
-        <div className="max-w-[42ch]">
-          <p className="text-[12px] font-medium text-[color:var(--color-accent)] uppercase tracking-[0.14em]">
-            How it works
-          </p>
-          <h2 className="display-section text-[color:var(--color-ink)] mt-4">
-            Three steps. Then it&rsquo;s just running.
-          </h2>
-        </div>
-
-        <ol className="mt-16 md:mt-24 divide-y rule">
-          {steps.map((step) => (
-            <li key={step.n} className="py-10 md:py-14 grid grid-cols-1 md:grid-cols-[96px_minmax(0,32ch)_1fr] gap-6 md:gap-16 items-start">
-              <span
-                className="text-[48px] md:text-[72px] leading-none font-medium text-[color:var(--color-ink-subtle)] tabular-nums"
-                style={{ fontFamily: "var(--font-sans)", letterSpacing: "-0.04em" }}
-                aria-hidden
-              >
-                {step.n}
-              </span>
-              <h3 className="display-sub text-[color:var(--color-ink)]">
-                <span dangerouslySetInnerHTML={{ __html: step.title }} />
-              </h3>
-              <p className="prose-serif text-[color:var(--color-ink-muted)] max-w-[52ch]">
-                <span dangerouslySetInnerHTML={{ __html: step.body }} />
-              </p>
-            </li>
-          ))}
-        </ol>
-      </div>
-    </section>
+    <Section
+      id="how"
+      kicker="How it works"
+      headline={<>Three things, once. Then nothing.</>}
+      stand="Five minutes of setup, then keep running the way you already were."
+    >
+      <ol className="cc-steps">
+        <li>
+          <span className="cc-step-num">Step 01</span>
+          <div className="cc-step-body">
+            <h3>Connect Strava and share what you&rsquo;re training for.</h3>
+            <p>
+              Upload the plan, paste it, describe it. Whatever you&rsquo;ve
+              got. Five minutes. Once.
+            </p>
+          </div>
+        </li>
+        <li>
+          <span className="cc-step-num">Step 02</span>
+          <div className="cc-step-body">
+            <h3>Run the runs you were going to run.</h3>
+            <p>
+              No new app during the workout. No daily check-in. Coach Casey
+              reads each run as it comes in, against the plan and everything
+              that came before.
+            </p>
+          </div>
+        </li>
+        <li>
+          <span className="cc-step-num">Step 03</span>
+          <div className="cc-step-body">
+            <h3>Read what Coach Casey has to say.</h3>
+            <p>
+              A debrief after every run. A review at the end of every week.
+              Chat, whenever you want to dig in.
+            </p>
+          </div>
+        </li>
+      </ol>
+    </Section>
   );
 }
 
@@ -479,202 +402,154 @@ function HowItWorks() {
 
 function Pricing() {
   return (
-    <section id="pricing" className="border-b rule">
-      <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-24 md:py-36">
-        <div className="max-w-[50ch]">
-          <p className="text-[12px] font-medium text-[color:var(--color-accent)] uppercase tracking-[0.14em]">
-            Pricing
-          </p>
-          <h2 className="display-section text-[color:var(--color-ink)] mt-4">
-            Less than one coaching session a month.
-          </h2>
-        </div>
-
-        <div className="mt-16 md:mt-20 grid grid-cols-1 md:grid-cols-2 border-y rule-strong">
-          <PriceBlock
-            label="Monthly"
-            amount="24"
-            period="/month"
-            note="Cancel anytime."
-          />
-          <PriceBlock
-            label="Annual"
-            amount="199"
-            period="/year"
-            highlight="Effective A$16.60/month. Save A$89 a year."
-            note=""
-            dividerLeft
-            recommended
-          />
-        </div>
-
-        <p className="mt-10 prose-serif text-[color:var(--color-ink-muted)] max-w-[58ch]">
-          Annual is priced to keep you through the window where Coach Casey gets
-          sharpest. The first three months are already useful. Month six is when
-          the memory really earns its keep.
+    <Section
+      id="pricing"
+      tone="surface"
+      kicker="Pricing"
+      headline={<>Less than one coaching session a month.</>}
+      stand="Annual is what we recommend. Monthly is there if you want to try it that way."
+    >
+      <div className="cc-price">
+        <p className="cc-price-headline">
+          <span className="cc-price-amount">A$199</span> a year.{" "}
+          <em>Roughly A$16.60 a month.</em>
         </p>
-
-        <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-4">
-          <Link
-            href="/signup"
-            className="inline-flex items-center justify-center h-11 px-5 rounded-[6px] bg-[color:var(--color-accent)] text-[color:var(--color-accent-ink)] text-[15px] font-medium hover:opacity-90 transition-opacity duration-150"
-          >
+        <div className="cc-price-rows">
+          <div className="cc-price-row">
+            <span className="cc-price-label">Annual, our recommendation</span>
+            <span className="cc-price-val">A$199 / yr</span>
+          </div>
+          <div className="cc-price-row">
+            <span className="cc-price-label">
+              Monthly, same product, billed each month
+            </span>
+            <span className="cc-price-val">A$24 / mo</span>
+          </div>
+          <div className="cc-price-row">
+            <span className="cc-price-label">14-day trial</span>
+            <span className="cc-price-val">No card required</span>
+          </div>
+        </div>
+        <p className="cc-price-foot">
+          Annual is priced to keep you through the window where Coach Casey
+          gets sharpest. The first three months are useful. Month six is when
+          the memory really earns its keep. Monthly is a fine way to try it
+          past the trial; switch to annual any time.
+        </p>
+        <p className="cc-price-foot">
+          Cancel monthly any time. Annual is a year commitment, but if you
+          cancel before it&rsquo;s up, unused months refund pro-rata,
+          automatically. No claw-backs, no retention emails.
+        </p>
+        <div className="cc-cta-row">
+          <Link className="cc-btn" href="/signup">
             Start 14-day free trial
           </Link>
-          <p className="text-[13px] text-[color:var(--color-ink-subtle)]">
-            No card required for the trial. All prices in AUD.
-          </p>
         </div>
       </div>
-    </section>
-  );
-}
-
-function PriceBlock({
-  label,
-  amount,
-  period,
-  note,
-  highlight,
-  dividerLeft,
-  recommended,
-}: {
-  label: string;
-  amount: string;
-  period: string;
-  note: string;
-  highlight?: string;
-  dividerLeft?: boolean;
-  recommended?: boolean;
-}) {
-  return (
-    <div className={`py-10 md:py-14 md:pl-10 md:pr-10 ${dividerLeft ? "md:border-l rule-strong md:pl-10" : "md:pl-0"}`}>
-      <div className="flex items-center gap-3">
-        <p className="text-[12px] font-medium text-[color:var(--color-ink-subtle)] uppercase tracking-[0.12em]">
-          {label}
-        </p>
-        {recommended && (
-          <span className="text-[10px] font-medium text-[color:var(--color-accent)] uppercase tracking-[0.14em] border border-[color:var(--color-accent)] rounded-full px-2 py-0.5">
-            Recommended
-          </span>
-        )}
-      </div>
-      <div className="mt-4 flex items-baseline gap-1">
-        <span className="text-[22px] text-[color:var(--color-ink-muted)]" style={{ fontFamily: "var(--font-sans)" }}>
-          A$
-        </span>
-        <span
-          className="text-[64px] md:text-[84px] leading-none font-medium text-[color:var(--color-ink)] tabular-nums"
-          style={{ fontFamily: "var(--font-serif)", letterSpacing: "-0.03em" }}
-        >
-          {amount}
-        </span>
-        <span className="text-[14px] text-[color:var(--color-ink-muted)] ml-2">
-          {period}
-        </span>
-      </div>
-      {highlight && (
-        <p className="mt-4 text-[14px] text-[color:var(--color-accent)]">
-          {highlight}
-        </p>
-      )}
-      {note && (
-        <p className="mt-4 text-[14px] text-[color:var(--color-ink-muted)]">
-          {note}
-        </p>
-      )}
-    </div>
+    </Section>
   );
 }
 
 /* ─────────────────────────────────────────────────────────────────────── */
 
 function Faq() {
-  const items = [
+  const items: { q: string; a: string; defaultOpen?: boolean }[] = [
     {
-      q: "Does it replace my coach?",
-      a: "No. Coach Casey reads and remembers; your coach decides. If anything, the debriefs give your coach a sharper starting point for the next conversation.",
+      q: "Will Coach Casey write my training plan?",
+      a: "No. Coach Casey reads what you're already doing. Your plan, your runs, what's been going on around them. Then writes back like a coach paying attention. The plan stays yours, or your coach's, or your group's.",
       defaultOpen: true,
     },
     {
-      q: "I don't have a coach. Does Coach Casey still work?",
-      a: "Yes. Most Coach Casey users don't have one. App plan, group plan, chatbot-written plan, or a plan you sketched for yourself, Coach Casey reads against whatever you've got. You can even just describe what you're training for in a few sentences.",
+      q: "Do I need to log workouts somewhere new?",
+      a: "Strava is the only feed Coach Casey reads. If your run shows up there, it gets debriefed. No second app on the run, no morning check-in.",
     },
     {
-      q: "How's this different from Strava or Runna?",
-      a: "Strava records the run. Runna writes the plan. Coach Casey reads. It's the layer neither of them does. The longer you use it, the sharper it gets, because it actually remembers.",
+      q: "What if my plan changes mid-block?",
+      a: "Update what you tell Coach Casey, the same way you'd tell a coach. The next debrief reads against the new plan. Memory of the old block stays. Pacing, fatigue patterns, what worked.",
     },
     {
-      q: "What about a plan a chatbot wrote? Same deal?",
-      a: "Same relationship. A chatbot can write you a plan; it can't watch you run it, remember the calf from February, or know about the work trip. Coach Casey sits on top of whatever plan you've got, regardless of who or what wrote it.",
-    },
-    {
-      q: "Does it really get sharper over time, or is that marketing?",
-      a: "Yes, and not by magic. The life-context you share accumulates. By month three, Coach Casey references the calf from February without being reminded. Month six, it knows your easy pace isn't the book's easy pace. Month twelve, hard to imagine training without it.",
+      q: "How does it get sharper over time?",
+      a: "It accumulates the context that Strava data alone can't capture: which races mattered, which weeks bent, what your easy actually looks like in July. Three months in, you'll feel the difference. By month six, the recall starts surprising you.",
     },
     {
       q: "Where does my data go?",
       a: "Strava data comes in read-only through their API. Your runs, plan, and chat history are stored on Supabase, in Sydney. Coach Casey uses large language models to write debriefs and respond to you; your data is never used to train them.",
     },
     {
-      q: "What's in the trial, and can I cancel?",
-      a: "14 days, no card required, everything enabled. Cancel anytime from your account page. No claw-backs on the annual plan. Unused months refund automatically, pro-rata.",
+      q: "Can I cancel anytime?",
+      a: "14 days, no card required, everything enabled. Cancel monthly any time. Annual is a year commitment, but if you cancel before it's up, unused months refund pro-rata, automatically. No claw-backs, no retention emails.",
     },
   ];
 
   return (
-    <section id="faq" className="bg-[color:var(--color-surface)] border-b rule">
-      <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-24 md:py-36">
-        <div className="max-w-[42ch]">
-          <p className="text-[12px] font-medium text-[color:var(--color-accent)] uppercase tracking-[0.14em]">
-            Questions
-          </p>
-          <h2 className="display-section text-[color:var(--color-ink)] mt-4">
-            Fair things to ask.
-          </h2>
-        </div>
-
-        <div className="mt-14 md:mt-20 max-w-[820px] border-t rule">
-          {items.map((item) => (
-            <details
-              key={item.q}
-              open={item.defaultOpen}
-              className="group border-b rule"
-            >
-              <summary
-                className="list-none cursor-pointer py-6 md:py-7 flex items-start gap-6 outline-none"
-              >
-                <span
-                  className="flex-1 text-[color:var(--color-ink)] transition-colors group-hover:text-[color:var(--color-accent)]"
-                  style={{
-                    fontFamily: "var(--font-serif)",
-                    fontStyle: "italic",
-                    fontSize: "clamp(1.125rem, 1.5vw, 1.375rem)",
-                    fontWeight: 500,
-                    letterSpacing: "-0.01em",
-                    lineHeight: 1.25,
-                  }}
-                >
-                  {item.q}
-                </span>
-                <span
-                  aria-hidden
-                  className="mt-1 shrink-0 text-[color:var(--color-ink-subtle)] transition-transform duration-200 group-open:rotate-45"
-                  style={{ fontFamily: "var(--font-sans)", fontSize: "22px", lineHeight: 1 }}
-                >
-                  +
-                </span>
-              </summary>
-              <div className="pb-7 md:pb-8 pr-12">
-                <p className="text-[15px] md:text-[16px] leading-relaxed text-[color:var(--color-ink-muted)] max-w-[62ch]">
-                  {item.a}
-                </p>
-              </div>
-            </details>
-          ))}
-        </div>
+    <Section
+      id="faq"
+      kicker="FAQ"
+      headline={<>Things runners ask first.</>}
+      stand="The questions that come up before a trial. Answered honestly."
+    >
+      <div className="cc-faq">
+        {items.map((it) => (
+          <details
+            key={it.q}
+            className="cc-faq-item"
+            open={it.defaultOpen}
+          >
+            <summary className="cc-faq-summary">
+              <span>{it.q}</span>
+              <span className="cc-faq-plus" aria-hidden="true">
+                +
+              </span>
+            </summary>
+            <div className="cc-faq-body">
+              <p>{it.a}</p>
+            </div>
+          </details>
+        ))}
       </div>
-    </section>
+    </Section>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────── */
+
+function WhoBuilt() {
+  return (
+    <Section
+      tone="surface"
+      kicker="Who built it"
+      headline={<>Built by a runner who got tired of generic.</>}
+      stand={
+        <>
+          Jason Hunt. Sydney. Founder of{" "}
+          <a
+            href="https://themarathonclinic.com"
+            style={{
+              color: "inherit",
+              textDecoration: "underline",
+              textUnderlineOffset: 2,
+            }}
+          >
+            The Marathon Clinic
+          </a>
+          . 2:24 marathoner.
+        </>
+      }
+    >
+      <p className="cc-lede">
+        Coach Casey started as a private tool I built to debrief my own runs
+        while training for the Melbourne Marathon. I&rsquo;m a coach.
+        I&rsquo;m also a coached athlete. I wanted the read on each run that
+        my own coach gives me, specific and in context, between sessions, on
+        every run.
+      </p>
+      <p>
+        It&rsquo;s a one-person product so far. I read every support email
+        myself. I use Coach Casey on every run I do, including the ones
+        I&rsquo;d rather forget.
+      </p>
+    </Section>
   );
 }
 
@@ -682,25 +557,22 @@ function Faq() {
 
 function FinalCta() {
   return (
-    <section className="border-b rule">
-      <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-28 md:py-40 text-center">
-        <h2 className="display-section text-[color:var(--color-ink)] mx-auto max-w-[22ch]">
-          A few runs will tell you.
+    <section id="cta" className="cc-final">
+      <div className="cc-container">
+        <h2>
+          Try it through one training block. <em>See if it earns its keep.</em>
         </h2>
-        <p className="mt-6 prose-serif text-[color:var(--color-ink-muted)] mx-auto max-w-[46ch]">
-          Connect Strava, run the runs you were going to run anyway,
-          see what Coach Casey has to say.
+        <p className="cc-final-sub">
+          14 days free. No card required. If it isn&rsquo;t sharper than what
+          you&rsquo;ve got, leave. We won&rsquo;t make it weird.
         </p>
-        <div className="mt-10 flex flex-col items-center gap-3">
-          <Link
-            href="/signup"
-            className="inline-flex items-center justify-center h-12 px-6 rounded-[6px] bg-[color:var(--color-accent)] text-[color:var(--color-accent-ink)] text-[15px] font-medium hover:opacity-90 transition-opacity duration-150"
-          >
+        <div className="cc-final-cta">
+          <Link className="cc-btn" href="/signup">
             Start free trial
           </Link>
-          <p className="text-[13px] text-[color:var(--color-ink-subtle)]">
-            14 days. No card required.
-          </p>
+          <span className="cc-foot-note">
+            Connects to Strava in under a minute.
+          </span>
         </div>
       </div>
     </section>
@@ -711,41 +583,21 @@ function FinalCta() {
 
 function SiteFooter() {
   return (
-    <footer>
-      <div className="mx-auto max-w-[1180px] px-6 md:px-10 py-10 flex flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-x-8 gap-y-3 text-[13px] text-[color:var(--color-ink-subtle)]">
-          <span
-            className="text-[color:var(--color-ink)] text-[15px] font-medium"
-            style={{ fontFamily: "var(--font-serif)" }}
-          >
-            Coach Casey
+    <footer className="cc-footer">
+      <div className="cc-container">
+        <div className="cc-footer-row">
+          <span>© 2026 Coach Casey, Sydney</span>
+          <Link href="/privacy">Privacy</Link>
+          <Link href="/terms">Terms</Link>
+          <Link href="#faq">FAQ</Link>
+          <span className="cc-footer-spacer">
+            Built by Jason Hunt, founder of{" "}
+            <a href="https://themarathonclinic.com">The Marathon Clinic</a>.
           </span>
-          <Link href="#how" className="hover:text-[color:var(--color-ink)] transition-colors duration-150">
-            How it works
-          </Link>
-          <Link href="#pricing" className="hover:text-[color:var(--color-ink)] transition-colors duration-150">
-            Pricing
-          </Link>
-          <Link href="#faq" className="hover:text-[color:var(--color-ink)] transition-colors duration-150">
-            FAQ
-          </Link>
-          <Link href="/privacy" className="hover:text-[color:var(--color-ink)] transition-colors duration-150">
-            Privacy
-          </Link>
-          <Link href="/terms" className="hover:text-[color:var(--color-ink)] transition-colors duration-150">
-            Terms
-          </Link>
-          <span className="ml-auto">© 2026</span>
         </div>
-        <p className="text-[12px] text-[color:var(--color-ink-subtle)]">
-          Built by Jason Hunt in Sydney. Founder of{" "}
-          <a
-            href="https://themarathonclinic.com"
-            className="underline underline-offset-2 hover:text-[color:var(--color-ink)] transition-colors duration-150"
-          >
-            The Marathon Clinic
-          </a>
-          .
+        <p className="cc-footer-fineprint">
+          Strava is a trademark of Strava, Inc. Coach Casey is not affiliated
+          with Strava.
         </p>
       </div>
     </footer>
