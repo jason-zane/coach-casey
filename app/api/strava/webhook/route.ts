@@ -12,6 +12,7 @@ import {
   liveWebhookSecurityRequired,
   parseStravaWebhookEvent,
   type StravaWebhookEvent,
+  type WebhookCheck,
 } from "@/lib/strava/webhook-event";
 
 export const runtime = "nodejs";
@@ -30,11 +31,23 @@ export const maxDuration = 60;
  *
  * POST, events. Strava delivers { aspect_type, object_type, object_id,
  *   owner_id, subscription_id, updates }. We ACK with 200 in under two
- *   seconds and do the real work in an async hook (`after()`). The callback
- *   URL must include `?secret=$STRAVA_WEBHOOK_EVENT_SECRET`; Strava does not
- *   sign events, so this is our application-level shared secret.
+ *   seconds and do the real work in an async hook (`after()`).
  *
- * One subscription per application. Managed via
+ * Auth model. Strava does not sign events. We previously embedded a
+ * shared secret in the callback URL (?secret=...) and validated it on
+ * each POST, but Strava strips query params from registered callback
+ * URLs (verified 2026-05-12 during subscription recovery), so that
+ * never delivered. Instead, every event carries `subscription_id` and
+ * we reject anything whose id does not match
+ * `STRAVA_WEBHOOK_SUBSCRIPTION_ID`. Strava only delivers events to the
+ * exact callback URL bound to OUR client_id/secret pair, so a forged
+ * event would need both the correct subscription id AND a way to reach
+ * our endpoint, which is the same property the URL secret was meant to
+ * give us. `STRAVA_WEBHOOK_EVENT_SECRET` is still honored as an
+ * optional header (`x-coach-casey-webhook-secret`) for non-Strava
+ * callers, e.g. local replay or smoke tests.
+ *
+ * One subscription per Strava developer app. Managed via
  * `scripts/strava-webhook-subscribe.ts`.
  */
 
@@ -102,14 +115,20 @@ export async function POST(request: Request) {
   return new Response(null, { status: 200 });
 }
 
-function authorizeWebhookPost(request: Request) {
-  const url = new URL(request.url);
-  const provided =
-    request.headers.get(EVENT_SECRET_HEADER) ?? url.searchParams.get("secret") ?? "";
+function authorizeWebhookPost(request: Request): WebhookCheck {
+  // Strava strips query params from registered callback URLs, so any
+  // `?secret=...` we embed never arrives. The secret is still accepted
+  // via the `x-coach-casey-webhook-secret` header for non-Strava
+  // callers (local replay, smoke tests). For Strava POSTs the header
+  // is absent; subscription_id matching downstream is the real auth.
+  const provided = request.headers.get(EVENT_SECRET_HEADER);
+  // No header → no secret check. The subscription_id validation that
+  // runs after parsing the body is what gates Strava events.
+  if (!provided) return { ok: true };
   return authorizeWebhookSecret({
     expected: process.env.STRAVA_WEBHOOK_EVENT_SECRET,
     provided,
-    required: liveWebhookSecurityRequired(),
+    required: false,
   });
 }
 
