@@ -11,6 +11,11 @@
  *                                    challenge to prove we own the endpoint.
  *                                    MUST match the deployed env so the
  *                                    GET challenge handler returns 200.
+ *   STRAVA_WEBHOOK_EVENT_SECRET  , shared secret embedded as a path
+ *                                    segment in the callback URL. Path
+ *                                    segments survive Strava's URL
+ *                                    normalisation; query params do not.
+ *                                    MUST match the deployed env.
  *   NEXT_PUBLIC_APP_URL          , base URL for the callback
  *
  * Usage:
@@ -19,17 +24,16 @@
  *   pnpm tsx scripts/strava-webhook-subscribe.ts delete <id>
  *
  * The callback URL must be publicly reachable and respond to the GET
- * challenge with { "hub.challenge": <value> }. Our endpoint lives at
- * `/api/strava/webhook`, see `app/api/strava/webhook/route.ts`.
+ * challenge with { "hub.challenge": <value> }. Our endpoint lives at the
+ * dynamic route `app/api/strava/webhook/[secret]/route.ts`, which checks
+ * the path segment against `STRAVA_WEBHOOK_EVENT_SECRET` before doing
+ * anything else.
  *
  * Important. Strava strips query params and fragments from registered
- * callback URLs (verified 2026-05-12). Subscribe with a bare path; do
- * not bake a ?secret=... param in. POST auth on event delivery is via
- * the `subscription_id` field, validated against
- * `STRAVA_WEBHOOK_SUBSCRIPTION_ID` in the deployed env.
- *
- * After `create`, capture the returned id and set
- * `STRAVA_WEBHOOK_SUBSCRIPTION_ID` to it in every deployed environment.
+ * callback URLs (verified 2026-05-12), so the shared secret must live
+ * in the path, not the query string. After `create`, capture the
+ * returned id and set `STRAVA_WEBHOOK_SUBSCRIPTION_ID` to it in every
+ * deployed environment for the defense-in-depth subscription_id check.
  *
  * Migrating to a new Strava developer app (e.g. when the production
  * client_id/secret is issued after Strava review): delete the existing
@@ -73,11 +77,14 @@ async function create(): Promise<Subscription> {
   const id = need("STRAVA_CLIENT_ID");
   const secret = need("STRAVA_CLIENT_SECRET");
   const verify = need("STRAVA_WEBHOOK_VERIFY_TOKEN");
+  const eventSecret = need("STRAVA_WEBHOOK_EVENT_SECRET");
   const appUrl = need("NEXT_PUBLIC_APP_URL").replace(/\/$/, "");
-  // Bare callback path. Strava strips query params; embedding a shared
-  // secret here is the obvious-looking thing but never reaches us on
-  // subsequent POSTs. See the route file for the actual auth model.
-  const callbackUrl = `${appUrl}/api/strava/webhook`;
+  // Secret-in-path. Strava preserves the path on event POSTs but strips
+  // query params; embedding the secret in the path is the only way the
+  // shared secret reaches us on every event. The route handler at
+  // `app/api/strava/webhook/[secret]/route.ts` validates the segment
+  // before any other work.
+  const callbackUrl = `${appUrl}/api/strava/webhook/${encodeURIComponent(eventSecret)}`;
 
   const body = new URLSearchParams({
     client_id: id,
