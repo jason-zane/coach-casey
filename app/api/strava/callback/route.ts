@@ -4,6 +4,7 @@ import { createAdminClient, createClient } from "@/lib/supabase/server";
 import {
   exchangeCodeForToken,
   fetchAthleteProfileWithToken,
+  fetchAthleteProfileWithTokenRetrying,
   isLiveMode,
 } from "@/lib/strava/client";
 
@@ -71,20 +72,26 @@ export async function GET(request: Request) {
     // the id, which leaves the connection row with NULL strava_athlete_id
     // and silently breaks the webhook (the handler looks up athletes by it).
     // Fall back to /athlete to guarantee we have it before writing the row.
+    // The retrying variant absorbs transient 5xx / network blips; on a
+    // total miss the ingest pass that runs immediately after this callback
+    // re-tries the profile fetch and self-heals the connection (see
+    // `maybeHealConnectionAndDemographics` in lib/strava/ingest.ts).
     let stravaAthleteId: number | null = token.athlete?.id ?? null;
     let profileFromFallback: Awaited<
       ReturnType<typeof fetchAthleteProfileWithToken>
     > = null;
     if (stravaAthleteId == null) {
       try {
-        profileFromFallback = await fetchAthleteProfileWithToken(
+        profileFromFallback = await fetchAthleteProfileWithTokenRetrying(
           token.access_token,
         );
         stravaAthleteId = profileFromFallback?.id ?? null;
       } catch (e) {
-        console.warn(
-          "Strava /athlete id fallback failed; webhook may miss events",
-          e,
+        // Loud log so the broken-webhook state is visible. Self-heal runs
+        // on the next ingest pass; we don't block onboarding on this.
+        console.error(
+          "[strava-callback] /athlete fallback exhausted retries; connection landing with NULL strava_athlete_id, ingest will self-heal",
+          { athleteId: athlete.id, error: e instanceof Error ? e.message : e },
         );
       }
     }
