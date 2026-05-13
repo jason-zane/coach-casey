@@ -1,5 +1,3 @@
-import { timingSafeEqual } from "node:crypto";
-
 export type StravaWebhookEvent = {
   aspect_type: "create" | "update" | "delete";
   event_time: number;
@@ -14,8 +12,6 @@ export type WebhookCheck =
   | { ok: true }
   | { ok: false; status: number; error: string };
 
-export const EVENT_SECRET_HEADER = "x-coach-casey-webhook-secret";
-
 const ASPECT_TYPES = new Set(["create", "update", "delete"]);
 const OBJECT_TYPES = new Set(["activity", "athlete"]);
 
@@ -23,32 +19,6 @@ export function liveWebhookSecurityRequired(
   env: Partial<Record<string, string | undefined>> = process.env,
 ): boolean {
   return env.NODE_ENV === "production" || env.STRAVA_MODE === "live";
-}
-
-export function authorizeWebhookSecret({
-  expected,
-  provided,
-  required,
-}: {
-  expected: string | undefined;
-  provided: string | null;
-  required: boolean;
-}): WebhookCheck {
-  if (!expected) {
-    if (required) {
-      return {
-        ok: false,
-        status: 500,
-        error: "STRAVA_WEBHOOK_EVENT_SECRET not configured",
-      };
-    }
-    return { ok: true };
-  }
-
-  if (!constantTimeEqual(provided ?? "", expected)) {
-    return { ok: false, status: 401, error: "unauthorized webhook event" };
-  }
-  return { ok: true };
 }
 
 export function authorizeWebhookSubscription(
@@ -103,14 +73,6 @@ export function parseStravaWebhookEvent(raw: unknown): StravaWebhookEvent | null
     event_time: event.event_time,
     updates: event.updates as Record<string, unknown> | undefined,
   };
-}
-
-function constantTimeEqual(left: string, right: string): boolean {
-  if (!left || !right) return false;
-  const leftBuffer = Buffer.from(left);
-  const rightBuffer = Buffer.from(right);
-  if (leftBuffer.length !== rightBuffer.length) return false;
-  return timingSafeEqual(leftBuffer, rightBuffer);
 }
 
 function isSafePositiveInteger(value: unknown): value is number {

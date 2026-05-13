@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  authorizeWebhookSecret,
   authorizeWebhookSubscription,
   liveWebhookSecurityRequired,
   parseStravaWebhookEvent,
@@ -30,31 +29,10 @@ test("parseStravaWebhookEvent rejects malformed or unsafe events", () => {
   assert.equal(parseStravaWebhookEvent({ ...validEvent, updates: [] }), null);
 });
 
-test("webhook secret fails closed in live or production mode", () => {
+test("liveWebhookSecurityRequired detects live and production envs", () => {
   assert.equal(liveWebhookSecurityRequired({ NODE_ENV: "production" }), true);
   assert.equal(liveWebhookSecurityRequired({ STRAVA_MODE: "live" }), true);
   assert.equal(liveWebhookSecurityRequired({ NODE_ENV: "development" }), false);
-
-  assert.deepEqual(
-    authorizeWebhookSecret({ expected: undefined, provided: null, required: true }),
-    {
-      ok: false,
-      status: 500,
-      error: "STRAVA_WEBHOOK_EVENT_SECRET not configured",
-    },
-  );
-  assert.deepEqual(
-    authorizeWebhookSecret({ expected: undefined, provided: null, required: false }),
-    { ok: true },
-  );
-  assert.deepEqual(
-    authorizeWebhookSecret({ expected: "secret", provided: "wrong", required: true }),
-    { ok: false, status: 401, error: "unauthorized webhook event" },
-  );
-  assert.deepEqual(
-    authorizeWebhookSecret({ expected: "secret", provided: "secret", required: true }),
-    { ok: true },
-  );
 });
 
 test("webhook subscription id must match when configured", () => {

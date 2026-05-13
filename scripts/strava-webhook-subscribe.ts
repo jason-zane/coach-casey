@@ -1,17 +1,21 @@
 /**
  * Strava Push Subscriptions, one-off admin script.
  *
- * Strava allows ONE active push subscription per application. This script
- * lists, creates, or deletes that subscription.
+ * Strava allows ONE active push subscription per Strava developer app.
+ * This script lists, creates, or deletes that subscription.
  *
  * Required env:
  *   STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET
  *   STRAVA_WEBHOOK_VERIFY_TOKEN  , any sufficiently long random string;
  *                                    Strava echoes it back during the GET
  *                                    challenge to prove we own the endpoint.
- *   STRAVA_WEBHOOK_EVENT_SECRET  , any sufficiently long random string;
- *                                    added to the callback URL because
- *                                    Strava does not sign event POSTs.
+ *                                    MUST match the deployed env so the
+ *                                    GET challenge handler returns 200.
+ *   STRAVA_WEBHOOK_EVENT_SECRET  , shared secret embedded as a path
+ *                                    segment in the callback URL. Path
+ *                                    segments survive Strava's URL
+ *                                    normalisation; query params do not.
+ *                                    MUST match the deployed env.
  *   NEXT_PUBLIC_APP_URL          , base URL for the callback
  *
  * Usage:
@@ -20,8 +24,22 @@
  *   pnpm tsx scripts/strava-webhook-subscribe.ts delete <id>
  *
  * The callback URL must be publicly reachable and respond to the GET
- * challenge with { "hub.challenge": <value> }. Our endpoint lives at
- * `/api/strava/webhook`, see `app/api/strava/webhook/route.ts`.
+ * challenge with { "hub.challenge": <value> }. Our endpoint lives at the
+ * dynamic route `app/api/strava/webhook/[secret]/route.ts`, which checks
+ * the path segment against `STRAVA_WEBHOOK_EVENT_SECRET` before doing
+ * anything else.
+ *
+ * Important. Strava strips query params and fragments from registered
+ * callback URLs (verified 2026-05-12), so the shared secret must live
+ * in the path, not the query string. After `create`, capture the
+ * returned id and set `STRAVA_WEBHOOK_SUBSCRIPTION_ID` to it in every
+ * deployed environment for the defense-in-depth subscription_id check.
+ *
+ * Migrating to a new Strava developer app (e.g. when the production
+ * client_id/secret is issued after Strava review): delete the existing
+ * subscription, swap STRAVA_CLIENT_ID/SECRET, run `create`, repin the
+ * subscription id, and re-OAuth all existing connections (tokens are
+ * scoped per developer app).
  *
  * For local testing you need a public tunnel (e.g. `vercel dev` with a
  * preview URL, or ngrok) pointing at the dev server.
@@ -61,13 +79,17 @@ async function create(): Promise<Subscription> {
   const verify = need("STRAVA_WEBHOOK_VERIFY_TOKEN");
   const eventSecret = need("STRAVA_WEBHOOK_EVENT_SECRET");
   const appUrl = need("NEXT_PUBLIC_APP_URL").replace(/\/$/, "");
-  const callbackUrl = new URL(`${appUrl}/api/strava/webhook`);
-  callbackUrl.searchParams.set("secret", eventSecret);
+  // Secret-in-path. Strava preserves the path on event POSTs but strips
+  // query params; embedding the secret in the path is the only way the
+  // shared secret reaches us on every event. The route handler at
+  // `app/api/strava/webhook/[secret]/route.ts` validates the segment
+  // before any other work.
+  const callbackUrl = `${appUrl}/api/strava/webhook/${encodeURIComponent(eventSecret)}`;
 
   const body = new URLSearchParams({
     client_id: id,
     client_secret: secret,
-    callback_url: callbackUrl.toString(),
+    callback_url: callbackUrl,
     verify_token: verify,
   });
 
