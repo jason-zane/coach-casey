@@ -171,43 +171,93 @@ export async function ingestLiveActivitiesForAthlete(
   // the whole pull. If Strava returns 429 mid-pass we abort the remaining
   // detail fetches outright, the 15-minute window means follow-on requests
   // would just keep 429-ing and burning whatever budget we eventually get
-  // back. Summary rows still land; lap detail self-heals on the next webhook
-  // for that activity, the safety-net cron, or the on-demand
-  // `refresh_activity_from_strava` chat tool.
+  // back.
+  //
+  // Important: rows that degrade to summary (whether from 429 or from a
+  // one-off transient failure) carry NULL for laps/splits/best_efforts/
+  // segment_efforts. If we upsert them blindly, we OVERWRITE detail that
+  // a previous ingest fetched successfully, which silently degrades
+  // historical workout context until the next manual refresh. So we
+  // partition: detail rows safe to upsert, summary rows insert-only via
+  // a separate "fill the gap if no row exists" pass below.
   let rateLimited = false;
-  const details = await mapWithConcurrency<StravaActivity, StravaActivityDetail>(
-    kept,
-    5,
-    async (a) => {
-      if (rateLimited) return a as StravaActivityDetail;
-      try {
-        return await fetchActivityDetail(athleteId, a.id);
-      } catch (e) {
-        if (isRateLimited(e)) {
-          if (!rateLimited) {
-            console.warn(
-              "strava 429 during ingest; falling back to summary for remaining",
-              { athleteId, firstHitAt: a.id },
-            );
-          }
-          rateLimited = true;
-        } else {
-          console.warn("activity detail fetch failed", a.id, e);
+  const fetched = await mapWithConcurrency<
+    StravaActivity,
+    | { kind: "detail"; data: StravaActivityDetail }
+    | { kind: "summary"; data: StravaActivity }
+  >(kept, 5, async (a) => {
+    if (rateLimited) return { kind: "summary", data: a };
+    try {
+      const data = await fetchActivityDetail(athleteId, a.id);
+      return { kind: "detail", data };
+    } catch (e) {
+      if (isRateLimited(e)) {
+        if (!rateLimited) {
+          console.warn(
+            "strava 429 during ingest; falling back to summary for remaining",
+            { athleteId, firstHitAt: a.id },
+          );
         }
-        return a as StravaActivityDetail;
+        rateLimited = true;
+      } else {
+        console.warn("activity detail fetch failed", a.id, e);
       }
-    },
-  );
+      return { kind: "summary", data: a };
+    }
+  });
+
+  const detailed = fetched
+    .filter(
+      (r): r is { kind: "detail"; data: StravaActivityDetail } =>
+        r.kind === "detail",
+    )
+    .map((r) => r.data);
+  const summarized = fetched
+    .filter(
+      (r): r is { kind: "summary"; data: StravaActivity } =>
+        r.kind === "summary",
+    )
+    .map((r) => r.data);
 
   const admin = createAdminClient();
-  const rows = details.map((d) =>
-    mapStravaActivity(d, athleteId, d.laps ?? null),
-  );
-  const { error } = await admin
-    .from("activities")
-    .upsert(rows, { onConflict: "athlete_id,strava_id" });
-  if (error) throw error;
-  return rows.length;
+
+  // Detail rows carry the full payload, safe to upsert (overwriting any
+  // stale row keeps the latest stats and the latest detail in sync).
+  if (detailed.length > 0) {
+    const detailRows = detailed.map((d) =>
+      mapStravaActivity(d, athleteId, d.laps ?? null),
+    );
+    const { error } = await admin
+      .from("activities")
+      .upsert(detailRows, { onConflict: "athlete_id,strava_id" });
+    if (error) throw error;
+  }
+
+  // Summary rows are insert-only: if a row already exists for the
+  // strava_id, leave it alone so we don't blank out detail a previous
+  // ingest captured. Brand-new activities still get a row (with NULL
+  // detail), which the webhook / cron / chat refresh tool will fill in.
+  if (summarized.length > 0) {
+    const summaryIds = summarized.map((s) => s.id);
+    const { data: existing, error: selErr } = await admin
+      .from("activities")
+      .select("strava_id")
+      .eq("athlete_id", athleteId)
+      .in("strava_id", summaryIds);
+    if (selErr) throw selErr;
+    const existingSet = new Set(
+      ((existing ?? []) as Array<{ strava_id: number }>).map((r) => r.strava_id),
+    );
+    const newRows = summarized
+      .filter((s) => !existingSet.has(s.id))
+      .map((s) => mapStravaActivity(s, athleteId, null));
+    if (newRows.length > 0) {
+      const { error } = await admin.from("activities").insert(newRows);
+      if (error) throw error;
+    }
+  }
+
+  return kept.length;
 }
 
 /**
