@@ -12,6 +12,7 @@ import {
   type StravaSegmentEffort,
 } from "./client";
 import { classifyActivityType } from "./activity-types";
+import { isRateLimited } from "./rate-limit";
 
 export async function ingestMockActivitiesForAthlete(athleteId: string) {
   const admin = createAdminClient();
@@ -149,11 +150,12 @@ export async function ingestLiveActivitiesForAthlete(
   athleteId: string,
   weeks = 12,
 ) {
-  // Backfill demographics from Strava on every ingest pass when our row is
-  // still empty. This catches athletes connected before we started seeding
-  // sex/weight in the OAuth callback. Once populated, the if-null guard
-  // below short-circuits and never overwrites the athlete's edits.
-  await maybeBackfillDemographicsFromStrava(athleteId);
+  // Lazy heal: pull sex / weight / display_name from Strava when the
+  // athlete row is still empty, AND patch strava_athlete_id on the
+  // connection if the OAuth callback couldn't get it (e.g. /athlete was
+  // 429-throttled at signup). Once both are populated this short-circuits
+  // and never overwrites the athlete's edits.
+  await maybeHealConnectionAndDemographics(athleteId);
 
   const afterSeconds = Math.floor(Date.now() / 1000) - weeks * 7 * 24 * 60 * 60;
   const activities = await fetchActivitiesSince(athleteId, afterSeconds);
@@ -164,31 +166,98 @@ export async function ingestLiveActivitiesForAthlete(
   if (kept.length === 0) return 0;
 
   // Pull detail (laps, splits, best efforts, segment efforts) for every kept
-  // activity. Bounded concurrency keeps us inside Strava's rate budget; per-
-  // activity failures degrade to the summary row rather than aborting the
-  // whole pull.
-  const details = await mapWithConcurrency<StravaActivity, StravaActivityDetail>(
-    kept,
-    5,
-    async (a) => {
-      try {
-        return await fetchActivityDetail(athleteId, a.id);
-      } catch (e) {
+  // activity. Bounded concurrency keeps us inside Strava's rate budget;
+  // per-activity failures degrade to the summary row rather than aborting
+  // the whole pull. If Strava returns 429 mid-pass we abort the remaining
+  // detail fetches outright, the 15-minute window means follow-on requests
+  // would just keep 429-ing and burning whatever budget we eventually get
+  // back.
+  //
+  // Important: rows that degrade to summary (whether from 429 or from a
+  // one-off transient failure) carry NULL for laps/splits/best_efforts/
+  // segment_efforts. If we upsert them blindly, we OVERWRITE detail that
+  // a previous ingest fetched successfully, which silently degrades
+  // historical workout context until the next manual refresh. So we
+  // partition: detail rows safe to upsert, summary rows insert-only via
+  // a separate "fill the gap if no row exists" pass below.
+  let rateLimited = false;
+  const fetched = await mapWithConcurrency<
+    StravaActivity,
+    | { kind: "detail"; data: StravaActivityDetail }
+    | { kind: "summary"; data: StravaActivity }
+  >(kept, 5, async (a) => {
+    if (rateLimited) return { kind: "summary", data: a };
+    try {
+      const data = await fetchActivityDetail(athleteId, a.id);
+      return { kind: "detail", data };
+    } catch (e) {
+      if (isRateLimited(e)) {
+        if (!rateLimited) {
+          console.warn(
+            "strava 429 during ingest; falling back to summary for remaining",
+            { athleteId, firstHitAt: a.id },
+          );
+        }
+        rateLimited = true;
+      } else {
         console.warn("activity detail fetch failed", a.id, e);
-        return a as StravaActivityDetail;
       }
-    },
-  );
+      return { kind: "summary", data: a };
+    }
+  });
+
+  const detailed = fetched
+    .filter(
+      (r): r is { kind: "detail"; data: StravaActivityDetail } =>
+        r.kind === "detail",
+    )
+    .map((r) => r.data);
+  const summarized = fetched
+    .filter(
+      (r): r is { kind: "summary"; data: StravaActivity } =>
+        r.kind === "summary",
+    )
+    .map((r) => r.data);
 
   const admin = createAdminClient();
-  const rows = details.map((d) =>
-    mapStravaActivity(d, athleteId, d.laps ?? null),
-  );
-  const { error } = await admin
-    .from("activities")
-    .upsert(rows, { onConflict: "athlete_id,strava_id" });
-  if (error) throw error;
-  return rows.length;
+
+  // Detail rows carry the full payload, safe to upsert (overwriting any
+  // stale row keeps the latest stats and the latest detail in sync).
+  if (detailed.length > 0) {
+    const detailRows = detailed.map((d) =>
+      mapStravaActivity(d, athleteId, d.laps ?? null),
+    );
+    const { error } = await admin
+      .from("activities")
+      .upsert(detailRows, { onConflict: "athlete_id,strava_id" });
+    if (error) throw error;
+  }
+
+  // Summary rows are insert-only: if a row already exists for the
+  // strava_id, leave it alone so we don't blank out detail a previous
+  // ingest captured. Brand-new activities still get a row (with NULL
+  // detail), which the webhook / cron / chat refresh tool will fill in.
+  if (summarized.length > 0) {
+    const summaryIds = summarized.map((s) => s.id);
+    const { data: existing, error: selErr } = await admin
+      .from("activities")
+      .select("strava_id")
+      .eq("athlete_id", athleteId)
+      .in("strava_id", summaryIds);
+    if (selErr) throw selErr;
+    const existingSet = new Set(
+      ((existing ?? []) as Array<{ strava_id: number }>).map((r) => r.strava_id),
+    );
+    const newRows = summarized
+      .filter((s) => !existingSet.has(s.id))
+      .map((s) => mapStravaActivity(s, athleteId, null));
+    if (newRows.length > 0) {
+      const { error } = await admin.from("activities").insert(newRows);
+      if (error) throw error;
+    }
+  }
+
+  return kept.length;
 }
 
 /**
@@ -218,57 +287,91 @@ export async function loadRecentActivities(athleteId: string, weeks = 12) {
 }
 
 /**
- * Lazy backfill: pull sex + weight from Strava when the athlete row has
- * neither yet. No-op once at least one of them is set, so this only fires
- * on the first ingest after deploy for already-connected athletes.
+ * Lazy heal that runs at the top of every ingest pass. Two jobs:
+ *
+ * 1. Demographics: pull sex / weight / display_name from Strava when the
+ *    athlete row hasn't been seeded yet. No-op once everything is set, so
+ *    this only ever writes once per athlete and never overwrites their
+ *    edits.
+ *
+ * 2. `strava_athlete_id` on `strava_connections`: when the OAuth callback's
+ *    /athlete fallback fetch fails (typically because we're 429'd on the
+ *    Strava read budget at signup), the connection row lands with
+ *    `strava_athlete_id = null`, which silently breaks the webhook lookup
+ *    (events look up by Strava's owner_id). The ingest pass that runs
+ *    immediately after the callback gets a second shot at the profile
+ *    endpoint and self-heals the connection if it can.
  *
  * Failures are swallowed: ingest must keep working even if the profile
- * endpoint is rate-limited or the connection is missing the
- * `profile:read_all` scope.
+ * endpoint is still rate-limited or the connection is missing the
+ * `profile:read_all` scope. The unhealed state self-corrects on a later
+ * ingest pass.
  */
-async function maybeBackfillDemographicsFromStrava(
+async function maybeHealConnectionAndDemographics(
   athleteId: string,
 ): Promise<void> {
   const admin = createAdminClient();
-  const { data: athlete } = await admin
-    .from("athletes")
-    .select("display_name, sex, weight_kg")
-    .eq("id", athleteId)
-    .maybeSingle();
+  const [{ data: athlete }, { data: conn }] = await Promise.all([
+    admin
+      .from("athletes")
+      .select("display_name, sex, weight_kg")
+      .eq("id", athleteId)
+      .maybeSingle(),
+    admin
+      .from("strava_connections")
+      .select("strava_athlete_id")
+      .eq("athlete_id", athleteId)
+      .maybeSingle(),
+  ]);
   if (!athlete) return;
   const a = athlete as {
     display_name: string | null;
     sex: string | null;
     weight_kg: number | null;
   };
-  if (a.display_name && a.sex && a.weight_kg != null) return;
+  const c = conn as { strava_athlete_id: number | null } | null;
+
+  const needsAthleteId = c != null && c.strava_athlete_id == null;
+  const needsDemographics =
+    !a.display_name || !a.sex || a.weight_kg == null;
+  if (!needsAthleteId && !needsDemographics) return;
 
   try {
     const profile = await fetchAthleteProfile(athleteId);
     if (!profile) return;
-    const update: Record<string, unknown> = {};
-    if (!a.display_name && profile.firstname) {
-      const trimmed = profile.firstname.trim();
-      if (trimmed.length > 0) update.display_name = trimmed;
+
+    if (needsAthleteId && typeof profile.id === "number") {
+      await admin
+        .from("strava_connections")
+        .update({ strava_athlete_id: profile.id })
+        .eq("athlete_id", athleteId);
     }
-    if (
-      !a.sex &&
-      (profile.sex === "M" || profile.sex === "F" || profile.sex === "X")
-    ) {
-      update.sex = profile.sex;
-    }
-    if (
-      a.weight_kg == null &&
-      typeof profile.weight === "number" &&
-      profile.weight > 20 &&
-      profile.weight < 250
-    ) {
-      update.weight_kg = profile.weight;
-    }
-    if (Object.keys(update).length > 0) {
-      await admin.from("athletes").update(update).eq("id", athleteId);
+
+    if (needsDemographics) {
+      const update: Record<string, unknown> = {};
+      if (!a.display_name && profile.firstname) {
+        const trimmed = profile.firstname.trim();
+        if (trimmed.length > 0) update.display_name = trimmed;
+      }
+      if (
+        !a.sex &&
+        (profile.sex === "M" || profile.sex === "F" || profile.sex === "X")
+      ) {
+        update.sex = profile.sex;
+      }
+      if (
+        a.weight_kg == null &&
+        typeof profile.weight === "number" &&
+        profile.weight > 20 &&
+        profile.weight < 250
+      ) {
+        update.weight_kg = profile.weight;
+      }
+      if (Object.keys(update).length > 0) {
+        await admin.from("athletes").update(update).eq("id", athleteId);
+      }
     }
   } catch (e) {
-    console.warn("Strava demographic backfill failed (non-fatal)", e);
+    console.warn("Strava connection/demographic heal failed (non-fatal)", e);
   }
 }

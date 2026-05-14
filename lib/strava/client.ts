@@ -106,6 +106,43 @@ export async function fetchAthleteProfileWithToken(
   return (await res.json()) as StravaAthleteProfile;
 }
 
+/**
+ * Retrying wrapper for `fetchAthleteProfileWithToken`. Used by the OAuth
+ * callback where a single failed /athlete fetch leaves the connection with
+ * `strava_athlete_id = null` and silently breaks all webhook lookups for
+ * the athlete (verified 2026-05-14 — onboarding ran during a Strava 429
+ * window and shipped a permanently broken connection).
+ *
+ * Retry policy: linear backoff at 500ms, 1500ms. We stop on:
+ *  - 401 (token issue, retry won't help)
+ *  - 429 (Strava's 15-min window means waiting seconds doesn't recover;
+ *    the in-app ingest pass retries on its next call and self-heals there)
+ * Anything else (5xx, network) gets the full retry budget.
+ */
+export async function fetchAthleteProfileWithTokenRetrying(
+  accessToken: string,
+  attempts = 3,
+): Promise<StravaAthleteProfile | null> {
+  let lastErr: unknown = null;
+  for (let i = 0; i < attempts; i++) {
+    if (i > 0) {
+      await new Promise((r) => setTimeout(r, 500 * (2 * i - 1)));
+    }
+    try {
+      return await fetchAthleteProfileWithToken(accessToken);
+    } catch (e) {
+      lastErr = e;
+      const msg = e instanceof Error ? e.message : "";
+      if (/ 429 /.test(msg) || /Rate Limit Exceeded/i.test(msg)) {
+        // 429 won't recover within our retry window. Bail and let the
+        // ingest self-heal path try again later with a fresh budget.
+        throw e;
+      }
+    }
+  }
+  throw lastErr;
+}
+
 export async function exchangeCodeForToken(
   code: string,
 ): Promise<TokenResponse> {
