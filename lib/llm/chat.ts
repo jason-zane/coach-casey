@@ -468,6 +468,7 @@ export async function* streamChat(
   const system = await buildSystemPrompt({
     surface: "chat-system.md",
     shared: ["heartRate", "demographics"],
+    posture: "coachedVsUncoached",
     context: contextBlock,
   });
   const history = renderHistory(ctx.recentMessages);

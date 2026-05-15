@@ -38,7 +38,22 @@ const SHARED_BLOCKS = {
 const POSTURE_BLOCKS = {
   /** Used by debrief and the three follow-up prompts. */
   interpretive: "_shared/posture/interpretive.md",
+  /**
+   * Used by surfaces that can act forcefully (chat, niggle escalation,
+   * mid-block flatness, race-week briefing). Scales push-back and
+   * routing by whether the athlete has a human coach.
+   */
+  coachedVsUncoached: "_shared/posture/coached-vs-uncoached.md",
 } as const;
+
+/**
+ * Universal identity block. Loaded automatically into every Casey
+ * system prompt, after the voice block. Source of truth for ICP,
+ * philosophy, opinions, OWN/ENGAGE/DEFER/OUT topic map, push-back
+ * authority, and restraint defaults. Surface prompts read it as
+ * substrate.
+ */
+const IDENTITY_BLOCK = "_shared/identity.md";
 
 export type VoiceProfile = keyof typeof VOICE_PROFILES;
 export type SharedBlock = keyof typeof SHARED_BLOCKS;
@@ -101,10 +116,19 @@ export async function buildSystemPrompt(opts: {
   blocks.push({
     type: "text",
     text: await loadFile(voicePath),
+  });
+
+  // 2. Identity. Universal, always loaded after voice. Source of truth
+  //    for ICP, philosophy, opinions, OWN/ENGAGE/DEFER/OUT, restraint.
+  //    Cache breakpoint here covers voice+identity, which is the
+  //    stable cross-surface chunk.
+  blocks.push({
+    type: "text",
+    text: await loadFile(IDENTITY_BLOCK),
     cache_control: { type: "ephemeral" },
   });
 
-  // 2. Opt-in shared blocks (HR, demographics) in declaration order.
+  // 3. Opt-in shared blocks (HR, demographics) in declaration order.
   for (const key of opts.shared ?? []) {
     blocks.push({
       type: "text",
@@ -112,7 +136,8 @@ export async function buildSystemPrompt(opts: {
     });
   }
 
-  // 3. Opt-in posture block (interpretive, ...) when present.
+  // 4. Opt-in posture block (interpretive, coached-vs-uncoached) when
+  //    present.
   if (opts.posture) {
     blocks.push({
       type: "text",
@@ -120,8 +145,8 @@ export async function buildSystemPrompt(opts: {
     });
   }
 
-  // 4. Surface-specific prompt. Cache breakpoint here covers voice +
-  //    shared + posture + surface as one cached chunk.
+  // 5. Surface-specific prompt. Cache breakpoint here covers voice +
+  //    identity + shared + posture + surface as one cached chunk.
   blocks.push({
     type: "text",
     text: await loadFile(opts.surface),
@@ -149,6 +174,7 @@ export async function buildSystemPrompt(opts: {
 export async function validatePrompts(extras: { surfaces?: string[] } = {}): Promise<void> {
   const required: string[] = [
     ...Object.values(VOICE_PROFILES),
+    IDENTITY_BLOCK,
     ...Object.values(SHARED_BLOCKS),
     ...Object.values(POSTURE_BLOCKS),
     ...(extras.surfaces ?? []),
