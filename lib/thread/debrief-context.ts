@@ -69,6 +69,13 @@ export type DebriefGoalRace = {
   name: string | null;
   raceDate: string | null;
   goalTimeSeconds: number | null;
+  /**
+   * Race tier added in the 2026-05-16 Casey refresh. A = priority,
+   * B = important, C = train through. Drives the race-week briefing
+   * schedule; surfaced to Casey so the read can lean on it (e.g. an
+   * A-race build vs a B-race tune-up).
+   */
+  tier: "A" | "B" | "C" | null;
 };
 
 export type PriorDebrief = {
@@ -342,7 +349,7 @@ export async function buildDebriefContext(
       .maybeSingle(),
     admin
       .from("goal_races")
-      .select("name, race_date, goal_time_seconds")
+      .select("name, race_date, goal_time_seconds, tier")
       .eq("athlete_id", athleteId)
       .eq("is_active", true)
       .order("race_date", { ascending: true }),
@@ -408,10 +415,12 @@ export async function buildDebriefContext(
     name: string | null;
     race_date: string | null;
     goal_time_seconds: number | null;
+    tier: "A" | "B" | "C" | null;
   }[]).map((r) => ({
     name: r.name,
     raceDate: r.race_date,
     goalTimeSeconds: r.goal_time_seconds,
+    tier: r.tier,
   }));
 
   const priorFollowUps = ((priorFollowUpsRes.data ?? []) as {

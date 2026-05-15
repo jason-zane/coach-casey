@@ -221,9 +221,9 @@ On desktop, the same controls live in the header.
 - Retrieves from memory to answer past-anchored questions. *"Was last Tuesday's tempo faster than my previous one?"* — Coach Casey checks and answers.
 
 **What chat doesn't do at V1:**
-- No proactive or scheduled check-ins outside debriefs and weekly reviews. Coach Casey does not message unprompted.
+- ~~No proactive or scheduled check-ins outside debriefs and weekly reviews.~~ Expanded in the 2026-05-16 Casey refresh. Casey now fires four additional proactive surfaces: race-week briefings (per goal race, scaled by tier A/B/C), pre-run fuelling nudges (~24h ahead of a known long run), retrospective fuelling checks (after a long run syncs), niggle escalation (when a body part crosses the mention threshold), and a mid-block flatness check-in (when a fatigue pattern persists). All are messages in the same single thread; the chat-first architecture is unchanged. The chat surface itself remains responsive-only to athlete-initiated messages.
 - No external data lookups (weather, race results, etc.). Deferred.
-- No unsolicited prescription. Athlete opens the door.
+- No unsolicited prescription in chat (the proactive surfaces still observe rather than prescribe; chat-time prescription is gated on the athlete opening the door, per the chat-system prompt).
 
 **Response shape:**
 - Conversational, not essay-length.

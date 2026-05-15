@@ -162,6 +162,89 @@ export function mockWeeklyReview(ctx: WeeklyReviewContext): string {
   return `${opener}\n\n${arcLine}\n\n${planLine}\n\nNothing flagged that needs an answer right now. Talk to me if anything in the week felt off.`;
 }
 
+// ---------------------------------------------------------------------------
+// Casey refresh proactive surfaces (2026-05-16)
+
+/**
+ * Mock outputs for the five new proactive surfaces added in the
+ * 2026-05-16 refresh. Each is deterministic and voice-clean (passes the
+ * voice-check eval). Generators delegate to these when
+ * `LLM_MODE=mock` or no API key is set.
+ */
+
+export type RaceWeekDayMarker = "T-14" | "T-10" | "T-7" | "T-3" | "T-2" | "T-1" | "T-0";
+
+export function mockRaceWeekBriefing(input: {
+  raceName: string | null;
+  dayMarker: RaceWeekDayMarker;
+  tier: "A" | "B" | "C";
+}): string {
+  const name = input.raceName ?? "your race";
+  switch (input.dayMarker) {
+    case "T-14":
+      return `Two weeks to ${name}. Taper starts properly this week, and Sunday's long is the last real long before the race. Anything you want to nail down, pacing, fuelling, anything you're worried about?`;
+    case "T-10":
+      return `Ten days out from ${name}. Anything you want to nail down before the taper does its work?`;
+    case "T-7":
+      return `Race week. Taper feel right, or heavy legs? The Wednesday session is the last real test of the legs, treat it as the read, not as fitness work.`;
+    case "T-3":
+      return `Three days out. Carb load is on now, aim for the familiar foods, not the new ones. How's the sleep been this week?`;
+    case "T-2":
+      return `Two days. Most of the work is done. Tomorrow is the shake-out and the early-night day.`;
+    case "T-1":
+      return `Race day tomorrow. What's the morning plan, wake, breakfast, transport, start? And the early-mile call, opening on target, or holding behind?`;
+    case "T-0":
+      return `Race day. The early miles call is conservative, trust the build. Run the race that gets you to 30km with something left.`;
+  }
+}
+
+export function mockFuelingPrerun(input: {
+  hasKnownPattern: boolean;
+  isInRaceBuild: boolean;
+}): string {
+  if (input.isInRaceBuild && input.hasKnownPattern) {
+    return "Long run tomorrow, and you're inside the race build now. Worth rehearsing the race-day gel cadence on this one if you haven't yet.";
+  }
+  if (input.hasKnownPattern) {
+    return "Long run tomorrow. Usual fuelling, or testing anything new?";
+  }
+  return "Long run tomorrow. What's the fuelling plan, gels, drinks, or running it empty?";
+}
+
+export function mockFuelingRetrospective(input: {
+  hasKnownPattern: boolean;
+}): string {
+  if (input.hasKnownPattern) {
+    return "Saw the long run on Sunday. Stuck with the usual fuelling, or shifted it?";
+  }
+  return "Saw the long run on Sunday. Did you take anything in, or run it empty? Worth knowing for next time.";
+}
+
+export function mockNiggleEscalation(input: {
+  bodyPart: string;
+  hasCoach: boolean;
+}): string {
+  const count = "Third time";
+  const lead = `${count} the ${input.bodyPart} has come up in two weeks.`;
+  if (input.hasCoach) {
+    return `${lead} Same flavour, or shifting? Worth flagging to your coach if you haven't yet, they'll have the picture on the block.`;
+  }
+  return `${lead} Same flavour, or shifting? Worth getting a physio to look before it sets in.`;
+}
+
+export function mockMidBlockFlatness(input: {
+  hasCoach: boolean;
+  hasRecentLifeContext: boolean;
+}): string {
+  if (input.hasRecentLifeContext) {
+    return "Workouts have come in flat the last three sessions, easy paces drifting slower. The life context you mentioned a couple of weeks back probably explains some of it. How's the body actually reading it?";
+  }
+  if (input.hasCoach) {
+    return "Easy paces have drifted slower for ten days and the last workout didn't sit on target. Worth a word with your coach if it's been on your mind too.";
+  }
+  return "Last two weeks the easy runs have been heavier and the workouts have lost a bit of edge. Could be the build catching up, could be sleep or work pressure. How's the body actually reading it?";
+}
+
 export async function* mockChatStream(userText: string): AsyncGenerator<ChatStreamEvent> {
   const lower = userText.toLowerCase();
   const response =

@@ -11,6 +11,7 @@ import type { DebriefSkipReason } from "@/lib/llm/debrief";
 import { sendPushToAthlete } from "@/lib/push/send";
 import { leadFromBody } from "@/lib/push/lead-from-body";
 import { SONNET_MODEL } from "@/lib/llm/anthropic";
+import { fireFuelingRetrospective } from "@/app/actions/proactive-surfaces";
 
 const DEBRIEF_PROMPT_VERSION = "post-run-debrief@v1";
 const FOLLOW_UP_PROMPT_VERSION = "post-run-followup-conversational@v1";
@@ -217,6 +218,43 @@ export async function generateDebriefForActivity(
     }
   } catch (err) {
     console.warn("debrief push fanout failed", err);
+  }
+
+  // Retrospective fuelling check, post-2026-05-16 refresh. Fires for
+  // long runs (>75 min) when the conversational follow-up did not
+  // already ask about fuelling. Best-effort: a failure here doesn't
+  // roll back the debrief.
+  try {
+    const durationMinutes = ctx.activity.movingTimeS
+      ? Math.round(ctx.activity.movingTimeS / 60)
+      : 0;
+    if (durationMinutes > 75) {
+      const followUpAskedFueling = (outcome.followUp ?? "")
+        .toLowerCase()
+        .match(/fuel|gel|carb|empty/);
+      if (!followUpAskedFueling) {
+        const { data: fuel } = await admin
+          .from("memory_items")
+          .select("content")
+          .eq("athlete_id", athleteId)
+          .contains("tags", ["fueling"])
+          .order("created_at", { ascending: false })
+          .limit(1);
+        const knownFuelingPattern =
+          (((fuel ?? []) as Array<{ content: string }>)[0]?.content) ?? null;
+        await fireFuelingRetrospective({
+          athleteId,
+          displayName: null,
+          activityId,
+          runDay: ctx.activity.date,
+          runDurationMinutes: durationMinutes,
+          runDistanceKm: ctx.activity.distanceKm,
+          knownFuelingPattern,
+        });
+      }
+    }
+  } catch (err) {
+    console.warn("fueling retrospective fanout failed", err);
   }
 
   return { kind: "created", debriefId, followUpId };

@@ -272,7 +272,7 @@ export async function buildWeeklyReviewContext(
       .maybeSingle(),
     admin
       .from("goal_races")
-      .select("name, race_date, goal_time_seconds")
+      .select("name, race_date, goal_time_seconds, tier")
       .eq("athlete_id", athleteId)
       .eq("is_active", true)
       .order("race_date", { ascending: true }),
@@ -368,10 +368,12 @@ export async function buildWeeklyReviewContext(
     name: string | null;
     race_date: string | null;
     goal_time_seconds: number | null;
+    tier: "A" | "B" | "C" | null;
   }>).map((g) => ({
     name: g.name,
     raceDate: g.race_date,
     goalTimeSeconds: g.goal_time_seconds,
+    tier: g.tier,
   }));
 
   const priorWeeklyReviews: PriorWeeklyReview[] = (

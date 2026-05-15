@@ -64,6 +64,42 @@ const MOCK_CHAT = [
   "Heard. Anything specific on your mind, or just checking in?",
 ];
 
+// Casey refresh proactive surfaces (2026-05-16). Mirrors the mock
+// outputs in lib/llm/mocks.ts so the eval catches voice drift in the
+// proactive-surface mocks.
+
+const MOCK_RACE_WEEK_BRIEFING = [
+  "Two weeks to your race. Taper starts properly this week, and Sunday's long is the last real long before the race. Anything you want to nail down, pacing, fuelling, anything you're worried about?",
+  "Ten days out from your race. Anything you want to nail down before the taper does its work?",
+  "Race week. Taper feel right, or heavy legs? The Wednesday session is the last real test of the legs, treat it as the read, not as fitness work.",
+  "Three days out. Carb load is on now, aim for the familiar foods, not the new ones. How's the sleep been this week?",
+  "Two days. Most of the work is done. Tomorrow is the shake-out and the early-night day.",
+  "Race day tomorrow. What's the morning plan, wake, breakfast, transport, start? And the early-mile call, opening on target, or holding behind?",
+  "Race day. The early miles call is conservative, trust the build. Run the race that gets you to 30km with something left.",
+];
+
+const MOCK_FUELING_PRERUN = [
+  "Long run tomorrow. What's the fuelling plan, gels, drinks, or running it empty?",
+  "Long run tomorrow. Usual fuelling, or testing anything new?",
+  "Long run tomorrow, and you're inside the race build now. Worth rehearsing the race-day gel cadence on this one if you haven't yet.",
+];
+
+const MOCK_FUELING_RETROSPECTIVE = [
+  "Saw the long run on Sunday. Did you take anything in, or run it empty? Worth knowing for next time.",
+  "Saw the long run on Sunday. Stuck with the usual fuelling, or shifted it?",
+];
+
+const MOCK_NIGGLE_ESCALATION = [
+  "Third time the calf has come up in two weeks. Same flavour, or shifting? Worth flagging to your coach if you haven't yet, they'll have the picture on the block.",
+  "Third time the calf has come up in two weeks. Same flavour, or shifting? Worth getting a physio to look before it sets in.",
+];
+
+const MOCK_MID_BLOCK_FLATNESS = [
+  "Last two weeks the easy runs have been heavier and the workouts have lost a bit of edge. Could be the build catching up, could be sleep or work pressure. How's the body actually reading it?",
+  "Easy paces have drifted slower for ten days and the last workout didn't sit on target. Worth a word with your coach if it's been on your mind too.",
+  "Workouts have come in flat the last three sessions, easy paces drifting slower. The life context you mentioned a couple of weeks back probably explains some of it. How's the body actually reading it?",
+];
+
 // ---------------------------------------------------------------------------
 // Negative samples (must fail with the named rule)
 
@@ -131,6 +167,21 @@ function buildCorpus(): Sample[] {
   );
   MOCK_VALIDATION_OBSERVATIONS.forEach((text, i) =>
     samples.push({ label: `mock.validation.${i}`, text }),
+  );
+  MOCK_RACE_WEEK_BRIEFING.forEach((text, i) =>
+    samples.push({ label: `mock.race-week-briefing.${i}`, text }),
+  );
+  MOCK_FUELING_PRERUN.forEach((text, i) =>
+    samples.push({ label: `mock.fueling-prerun.${i}`, text }),
+  );
+  MOCK_FUELING_RETROSPECTIVE.forEach((text, i) =>
+    samples.push({ label: `mock.fueling-retrospective.${i}`, text }),
+  );
+  MOCK_NIGGLE_ESCALATION.forEach((text, i) =>
+    samples.push({ label: `mock.niggle-escalation.${i}`, text }),
+  );
+  MOCK_MID_BLOCK_FLATNESS.forEach((text, i) =>
+    samples.push({ label: `mock.mid-block-flatness.${i}`, text }),
   );
 
   samples.push(...NEGATIVE_SAMPLES);

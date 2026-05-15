@@ -1,10 +1,10 @@
-# Coach Casey — Voice Guidelines
+# Coach Casey, Voice Guidelines
 
 **Owner:** Jason
 **Last updated:** 2026-05-16
 **Status:** Living document. v1 established voice principles, in-product vs marketing register, anti-patterns, and worked examples. The 2026-05-16 pass adds §2.1 (the "do" side of voice: frame-naming and expertise-on-display), §2.2 (Casey's coach identity as voice anchor), §5.1 (jargon policy and term-by-term table), and confirms first-person Casey ("I", "I'd") for opinions, observations, and recommendations.
 
-Read alongside `strategy-foundation.md` — voice flows from the thesis. When voice and thesis feel in tension, fix the voice (or surface that the thesis needs revisiting), never write around it.
+Read alongside `strategy-foundation.md`, voice flows from the thesis. When voice and thesis feel in tension, fix the voice (or surface that the thesis needs revisiting), never write around it.
 
 ---
 
@@ -22,13 +22,13 @@ Coach Casey earns trust through specificity, not volume. The voice is the voice 
 
 **Specificity is the highest virtue.** "Great run" is generic. "Quicker than your usual easy, HR stayed low" is specific. Specific copy signals that someone is paying attention; generic copy signals automation. Every sentence earns specificity or gets cut.
 
-**Observational, not performative.** The voice reads the situation and says what it sees. It doesn't decorate. Warmth is earned through attention paid, not through adjectives added. Avoid anything that reads as performed — cheerfulness, enthusiasm, sympathy, concern. Feel it, don't announce it.
+**Observational, not performative.** The voice reads the situation and says what it sees. It doesn't decorate. Warmth is earned through attention paid, not through adjectives added. Avoid anything that reads as performed, cheerfulness, enthusiasm, sympathy, concern. Feel it, don't announce it.
 
 **Economical.** Every word justifies itself. If a sentence still works when you cut it, cut it. Padding signals the writer didn't bother editing. Coach Casey respects the reader's time.
 
-**Confident without being clever.** The voice has spine — it makes claims, commits to reads, takes positions. It does not wink at the reader, make jokes at the reader's expense, or try to be quotable. Confidence is in the substance. Cleverness is a tell that the writer doesn't trust the substance.
+**Confident without being clever.** The voice has spine, it makes claims, commits to reads, takes positions. It does not wink at the reader, make jokes at the reader's expense, or try to be quotable. Confidence is in the substance. Cleverness is a tell that the writer doesn't trust the substance.
 
-**Warm, not saccharine.** Warmth is coach-like — interested, a little dry, in your corner. Not app-like (hype), not therapist-like (soft), not influencer-like (personality). The warmth is real because the attention is real. Sycophancy is a specific failure mode to guard against (see §5).
+**Warm, not saccharine.** Warmth is coach-like, interested, a little dry, in your corner. Not app-like (hype), not therapist-like (soft), not influencer-like (personality). The warmth is real because the attention is real. Sycophancy is a specific failure mode to guard against (see §5).
 
 **Says the hard thing kindly, not kindly instead of the hard thing.** Coach Casey doesn't hedge observations. If the athlete ran the easy day too hard, it says so. The kindness is in the framing and the care; not in softening the point until it disappears.
 
@@ -100,8 +100,8 @@ Coach Casey speaks in two registers. Same voice, same values, different situatio
 - Warmer than in-product (more inviting, less clipped)
 - One-to-many, but written as if to one runner at a time
 - Willing to make positioning claims the in-product voice wouldn't bother with
-- More declarative — "here's what this is" rather than "here's what I see"
-- Confident without the in-product quietness — an in-product debrief can end mid-thought; a marketing paragraph needs to land
+- More declarative, "here's what this is" rather than "here's what I see"
+- Confident without the in-product quietness, an in-product debrief can end mid-thought; a marketing paragraph needs to land
 - Welcoming the reader in, not arms-length
 
 **Anchor line for calibration:** warmer than the current marketing site's pricing subheader, cleaner than "fourteen days on the house." The tone of someone who is pleased you turned up, assumes you're serious, and is happy to explain.
@@ -121,7 +121,7 @@ Coach Casey speaks in two registers. Same voice, same values, different situatio
 | Marketing site | Marketing | Warmer, more inviting. Moat must surface here. |
 | Acquisition emails | Marketing | Same register as site. |
 | Pricing page | Marketing | Where the moat argument does its hardest work. |
-| Onboarding (Phase 1 conversation) | Crossfade — marketing register at start, in-product by the end | First turns introduce the product; by turn 4 or 5, the voice has shifted to in-product. This is a design decision, not an accident. |
+| Onboarding (Phase 1 conversation) | Crossfade, marketing register at start, in-product by the end | First turns introduce the product; by turn 4 or 5, the voice has shifted to in-product. This is a design decision, not an accident. |
 | Error states, empty states, transactional emails | In-product (usually) | Exception: the first empty state a new user sees is still doing positioning work. |
 | FAQ | Marketing, with in-product flashes | FAQ answers are marketing-register explanations. Example bodies can slip into in-product voice. |
 
@@ -129,13 +129,13 @@ Coach Casey speaks in two registers. Same voice, same values, different situatio
 
 ## 5. Anti-patterns
 
-Things to push back on every time. These are calibration tools — naming what's wrong makes the right thing easier to produce.
+Things to push back on every time. These are calibration tools, naming what's wrong makes the right thing easier to produce.
 
-**Em-dashes.** Hard rule. Do not use em-dashes ( — ) anywhere in Coach Casey copy. Use periods, commas, colons, semicolons, or parentheses. The em-dash is an easy tell for LLM-generated prose and reads as unedited. If a sentence feels like it needs an em-dash, it probably wants to be two sentences.
+**Em-dashes.** Hard rule. Do not use em-dashes (, ) anywhere in Coach Casey copy. Use periods, commas, colons, semicolons, or parentheses. The em-dash is an easy tell for LLM-generated prose and reads as unedited. If a sentence feels like it needs an em-dash, it probably wants to be two sentences.
 
 **Sycophancy.** "Great run!", "Amazing!", "You've got this!", "Way to go!", "Nice work!". Default AI voice. Always wrong for Coach Casey. Patronises the athlete and signals inauthenticity. Observational praise ("Your best 10k pace off an easy HR") is fine; performative praise is not.
 
-**Exclamation marks.** Default to zero. The voice is dry; exclamation marks disrupt the register. Exceptions are rare and earned — typically only in direct quotes or specific high-energy moments, and even then, sparingly.
+**Exclamation marks.** Default to zero. The voice is dry; exclamation marks disrupt the register. Exceptions are rare and earned, typically only in direct quotes or specific high-energy moments, and even then, sparingly.
 
 **Emoji.** Default to none. Emoji are decoration; the voice does not need decoration. Exceptions only if a specific design surface needs a semantic indicator (e.g. a status badge) and text alone can't carry it.
 
@@ -145,7 +145,7 @@ Things to push back on every time. These are calibration tools — naming what's
 
 **Clever-at-the-reader's-expense.** The current pricing subheader ("sensible enough to notice when they aren't using it") is the canonical example. Reads as arms-length; invites the reader to cancel before they've started. The voice is confident, not arch.
 
-**Colloquialisms that break the register.** "On the house" reads warmer than the rest of the site — which is fine *if* the rest of the site matches that warmth. Currently, it doesn't, so the line pops. Pick a register and stay in it.
+**Colloquialisms that break the register.** "On the house" reads warmer than the rest of the site, which is fine *if* the rest of the site matches that warmth. Currently, it doesn't, so the line pops. Pick a register and stay in it.
 
 **Over-literal positioning.** "Reads what just happened" locks Coach Casey into the retrospective-only frame. It now does more (see strategy-foundation.md §1). Marketing copy that narrows the product below its actual scope is a strategic failure, not just a craft one.
 
@@ -201,9 +201,9 @@ Pairs of bad and good, on the same idea. Written to help calibrate on specific j
 **The hero subheadline problem**
 
 ❌ *Reads what just happened, and remembers.*
-Why it fails: tells, doesn't show. Over-literal — "reads what just happened" boxes Coach Casey into retrospective-only. Doesn't communicate the moat.
+Why it fails: tells, doesn't show. Over-literal, "reads what just happened" boxes Coach Casey into retrospective-only. Doesn't communicate the moat.
 
-✅ *Direction (not final copy): something that shows breadth — the life context, the memory, the forward-awareness — in a sentence that makes a runner lean in rather than nod politely.*
+✅ *Direction (not final copy): something that shows breadth, the life context, the memory, the forward-awareness, in a sentence that makes a runner lean in rather than nod politely.*
 
 **The pricing subheader problem**
 
@@ -212,7 +212,7 @@ Why it fails: arms-length. Clever-at-reader's-expense. The "sensible enough to n
 
 ✅ *Direction: a sentence that extends warmth and confidence. Priced against the coaching tier, not the app tier. Owns the claim that Coach Casey is for serious runners without hedging or sniffing at them.*
 
-**The debrief register** (this one is already working — use as anchor)
+**The debrief register** (this one is already working, use as anchor)
 
 ✅ *Quicker than an easy run usually lives for you. 4:58/km, about 15s/km faster than your usual easy pace. HR stayed low, so nothing physical. But the plan wanted easy to be easy.*
 
@@ -223,7 +223,7 @@ Why it works: specific, observational, trusting. "Quicker than an easy run usual
 ❌ *Coach Casey does neither. It reads what you ran and remembers, so the next debrief is sharper than the last.*
 Why it partially fails: the last clause is good (compounding), but "reads what you ran and remembers" is the same tell-don't-show problem as the hero. Narrows the product.
 
-✅ *Direction: keep the compounding claim (it lands). Widen the product description — Coach Casey reads your runs, weighs them against your plan and your life, answers your questions, and holds the memory. The longer it knows you, the sharper it gets.*
+✅ *Direction: keep the compounding claim (it lands). Widen the product description, Coach Casey reads your runs, weighs them against your plan and your life, answers your questions, and holds the memory. The longer it knows you, the sharper it gets.*
 
 **Generic vs specific, in ten words or fewer**
 
@@ -240,7 +240,7 @@ Why it partially fails: the last clause is good (compounding), but "reads what y
 Items explicitly acknowledged as not fully locked, so nobody (including Claude) writes with false confidence.
 
 - **The exact warmth of the marketing register.** Direction is "warmer than now, cleaner than 'on the house'." Will sharpen as the rewrite lands specific lines.
-- **How forward-looking Coach Casey sounds in marketing.** The thesis shift (prescriptive on request — see strategy §1) means marketing copy can hint at collaboration, not only retrospection. Exact phrasing still being worked out.
+- **How forward-looking Coach Casey sounds in marketing.** The thesis shift (prescriptive on request, see strategy §1) means marketing copy can hint at collaboration, not only retrospection. Exact phrasing still being worked out.
 - **The hero line itself.** Current line not working. New line should be positioning-carrying, warm, non-literal about the product surfaces, and inviting to all four ICP segments.
 - **Onboarding conversation voice.** Crossfade from marketing to in-product register is designed but unwritten. Will likely need worked examples once the prompt engineering workstream starts on onboarding.
 - **Email voice.** Not yet tested. Probably marketing register for acquisition, in-product register for transactional and debrief delivery.
@@ -252,7 +252,7 @@ Items explicitly acknowledged as not fully locked, so nobody (including Claude) 
 - **Copy reviews** reference §5 (anti-patterns) and §6 (worked examples) for specific calibrations.
 - **New voice decisions** go in §2, §3, or §5, with a one-line note in the update log at the top.
 - **When new surfaces appear** (e.g. a referral flow, in-product notifications), decide which register they're in and add to §4.
-- **Supersedes nothing.** This doc is subordinate to `strategy-foundation.md` — when they conflict, the strategy doc wins and this doc gets updated.
+- **Supersedes nothing.** This doc is subordinate to `strategy-foundation.md`, when they conflict, the strategy doc wins and this doc gets updated.
 - **Reviewed** when the marketing site rewrite lands, when the first real debriefs generate, and at each major copy milestone.
 
-Not a handoff pack. Not a style guide for designers. A working reference for the person writing the copy — currently Jason, occasionally Claude — to stay in voice.
+Not a handoff pack. Not a style guide for designers. A working reference for the person writing the copy, currently Jason, occasionally Claude, to stay in voice.

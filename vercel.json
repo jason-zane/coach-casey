@@ -16,6 +16,10 @@
     {
       "path": "/api/cron/weekly-review",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/proactive-surfaces",
+      "schedule": "5 * * * *"
     }
   ]
 }
