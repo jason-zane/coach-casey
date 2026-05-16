@@ -77,13 +77,29 @@ const RAW_WHITELIST: ReadonlySet<string> = new Set([
   "device_watts",
 ]);
 
-function trimRawBlob(a: StravaActivity | StravaActivityDetail): Record<string, unknown> {
+// Speed and power are dropped from runs at the structured-column level. To
+// keep `raw` in sync, drop the matching keys for run activities here too,
+// otherwise the JSONB carries data the column null says we don't have.
+const RUN_RAW_DROP: ReadonlySet<string> = new Set([
+  "average_speed",
+  "max_speed",
+  "average_watts",
+  "max_watts",
+  "weighted_average_watts",
+  "kilojoules",
+  "device_watts",
+]);
+
+function trimRawBlob(
+  a: StravaActivity | StravaActivityDetail,
+  isRun: boolean,
+): Record<string, unknown> {
   const src = a as unknown as Record<string, unknown>;
   const out: Record<string, unknown> = {};
   for (const key of Object.keys(src)) {
-    if (RAW_WHITELIST.has(key)) {
-      out[key] = src[key];
-    }
+    if (!RAW_WHITELIST.has(key)) continue;
+    if (isRun && RUN_RAW_DROP.has(key)) continue;
+    out[key] = src[key];
   }
   // Keep gear.name for shoe-rotation context, drop everything else under gear.
   const gear = src.gear as { name?: string } | null | undefined;
@@ -194,16 +210,20 @@ function paceSPerKm(distance_m: number, moving_time_s: number): number | null {
  *
  * Power and speed columns are NULL for runs (TrailRun / VirtualRun included)
  * and only populated for rides + other non-run activities. Segment_efforts is
- * never persisted on new writes; `best_efforts` is persisted only when
- * `mode === "deep"`. The `raw` JSONB is filtered through a whitelist so we
- * stop carrying polylines, social counts, photos, and Strava plumbing.
+ * never persisted on new writes. `best_efforts` is included in the returned
+ * row only when `mode === "deep"`; in `summary` / `detail` mode the key is
+ * omitted entirely so a routine re-ingest of a row that was previously deep-
+ * fetched preserves its existing best_efforts data (Supabase `.upsert()`
+ * leaves columns missing from the row untouched on conflict). The `raw`
+ * JSONB is filtered through a whitelist so we stop carrying polylines,
+ * social counts, photos, and Strava plumbing.
  */
 export function mapStravaActivity(
   a: StravaActivity,
   athleteId: string,
   laps: StravaLap[] | null = null,
   mode: IngestMode = "summary",
-) {
+): Record<string, unknown> {
   const activityType = a.sport_type ?? a.type;
   const isRun = isRunType(activityType);
 
@@ -216,12 +236,8 @@ export function mapStravaActivity(
   const splitsStandard = detail.splits_standard
     ? detail.splits_standard.map(trimSplit)
     : null;
-  const bestEfforts =
-    mode === "deep" && detail.best_efforts
-      ? detail.best_efforts.map(trimBestEffort)
-      : null;
 
-  return {
+  const row: Record<string, unknown> = {
     athlete_id: athleteId,
     strava_id: a.id,
     start_date_local: a.start_date_local,
@@ -253,13 +269,20 @@ export function mapStravaActivity(
     is_manual: a.manual ?? null,
     is_trainer: a.trainer ?? null,
     is_commute: a.commute ?? null,
-    raw: trimRawBlob(a),
+    raw: trimRawBlob(a, isRun),
     laps: trimmedLaps,
     splits_metric: splitsMetric,
     splits_standard: splitsStandard,
-    best_efforts: bestEfforts,
     segment_efforts: null,
   };
+
+  if (mode === "deep") {
+    row.best_efforts = detail.best_efforts
+      ? detail.best_efforts.map(trimBestEffort)
+      : null;
+  }
+
+  return row;
 }
 
 /**

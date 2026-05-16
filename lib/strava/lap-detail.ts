@@ -60,7 +60,8 @@ export async function ensureActivityLapDetail(
       .update(row)
       .eq("id", activityId);
 
-    return { ok: true, laps: row.laps ?? [] };
+    const laps = Array.isArray(row.laps) ? (row.laps as unknown[]) : [];
+    return { ok: true, laps };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "fetch_failed";
     console.warn("ensureActivityLapDetail failed", activityId, msg);
