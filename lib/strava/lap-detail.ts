@@ -1,21 +1,24 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { fetchActivityDetail } from "./client";
+import { mapStravaActivity } from "./ingest";
 
 /**
- * Lazily fetch lap detail for an activity that was pulled by the long-history
+ * Lazily fetch full detail for an activity that was pulled by the long-history
  * backfill (summaries only). The 2-year backfill deliberately skips the per-
  * activity detail endpoint to stay inside Strava's 100-reads-per-15-min
  * budget, fine for surface-level reasoning about volume and frequency,
- * but lap structure is needed when Casey is asked something specific
- * ("what was the workout pacing on March 14, 2024?").
+ * but lap structure, splits, and best-efforts are needed when Casey is asked
+ * something specific ("what was the workout pacing on March 14, 2024?").
  *
  * This function is the on-demand wiring point: callers (chat tool calls,
- * debrief regeneration on old activities, anything that needs lap-level
- * structure for an old run) hand it the activity row id; it checks the DB,
- * fetches detail if absent, persists, and returns the laps.
+ * debrief regeneration on old activities, the paywall deep-backfill, anything
+ * that needs lap-level detail for an old run) hand it the activity row id; it
+ * checks the DB, fetches detail if absent, persists through `mapStravaActivity`
+ * in `deep` mode (laps + splits + best_efforts, with the run-vs-ride trim
+ * applied), and returns the laps.
  *
  * Idempotent: a row that already has a non-empty laps array short-circuits.
- * Errors are surfaced (returning null with a logged warning) rather than
+ * Errors are surfaced (returning ok:false with a logged warning) rather than
  * thrown, the caller usually wants to degrade to summary-only reasoning,
  * not crash.
  */
@@ -43,14 +46,21 @@ export async function ensureActivityLapDetail(
 
   try {
     const detail = await fetchActivityDetail(a.athlete_id, a.strava_id);
-    const laps = detail.laps ?? [];
+    // Route through the standard mapper in 'deep' mode so the same trim
+    // rules apply (raw-blob whitelist, run-vs-ride column gating, split /
+    // best-effort sub-field trim). Update the row in place rather than
+    // upserting on (athlete_id, strava_id) so we keep the existing UUID
+    // stable for downstream references (RPE answers, debrief messages).
+    // athlete_id and strava_id round-trip to their existing values, which
+    // is a no-op write.
+    const row = mapStravaActivity(detail, a.athlete_id, detail.laps ?? null, "deep");
 
     await admin
       .from("activities")
-      .update({ laps, raw: detail as unknown as Record<string, unknown> })
+      .update(row)
       .eq("id", activityId);
 
-    return { ok: true, laps };
+    return { ok: true, laps: row.laps ?? [] };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "fetch_failed";
     console.warn("ensureActivityLapDetail failed", activityId, msg);

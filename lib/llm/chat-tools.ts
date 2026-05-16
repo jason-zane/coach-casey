@@ -7,7 +7,6 @@ import type {
   StravaLap,
   StravaSplit,
   StravaBestEffort,
-  StravaSegmentEffort,
 } from "@/lib/strava/client";
 
 /**
@@ -112,11 +111,10 @@ type ActivityRow = {
   splits_metric: unknown;
   splits_standard: unknown;
   best_efforts: unknown;
-  segment_efforts: unknown;
 };
 
 const ACTIVITY_LOOKUP_COLUMNS =
-  "id, athlete_id, strava_id, start_date_local, timezone, utc_offset, location_city, description, name, activity_type, distance_m, moving_time_s, elapsed_time_s, avg_pace_s_per_km, avg_hr, max_hr, avg_watts, max_watts, weighted_avg_watts, kilojoules, device_watts, avg_cadence, avg_speed_m_s, max_speed_m_s, suffer_score, avg_temp_c, elevation_gain_m, elev_high_m, elev_low_m, is_manual, is_trainer, is_commute, laps, splits_metric, splits_standard, best_efforts, segment_efforts";
+  "id, athlete_id, strava_id, start_date_local, timezone, utc_offset, location_city, description, name, activity_type, distance_m, moving_time_s, elapsed_time_s, avg_pace_s_per_km, avg_hr, max_hr, avg_watts, max_watts, weighted_avg_watts, kilojoules, device_watts, avg_cadence, avg_speed_m_s, max_speed_m_s, suffer_score, avg_temp_c, elevation_gain_m, elev_high_m, elev_low_m, is_manual, is_trainer, is_commute, laps, splits_metric, splits_standard, best_efforts";
 
 /**
  * Read every interesting field on one activity from the DB, render as a
@@ -274,28 +272,6 @@ function renderActivityLookup(r: ActivityRow): string {
       const pr = e.pr_rank != null ? ` (PR rank ${e.pr_rank})` : "";
       lines.push(`  ${e.name}: ${formatDuration(e.elapsed_time)}${pr}`);
     }
-  }
-
-  // Segment efforts
-  const segs = Array.isArray(r.segment_efforts)
-    ? (r.segment_efforts as StravaSegmentEffort[])
-    : [];
-  if (segs.length > 0) {
-    lines.push(`\nSegment efforts (${segs.length}):`);
-    for (const s of segs.slice(0, 10)) {
-      const sname = s.segment?.name ?? s.name;
-      const sdist = s.distance ? `${(s.distance / 1000).toFixed(2)} km` : "";
-      const grade =
-        s.segment?.average_grade != null
-          ? `, ${s.segment.average_grade.toFixed(1)}% avg`
-          : "";
-      const pr = s.pr_rank != null ? `, PR rank ${s.pr_rank}` : "";
-      const kom = s.kom_rank != null ? `, KOM rank ${s.kom_rank}` : "";
-      lines.push(
-        `  "${sname}" ${sdist}${grade}: ${formatDuration(s.elapsed_time)}${pr}${kom}`,
-      );
-    }
-    if (segs.length > 10) lines.push(`  ... ${segs.length - 10} more segment efforts`);
   }
 
   return lines.join("\n");

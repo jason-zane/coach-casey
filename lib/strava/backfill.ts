@@ -174,7 +174,7 @@ export async function runHistoryBackfillForAthlete(
     });
 
     if (kept.length > 0) {
-      const rows = kept.map((a) => mapStravaActivity(a, athleteId, null));
+      const rows = kept.map((a) => mapStravaActivity(a, athleteId, null, "summary"));
       const { error } = await admin
         .from("activities")
         .upsert(rows, { onConflict: "athlete_id,strava_id" });
