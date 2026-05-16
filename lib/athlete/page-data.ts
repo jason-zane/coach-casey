@@ -34,6 +34,8 @@ export type GoalRace = {
   name: string | null;
   raceDate: string | null;
   goalTimeSeconds: number | null;
+  /** Race tier added in the 2026-05-16 Casey refresh. */
+  tier: "A" | "B" | "C" | null;
 };
 
 export type Niggle = {
@@ -214,7 +216,7 @@ export async function loadGoalRace(
   const admin = createAdminClient();
   const { data } = await admin
     .from("goal_races")
-    .select("name, race_date, goal_time_seconds")
+    .select("name, race_date, goal_time_seconds, tier")
     .eq("athlete_id", athleteId)
     .eq("is_active", true)
     .order("race_date", { ascending: true })
@@ -223,12 +225,14 @@ export async function loadGoalRace(
       name: string | null;
       race_date: string | null;
       goal_time_seconds: number | null;
+      tier: "A" | "B" | "C" | null;
     }>();
   if (!data) return null;
   return {
     name: data.name,
     raceDate: data.race_date,
     goalTimeSeconds: data.goal_time_seconds,
+    tier: data.tier,
   };
 }
 

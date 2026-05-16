@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/server";
+import { RUN_TYPES } from "@/lib/strava/activity-types";
 
 /**
  * Mid-block flatness pattern detector.
@@ -73,7 +74,7 @@ export async function detectFlatnessPattern(
     .from("activities")
     .select("start_date_local, distance_m, moving_time_s, avg_pace_s_per_km")
     .eq("athlete_id", athleteId)
-    .eq("activity_type", "Run")
+    .in("activity_type", RUN_TYPES as readonly string[] as string[])
     .gte("start_date_local", baselineCutoff)
     .order("start_date_local", { ascending: false });
 

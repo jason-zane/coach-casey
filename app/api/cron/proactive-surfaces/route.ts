@@ -7,6 +7,10 @@ import {
 } from "@/app/actions/proactive-surfaces";
 import { detectFlatnessPattern } from "@/lib/thread/flatness-detector";
 import { detectTomorrowLongRun } from "@/lib/thread/long-run-detector";
+import {
+  renderRecentRunsSummary,
+  renderRecentLifeContext,
+} from "@/lib/thread/proactive-context";
 import type { RaceWeekDayMarker } from "@/lib/llm/mocks";
 
 export const runtime = "nodejs";
@@ -195,6 +199,11 @@ export async function GET(request: Request) {
         const marker = dayMarkerForTier(daysUntil, r.tier);
         if (!marker) continue;
 
+        const [recentRunsSummary, recentLifeContext] = await Promise.all([
+          renderRecentRunsSummary(a.id, 14),
+          renderRecentLifeContext(a.id, 14),
+        ]);
+
         const result = await fireRaceWeekBriefing({
           athleteId: a.id,
           displayName: a.display_name,
@@ -204,8 +213,8 @@ export async function GET(request: Request) {
           daysUntil,
           dayMarker: marker,
           tier: r.tier,
-          recentRunsSummary: "(populated by context renderer in a follow-up)",
-          recentLifeContext: "(populated by context renderer in a follow-up)",
+          recentRunsSummary,
+          recentLifeContext,
           hasCoach,
         });
         stats.raceWeek[result.kind] += 1;
@@ -247,6 +256,7 @@ export async function GET(request: Request) {
           plannedRunVariant: planned.variant,
           knownFuelingPattern: planned.knownFuelingPattern,
           goalRaceDaysAway,
+          hasCoach,
           plannedRunKey: planned.key,
         });
         stats.fuelingPrerun[result.kind] += 1;

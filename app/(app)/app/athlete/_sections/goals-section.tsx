@@ -13,6 +13,7 @@ export async function GoalsSection({ athleteId }: { athleteId: string }) {
                 name: goalRace.name,
                 raceDate: goalRace.raceDate,
                 goalTimeSeconds: goalRace.goalTimeSeconds,
+                tier: goalRace.tier ?? "B",
               }
             : null
         }

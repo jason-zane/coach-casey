@@ -135,6 +135,7 @@ export type FuelingPrerunContext = {
   plannedRunVariant: "long" | "mp-long" | "depleted" | "hard-long" | null;
   knownFuelingPattern: string | null;
   goalRaceDaysAway: number | null;
+  hasCoach: boolean;
 };
 
 export async function generateFuelingPrerunNudge(
@@ -178,6 +179,9 @@ export async function generateFuelingPrerunNudge(
       ? `Yes, race in ${ctx.goalRaceDaysAway} days.`
       : "Not currently in a race build window.",
     ``,
+    `# Coach status`,
+    ctx.hasCoach ? "Athlete has a human coach." : "Self-directed.",
+    ``,
     `# Task`,
     `Produce one short pre-run fuelling nudge for the planned long run. Output prose only, or the literal string SKIP if the surface should not fire (pattern well-established and run is routine).`,
   ].join("\n");
@@ -211,6 +215,7 @@ export type FuelingRetrospectiveContext = {
   runDurationMinutes: number;
   runDistanceKm: number;
   knownFuelingPattern: string | null;
+  hasCoach: boolean;
 };
 
 export async function generateFuelingRetrospective(
@@ -244,6 +249,9 @@ export async function generateFuelingRetrospective(
     ``,
     `# Known fuelling pattern`,
     ctx.knownFuelingPattern ?? "(none captured yet)",
+    ``,
+    `# Coach status`,
+    ctx.hasCoach ? "Athlete has a human coach." : "Self-directed.",
     ``,
     `# Task`,
     `Produce one short retrospective fuelling check for the run. Output prose only, or the literal string SKIP.`,

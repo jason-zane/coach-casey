@@ -233,23 +233,34 @@ export async function generateDebriefForActivity(
         .toLowerCase()
         .match(/fuel|gel|carb|empty/);
       if (!followUpAskedFueling) {
-        const { data: fuel } = await admin
-          .from("memory_items")
-          .select("content")
-          .eq("athlete_id", athleteId)
-          .contains("tags", ["fueling"])
-          .order("created_at", { ascending: false })
-          .limit(1);
+        const [{ data: fuel }, { data: prefs }] = await Promise.all([
+          admin
+            .from("memory_items")
+            .select("content")
+            .eq("athlete_id", athleteId)
+            .contains("tags", ["fueling"])
+            .order("created_at", { ascending: false })
+            .limit(1),
+          admin
+            .from("preferences")
+            .select("coaching_mode")
+            .eq("athlete_id", athleteId)
+            .maybeSingle(),
+        ]);
         const knownFuelingPattern =
           (((fuel ?? []) as Array<{ content: string }>)[0]?.content) ?? null;
+        const hasCoach =
+          (prefs as { coaching_mode?: "coach" | "self" | null } | null)
+            ?.coaching_mode === "coach";
         await fireFuelingRetrospective({
           athleteId,
-          displayName: null,
+          displayName: ctx.displayName,
           activityId,
           runDay: ctx.activity.date,
           runDurationMinutes: durationMinutes,
           runDistanceKm: ctx.activity.distanceKm,
           knownFuelingPattern,
+          hasCoach,
         });
       }
     }

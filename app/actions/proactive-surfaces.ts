@@ -3,6 +3,8 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { ensureThread } from "@/lib/thread/repository";
 import { SONNET_MODEL } from "@/lib/llm/anthropic";
+import { sendPushToAthlete } from "@/lib/push/send";
+import { leadFromBody } from "@/lib/push/lead-from-body";
 import {
   FUELING_PRERUN_PROMPT_VERSION,
   FUELING_RETROSPECTIVE_PROMPT_VERSION,
@@ -75,6 +77,7 @@ async function insertBriefing(
   body: string,
   meta: Record<string, unknown>,
   promptVersion: string,
+  push: { title: string; tag: string } | null,
 ): Promise<string> {
   const admin = createAdminClient();
   const threadId = await ensureThread(athleteId);
@@ -92,7 +95,34 @@ async function insertBriefing(
     .select("id")
     .single();
   if (error) throw error;
-  return (data as { id: string }).id;
+  const messageId = (data as { id: string }).id;
+
+  if (push) {
+    try {
+      const { data: prefs } = await admin
+        .from("preferences")
+        .select("push_enabled, briefing_push_enabled")
+        .eq("athlete_id", athleteId)
+        .maybeSingle();
+      const masterOn =
+        (prefs as { push_enabled?: boolean } | null)?.push_enabled ?? false;
+      const subOn =
+        (prefs as { briefing_push_enabled?: boolean } | null)
+          ?.briefing_push_enabled ?? true;
+      if (masterOn && subOn) {
+        await sendPushToAthlete(athleteId, {
+          title: push.title,
+          body: leadFromBody(body),
+          tag: push.tag,
+          url: "/app",
+        });
+      }
+    } catch (err) {
+      console.warn("briefing push fanout failed", err);
+    }
+  }
+
+  return messageId;
 }
 
 // ---------------------------------------------------------------------------
@@ -121,6 +151,10 @@ export async function fireRaceWeekBriefing(
       race_date: ctx.raceDate,
     },
     RACE_WEEK_BRIEFING_PROMPT_VERSION,
+    {
+      title: ctx.raceName ? `${ctx.dayMarker}: ${ctx.raceName}` : `Race ${ctx.dayMarker}`,
+      tag: `race-week:${ctx.raceId}:${ctx.dayMarker}`,
+    },
   );
   return { kind: "created", messageId };
 }
@@ -156,6 +190,7 @@ export async function fireFuelingPrerun(
       duration_minutes: ctx.plannedDurationMinutes,
     },
     FUELING_PRERUN_PROMPT_VERSION,
+    { title: "Long run tomorrow", tag: `fuel-prerun:${ctx.plannedRunKey}` },
   );
   return { kind: "created", messageId };
 }
@@ -185,6 +220,7 @@ export async function fireFuelingRetrospective(
       duration_minutes: ctx.runDurationMinutes,
     },
     FUELING_RETROSPECTIVE_PROMPT_VERSION,
+    { title: "Fuelling check", tag: `fuel-retro:${ctx.activityId}` },
   );
   return { kind: "created", messageId };
 }
@@ -226,6 +262,7 @@ export async function fireNiggleEscalation(
       window_days: ctx.windowDays,
     },
     NIGGLE_ESCALATION_PROMPT_VERSION,
+    { title: `${ctx.bodyPart}, worth a look`, tag: `niggle:${ctx.bodyPart}` },
   );
   return { kind: "created", messageId };
 }
@@ -265,6 +302,7 @@ export async function fireMidBlockFlatness(
       pattern_description: ctx.patternDescription,
     },
     MID_BLOCK_FLATNESS_PROMPT_VERSION,
+    { title: "Worth a quick check", tag: `flatness:${ctx.athleteId}` },
   );
   return { kind: "created", messageId };
 }

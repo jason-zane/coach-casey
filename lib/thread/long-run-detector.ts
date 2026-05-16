@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/server";
+import { RUN_TYPES } from "@/lib/strava/activity-types";
 
 /**
  * Tomorrow long-run detector.
@@ -64,7 +65,7 @@ export async function detectTomorrowLongRun(
     .from("activities")
     .select("start_date_local, moving_time_s, distance_m")
     .eq("athlete_id", athleteId)
-    .eq("activity_type", "Run")
+    .in("activity_type", RUN_TYPES as readonly string[] as string[])
     .gte("start_date_local", fourWeeksAgo)
     .order("start_date_local", { ascending: false });
 

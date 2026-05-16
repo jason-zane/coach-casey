@@ -64,7 +64,25 @@ COMMENT ON COLUMN public.goal_races.tier IS
 ALTER TYPE public.message_kind ADD VALUE IF NOT EXISTS 'casey_briefing';
 
 -- =====================================================================
--- 4. Helpful index for niggle counting
+-- 4. Per-kind push toggle for proactive briefings
+-- =====================================================================
+--
+-- Existing per-kind toggles cover debriefs, cross-training, and weekly
+-- reviews. The four new proactive surfaces (race-week briefing, fuelling
+-- pre-run, niggle escalation, mid-block flatness) all flow through
+-- kind='casey_briefing'. One toggle covers all of them, athletes who
+-- find the proactive cadence too much can silence the bucket without
+-- losing debriefs or weekly reviews. Defaults true so existing athletes
+-- get the new surfaces automatically once the migration runs.
+
+ALTER TABLE public.preferences
+  ADD COLUMN IF NOT EXISTS briefing_push_enabled boolean NOT NULL DEFAULT true;
+
+COMMENT ON COLUMN public.preferences.briefing_push_enabled IS
+  'Per-kind push toggle for proactive Casey briefings (race-week, fuelling, niggle escalation, mid-block flatness). Gated by master push_enabled.';
+
+-- =====================================================================
+-- 5. Helpful index for niggle counting
 -- =====================================================================
 --
 -- niggle-escalation counts memory_items with kind = 'injury' for an
