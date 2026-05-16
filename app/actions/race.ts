@@ -23,6 +23,7 @@ export async function saveGoalRace(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim() || null;
   const raceDateRaw = String(formData.get("race_date") ?? "").trim();
   const goalTimeRaw = String(formData.get("goal_time") ?? "").trim();
+  const tierRaw = String(formData.get("tier") ?? "").trim().toUpperCase();
 
   const anyProvided = name || raceDateRaw || goalTimeRaw;
   if (!anyProvided) return advanceFrom("goal-race");
@@ -32,12 +33,15 @@ export async function saveGoalRace(formData: FormData) {
 
   const race_date = raceDateRaw || null;
   const goal_time_seconds = goalTimeRaw ? parseGoalTime(goalTimeRaw) : null;
+  const tier: "A" | "B" | "C" =
+    tierRaw === "A" || tierRaw === "C" ? tierRaw : "B";
 
   await admin.from("goal_races").insert({
     athlete_id: athlete.id,
     name,
     race_date,
     goal_time_seconds,
+    tier,
     is_active: true,
   });
 

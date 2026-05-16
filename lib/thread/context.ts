@@ -87,7 +87,7 @@ export async function buildChatContext(
         .maybeSingle(),
       admin
         .from("goal_races")
-        .select("name, race_date, goal_time_seconds, is_active")
+        .select("name, race_date, goal_time_seconds, tier, is_active")
         .eq("athlete_id", athleteId)
         .eq("is_active", true)
         .order("race_date", { ascending: true }),
@@ -182,10 +182,12 @@ export async function buildChatContext(
     name: string | null;
     race_date: string | null;
     goal_time_seconds: number | null;
+    tier: "A" | "B" | "C" | null;
   }[]).map((r) => ({
     name: r.name,
     raceDate: r.race_date,
     goalTimeSeconds: r.goal_time_seconds,
+    tier: r.tier,
   }));
 
   const dob = (athleteRes.data?.date_of_birth as string | null) ?? null;

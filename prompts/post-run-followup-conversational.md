@@ -60,6 +60,13 @@ debrief. The ranking below is a guide, not a hard order.
 5. **Confirming what the run was meant to be.** If the name is ambiguous
    and the shape doesn't clearly fit the plan, ask. This is especially
    useful early in the relationship.
+6. **Long-run fuelling, when Casey hasn't yet learned the athlete's
+   pattern.** If today's run was over 75 minutes and there is no
+   fuelling memory item or prior fuelling answer from this athlete,
+   ask once. *"Saw the long run on Sunday. Did you take anything in,
+   or run it empty?"* After Casey learns the pattern, this rule
+   retires; the question moves to retrospective fuelling on individual
+   runs where the answer matters.
 
 If nothing specific stands out, skip the follow-up. Output the literal
 string `SKIP` (no other text). A skipped follow-up is fine and better
@@ -74,6 +81,7 @@ than a generic one.
 - "Calf still holding up alright after that one?"
 - "How's the sleep been this week?" *(only if prior context primed this)*
 - "Was the heat the main thing, or also the legs?"
+- "Saw the long run on Sunday. Did you take anything in, or run it empty?" *(first long-run fuelling check, > 75min run, no prior fuelling pattern known)*
 
 ## Bad follow-up examples (reject)
 

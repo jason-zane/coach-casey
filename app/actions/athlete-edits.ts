@@ -10,6 +10,12 @@ export type GoalRaceInput = {
   name: string;
   raceDate: string | null; // YYYY-MM-DD
   goalTimeSeconds: number | null;
+  /**
+   * Race tier added in the 2026-05-16 Casey refresh. Defaults to 'B' on
+   * the server when omitted (a marathon without a tier is rarely a true
+   * train-through race; see migration comment for the rationale).
+   */
+  tier?: "A" | "B" | "C";
 };
 
 /**
@@ -38,6 +44,7 @@ export async function saveGoalRace(input: GoalRaceInput): Promise<void> {
     name,
     race_date: input.raceDate,
     goal_time_seconds: input.goalTimeSeconds,
+    tier: input.tier ?? "B",
     is_active: true,
   });
 
@@ -204,6 +211,17 @@ export async function addMemoryItem(input: MemoryItemInput): Promise<void> {
     tags,
     source: "manual",
   });
+
+  if (input.kind === "injury") {
+    try {
+      const { maybeFireNiggleEscalation } = await import(
+        "@/lib/thread/niggle-counter"
+      );
+      await maybeFireNiggleEscalation(athlete.id);
+    } catch (err) {
+      console.warn("niggle escalation check failed", err);
+    }
+  }
 
   revalidatePath("/app/athlete");
 }

@@ -12,7 +12,7 @@ Read alongside `design-principles.md` (feel, voice posture, design implications)
 
 Takes a first-time visitor from the marketing site through to a fully set-up Coach Casey account, trial started, ready to receive their first debrief.
 
-**Primary user:** plan-following marathon runner, 2:45–3:45 goal band, AU/NZ, Strava-native, arriving with a goal race somewhere on the horizon. Curious but skeptical of another running tool. Card-in-hand ready if convinced, but won't push through high-friction onboarding for a product they haven't yet felt working.
+**Primary user:** experienced marathon runner, 2:30 to 3:30 goal band (narrowed from 2:45 to 3:45 in the 2026-05-16 refresh, see `voice-guidelines.md` §2.2), AU/NZ, Strava-native, arriving with a goal race somewhere on the horizon. Already has some structure but wants the read they can't generate on their own. Curious but skeptical of another running tool. Card-in-hand ready if convinced, but won't push through high-friction onboarding for a product they haven't yet felt working.
 
 **Entry state at onboarding start:**
 - On mobile or desktop. Mobile-first product, mobile is the expected case.
@@ -273,10 +273,11 @@ These are preferences that persist and affect the whole product, not just onboar
 **What it does:** captures the athlete's goal race — lightweight version.
 
 **Interactions:**
-- Three fields, all optional:
+- Four fields, all optional:
   - Race name (free text — "Gold Coast Marathon," "Sydney Marathon," etc.)
   - Race date (date picker)
   - Goal time (time input — HH:MM:SS)
+  - Race tier (A / B / C; added in the 2026-05-16 refresh). A = priority race, full taper, can't train through. B = important, careful approach, 10-day window (default). C = train through where the discipline allows; rare for marathons. Tier scales the race-week briefing cadence.
 - One action: *Continue.*
 - A *"Skip for now"* option is always available.
 

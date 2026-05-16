@@ -86,6 +86,19 @@ metric. Do not editorialise about the gap. Do not guess.
 **A run after a multi-day gap.** The gap matters. Open with it. Read the
 run as a return rather than as a standalone.
 
+**A run inside the race-week window for an A or B race.** If the goal
+race is within 14 days for an A race or 10 days for a B race, read the
+run *through* the race window. The race is the centre of gravity, not
+the run. A controlled shake-out reads as a sensible pre-race effort; a
+hard tempo three days out reads with the race already in the room. The
+beat is one observation, not a paragraph; it is read of the run inside
+the window, not a race-day briefing. The race-week briefing surface
+does the briefing work; the debrief notices the run's place in it.
+
+This carve-out does **not** loosen the no-prescription rule. *"Three
+days out, and this read like the right shake-out for you"* is in scope;
+*"keep tomorrow easy and start the carb load tonight"* is not.
+
 **The very first run after onboarding.** Name that it's the first one you
 have read. Keep the claim modest (one run is not a pattern). Interpret
 what you can. A first debrief earns trust by being specific without

@@ -7,13 +7,34 @@ import {
   type GoalRaceInput,
 } from "@/app/actions/athlete-edits";
 
+type RaceTier = "A" | "B" | "C";
+
 type Props = {
   initial: {
     name: string | null;
     raceDate: string | null;
     goalTimeSeconds: number | null;
+    tier: RaceTier;
   } | null;
 };
+
+const TIER_OPTIONS: Array<{ value: RaceTier; label: string; description: string }> = [
+  {
+    value: "A",
+    label: "A race",
+    description: "Priority. Full taper, can't train through.",
+  },
+  {
+    value: "B",
+    label: "B race",
+    description: "Important. Careful approach, 10-day prep.",
+  },
+  {
+    value: "C",
+    label: "C race",
+    description: "Train through where the discipline allows.",
+  },
+];
 
 function secondsToHms(s: number | null): {
   hours: string;
@@ -59,6 +80,7 @@ export function GoalRaceEditor({ initial }: Props) {
 
   const [name, setName] = useState(initial?.name ?? "");
   const [date, setDate] = useState(initial?.raceDate ?? "");
+  const [tier, setTier] = useState<RaceTier>(initial?.tier ?? "B");
   const initialHms = secondsToHms(initial?.goalTimeSeconds ?? null);
   const [hours, setHours] = useState(initialHms.hours);
   const [minutes, setMinutes] = useState(initialHms.minutes);
@@ -69,6 +91,7 @@ export function GoalRaceEditor({ initial }: Props) {
     if (toInitial) {
       setName(initial?.name ?? "");
       setDate(initial?.raceDate ?? "");
+      setTier(initial?.tier ?? "B");
       const hms = secondsToHms(initial?.goalTimeSeconds ?? null);
       setHours(hms.hours);
       setMinutes(hms.minutes);
@@ -76,6 +99,7 @@ export function GoalRaceEditor({ initial }: Props) {
     } else {
       setName("");
       setDate("");
+      setTier("B");
       setHours("");
       setMinutes("");
       setSeconds("");
@@ -93,6 +117,7 @@ export function GoalRaceEditor({ initial }: Props) {
       name: trimmed,
       raceDate: date || null,
       goalTimeSeconds: hmsToSeconds(hours, minutes, seconds),
+      tier,
     };
     startTransition(async () => {
       try {
@@ -132,6 +157,7 @@ export function GoalRaceEditor({ initial }: Props) {
           <div className="text-ink-muted">
             {dateLabel ?? "No date set"}
             {goalTimeLabel ? ` · target ${goalTimeLabel}` : ""}
+            {` · tier ${initial.tier}`}
           </div>
         </div>
         <div className="flex gap-2 pt-1">
@@ -190,6 +216,36 @@ export function GoalRaceEditor({ initial }: Props) {
           disabled={pending}
         />
       </label>
+
+      <fieldset className="space-y-1">
+        <legend className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-subtle">
+          Race tier
+        </legend>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          {TIER_OPTIONS.map((opt) => {
+            const selected = tier === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setTier(opt.value)}
+                aria-pressed={selected}
+                disabled={pending}
+                className={`rounded-[6px] border px-3 py-2 text-left text-[13px] transition-colors duration-150 ${
+                  selected
+                    ? "border-ink bg-rule/30"
+                    : "border-rule hover:bg-rule/20"
+                }`}
+              >
+                <div className="font-medium text-ink">{opt.label}</div>
+                <div className="text-ink-muted text-[12px] leading-snug">
+                  {opt.description}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
 
       <fieldset className="space-y-1">
         <legend className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-subtle">

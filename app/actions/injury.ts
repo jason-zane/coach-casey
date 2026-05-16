@@ -28,6 +28,18 @@ export async function saveInjury(formData: FormData) {
     source: "onboarding",
   });
 
+  // Check niggle escalation threshold on every injury insert. Onboarding
+  // is typically the first mention so this rarely fires here, but keeping
+  // the check at every insert path makes the threshold logic consistent.
+  try {
+    const { maybeFireNiggleEscalation } = await import(
+      "@/lib/thread/niggle-counter"
+    );
+    await maybeFireNiggleEscalation(athlete.id);
+  } catch (err) {
+    console.warn("niggle escalation check failed", err);
+  }
+
   await advanceFrom("injury");
 }
 

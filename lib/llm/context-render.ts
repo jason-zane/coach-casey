@@ -77,6 +77,13 @@ export type GoalRaceInput = {
   name: string | null;
   raceDate: string | null;
   goalTimeSeconds: number | null;
+  /**
+   * Race tier. A = priority race (full 14-day prep). B = important
+   * (10-day prep, careful). C = train through (rare for marathons).
+   * Scales the race-week briefing cadence; the renderer surfaces the
+   * tier so Casey can reason about it without a separate field.
+   */
+  tier?: "A" | "B" | "C" | null;
 };
 
 /**
@@ -89,7 +96,8 @@ export function renderGoalRacesBlock(races: GoalRaceInput[]): string | null {
     const name = r.name ?? "(unnamed race)";
     const date = r.raceDate ?? "date TBD";
     const goal = formatGoalTime(r.goalTimeSeconds);
-    return `- ${name} on ${date}${goal ? `, goal ${goal}` : ""}`;
+    const tier = r.tier ? `, tier ${r.tier}` : "";
+    return `- ${name} on ${date}${goal ? `, goal ${goal}` : ""}${tier}`;
   });
   return `# Goal races\n${lines.join("\n")}`;
 }

@@ -11,10 +11,31 @@ import {
 } from "@/app/onboarding/_components/form";
 import { DatePicker } from "@/app/onboarding/_components/date-picker";
 
+type RaceTier = "A" | "B" | "C";
+
+const TIER_OPTIONS: Array<{ value: RaceTier; label: string; description: string }> = [
+  {
+    value: "A",
+    label: "A race",
+    description: "Priority race, full taper. Can't train through it.",
+  },
+  {
+    value: "B",
+    label: "B race",
+    description: "Important. Careful approach, lighter prep window.",
+  },
+  {
+    value: "C",
+    label: "C race",
+    description: "Train through where the discipline allows. Rare for marathons.",
+  },
+];
+
 export function GoalRaceForm() {
   const [name, setName] = useState("");
   const [raceDate, setRaceDate] = useState("");
   const [goalTime, setGoalTime] = useState("");
+  const [tier, setTier] = useState<RaceTier>("B");
   const [pending, startTransition] = useTransition();
 
   function submit() {
@@ -23,6 +44,7 @@ export function GoalRaceForm() {
       fd.set("name", name);
       fd.set("race_date", raceDate);
       fd.set("goal_time", goalTime);
+      fd.set("tier", tier);
       await saveGoalRace(fd);
     });
   }
@@ -79,6 +101,33 @@ export function GoalRaceForm() {
             value={goalTime}
             onChange={(e) => setGoalTime(e.target.value)}
           />
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <FieldLabel htmlFor="tier">Race tier</FieldLabel>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          {TIER_OPTIONS.map((opt) => {
+            const selected = tier === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setTier(opt.value)}
+                aria-pressed={selected}
+                className={`rounded-md border px-3 py-2 text-left text-sm transition ${
+                  selected
+                    ? "border-foreground bg-foreground/5"
+                    : "border-border hover:bg-foreground/[0.02]"
+                }`}
+              >
+                <div className="font-medium">{opt.label}</div>
+                <div className="text-muted-foreground text-xs leading-snug">
+                  {opt.description}
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 

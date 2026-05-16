@@ -236,5 +236,20 @@ async function executeToolEffects(
 
   if (rows.length > 0) {
     await admin.from("memory_items").insert(rows);
+    // After a chat-tool memory write that includes an injury, see if
+    // the niggle has crossed the escalation threshold and fire the
+    // escalation surface if so. Best-effort, never block the chat
+    // response on this.
+    const hasInjury = rows.some((r) => r.kind === "injury");
+    if (hasInjury) {
+      try {
+        const { maybeFireNiggleEscalation } = await import(
+          "@/lib/thread/niggle-counter"
+        );
+        await maybeFireNiggleEscalation(athleteId);
+      } catch (err) {
+        console.warn("niggle escalation check failed", err);
+      }
+    }
   }
 }

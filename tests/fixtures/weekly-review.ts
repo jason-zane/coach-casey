@@ -48,6 +48,7 @@ function planFollowingWeek(): WeeklyReviewContext {
         name: "Sydney Marathon",
         raceDate: "2026-09-20",
         goalTimeSeconds: 3 * 3600 + 15 * 60,
+        tier: "A",
       },
     ],
     priorWeeklyReviews: [],
