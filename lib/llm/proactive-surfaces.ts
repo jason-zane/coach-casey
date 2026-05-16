@@ -1,7 +1,7 @@
 import "server-only";
 
 import type Anthropic from "@anthropic-ai/sdk";
-import { anthropic, SONNET_MODEL } from "./anthropic";
+import { anthropic, MODELS } from "./anthropic";
 import { buildSystemPrompt } from "./prompts";
 import {
   mockFuelingPrerun,
@@ -105,7 +105,7 @@ export async function generateRaceWeekBriefing(
   ].join("\n");
 
   const response = await anthropic().messages.create({
-    model: SONNET_MODEL,
+    model: MODELS.raceWeekBriefing,
     max_tokens: 400,
     temperature: 0.9,
     system,
@@ -187,7 +187,7 @@ export async function generateFuelingPrerunNudge(
   ].join("\n");
 
   const response = await anthropic().messages.create({
-    model: SONNET_MODEL,
+    model: MODELS.fuelingPrerun,
     max_tokens: 160,
     temperature: 0.9,
     system,
@@ -258,7 +258,7 @@ export async function generateFuelingRetrospective(
   ].join("\n");
 
   const response = await anthropic().messages.create({
-    model: SONNET_MODEL,
+    model: MODELS.fuelingRetrospective,
     max_tokens: 160,
     temperature: 0.9,
     system,
@@ -324,7 +324,7 @@ export async function generateNiggleEscalation(
   ].join("\n");
 
   const response = await anthropic().messages.create({
-    model: SONNET_MODEL,
+    model: MODELS.niggleEscalation,
     max_tokens: 220,
     temperature: 0.9,
     system,
@@ -395,7 +395,7 @@ export async function generateMidBlockFlatness(
   ].join("\n");
 
   const response = await anthropic().messages.create({
-    model: SONNET_MODEL,
+    model: MODELS.midBlockFlatness,
     max_tokens: 260,
     temperature: 0.9,
     system,

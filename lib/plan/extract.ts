@@ -2,7 +2,7 @@ import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { anthropic, SONNET_MODEL } from "@/lib/llm/anthropic";
+import { anthropic, MODELS } from "@/lib/llm/anthropic";
 import { mockMode } from "@/lib/llm/mocks";
 
 /**
@@ -167,7 +167,7 @@ export async function extractPlanFromFile(
 
   try {
     const response = await anthropic().messages.create({
-      model: SONNET_MODEL,
+      model: MODELS.planExtract,
       max_tokens: 3000,
       temperature: 0,
       system: [

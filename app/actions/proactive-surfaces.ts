@@ -2,7 +2,7 @@
 
 import { createAdminClient } from "@/lib/supabase/server";
 import { ensureThread } from "@/lib/thread/repository";
-import { SONNET_MODEL } from "@/lib/llm/anthropic";
+import { MODELS } from "@/lib/llm/anthropic";
 import { sendPushToAthlete } from "@/lib/push/send";
 import { leadFromBody } from "@/lib/push/lead-from-body";
 import {
@@ -77,6 +77,7 @@ async function insertBriefing(
   body: string,
   meta: Record<string, unknown>,
   promptVersion: string,
+  modelVersion: string,
   push: { title: string; tag: string } | null,
 ): Promise<string> {
   const admin = createAdminClient();
@@ -89,7 +90,7 @@ async function insertBriefing(
       kind: "casey_briefing",
       body,
       meta,
-      model_version: SONNET_MODEL,
+      model_version: modelVersion,
       prompt_version: promptVersion,
     })
     .select("id")
@@ -151,6 +152,7 @@ export async function fireRaceWeekBriefing(
       race_date: ctx.raceDate,
     },
     RACE_WEEK_BRIEFING_PROMPT_VERSION,
+    MODELS.raceWeekBriefing,
     {
       title: ctx.raceName ? `${ctx.dayMarker}: ${ctx.raceName}` : `Race ${ctx.dayMarker}`,
       tag: `race-week:${ctx.raceId}:${ctx.dayMarker}`,
@@ -190,6 +192,7 @@ export async function fireFuelingPrerun(
       duration_minutes: ctx.plannedDurationMinutes,
     },
     FUELING_PRERUN_PROMPT_VERSION,
+    MODELS.fuelingPrerun,
     { title: "Long run tomorrow", tag: `fuel-prerun:${ctx.plannedRunKey}` },
   );
   return { kind: "created", messageId };
@@ -220,6 +223,7 @@ export async function fireFuelingRetrospective(
       duration_minutes: ctx.runDurationMinutes,
     },
     FUELING_RETROSPECTIVE_PROMPT_VERSION,
+    MODELS.fuelingRetrospective,
     { title: "Fuelling check", tag: `fuel-retro:${ctx.activityId}` },
   );
   return { kind: "created", messageId };
@@ -262,6 +266,7 @@ export async function fireNiggleEscalation(
       window_days: ctx.windowDays,
     },
     NIGGLE_ESCALATION_PROMPT_VERSION,
+    MODELS.niggleEscalation,
     { title: `${ctx.bodyPart}, worth a look`, tag: `niggle:${ctx.bodyPart}` },
   );
   return { kind: "created", messageId };
@@ -302,6 +307,7 @@ export async function fireMidBlockFlatness(
       pattern_description: ctx.patternDescription,
     },
     MID_BLOCK_FLATNESS_PROMPT_VERSION,
+    MODELS.midBlockFlatness,
     { title: "Worth a quick check", tag: `flatness:${ctx.athleteId}` },
   );
   return { kind: "created", messageId };

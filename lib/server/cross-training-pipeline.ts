@@ -7,7 +7,7 @@ import {
   CROSS_TRAINING_PROMPT_VERSION,
   type CrossTrainingSkipReason,
 } from "@/lib/llm/cross-training";
-import { SONNET_MODEL } from "@/lib/llm/anthropic";
+import { MODELS } from "@/lib/llm/anthropic";
 import { ensureThread } from "@/lib/thread/repository";
 import { sendPushToAthlete } from "@/lib/push/send";
 import { leadFromBody } from "@/lib/push/lead-from-body";
@@ -154,7 +154,7 @@ export async function generateCrossTrainingAckForActivity(
       kind: outcome.isSubstitution ? "cross_training_substitution" : "cross_training_ack",
       body: outcome.body,
       meta,
-      model_version: SONNET_MODEL,
+      model_version: MODELS.crossTrainingAck,
       prompt_version: CROSS_TRAINING_PROMPT_VERSION,
     })
     .select("id")

@@ -1,5 +1,5 @@
 import type Anthropic from "@anthropic-ai/sdk";
-import { anthropic, SONNET_MODEL } from "./anthropic";
+import { anthropic, MODELS } from "./anthropic";
 import { buildSystemPrompt } from "./prompts";
 import { formatPace } from "./context-render";
 import { mockMode, MOCK_VALIDATION_OBSERVATIONS } from "./mocks";
@@ -183,7 +183,7 @@ there is not enough material to say something specific.`;
 
   const response = await callWithRetry(() =>
     anthropic().messages.create({
-      model: SONNET_MODEL,
+      model: MODELS.onboardingValidation,
       max_tokens: 400,
       system,
       messages: [{ role: "user", content: userMessage }],

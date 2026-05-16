@@ -1,6 +1,6 @@
 import "server-only";
 import type Anthropic from "@anthropic-ai/sdk";
-import { anthropic, SONNET_MODEL } from "./anthropic";
+import { anthropic, MODELS } from "./anthropic";
 import { buildSystemPrompt } from "./prompts";
 import {
   formatPace,
@@ -297,7 +297,7 @@ export async function generateCrossTrainingAck(
 
   const response = await callWithRetry(() =>
     anthropic().messages.create({
-      model: SONNET_MODEL,
+      model: MODELS.crossTrainingAck,
       max_tokens: 350,
       temperature: 1.0,
       system,

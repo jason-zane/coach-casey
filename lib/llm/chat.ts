@@ -1,6 +1,6 @@
 import "server-only";
 import type Anthropic from "@anthropic-ai/sdk";
-import { anthropic, SONNET_MODEL } from "./anthropic";
+import { anthropic, MODELS } from "./anthropic";
 import { buildSystemPrompt } from "./prompts";
 import {
   formatPace,
@@ -482,7 +482,7 @@ export async function* streamChat(
 
   for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
     const stream = anthropic().messages.stream({
-      model: SONNET_MODEL,
+      model: MODELS.chat,
       max_tokens: 1024,
       system,
       tools: CHAT_TOOLS,
