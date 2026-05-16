@@ -260,7 +260,7 @@ export function MessageBlock({ message, unread }: Props) {
         <article
           data-kind={message.kind}
           aria-label={`Coach Casey: ${message.body}`}
-          className={`${wrapperBase} ${unreadRail} pl-4 sm:pl-5 max-w-[85%] font-sans text-[15px] leading-[1.55] text-ink whitespace-pre-wrap break-words`}
+          className={`${wrapperBase} ${unreadRail} pl-4 sm:pl-5 max-w-[85%] prose-serif text-ink whitespace-pre-wrap break-words`}
         >
           {renderInlineCopy(message.body)}
         </article>
@@ -388,7 +388,7 @@ export function StreamingCaseyBlock({ text }: { text: string }) {
   return (
     <article
       aria-hidden
-      className="px-5 sm:px-6 pl-4 sm:pl-5 border-l-[2px] border-accent/40 max-w-[85%] font-sans text-[15px] leading-[1.55] text-ink whitespace-pre-wrap break-words"
+      className="px-5 sm:px-6 pl-4 sm:pl-5 border-l-[2px] border-accent/40 max-w-[85%] prose-serif text-ink whitespace-pre-wrap break-words"
     >
       {renderInlineCopy(text)}
       <span
