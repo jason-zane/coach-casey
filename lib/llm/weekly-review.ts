@@ -1,5 +1,5 @@
 import "server-only";
-import { anthropic, SONNET_MODEL } from "./anthropic";
+import { anthropic, MODELS } from "./anthropic";
 import { buildSystemPrompt } from "./prompts";
 import {
   formatPace,
@@ -190,7 +190,7 @@ export async function generateWeeklyReview(
   });
 
   const response = await anthropic().messages.create({
-    model: SONNET_MODEL,
+    model: MODELS.weeklyReview,
     max_tokens: 1100,
     temperature: 1.0,
     system,

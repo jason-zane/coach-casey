@@ -1,6 +1,6 @@
 import "server-only";
 import type Anthropic from "@anthropic-ai/sdk";
-import { anthropic, SONNET_MODEL } from "./anthropic";
+import { anthropic, MODELS } from "./anthropic";
 import { buildSystemPrompt } from "./prompts";
 import { mockMode, mockRpeBranchedFollowUp } from "./mocks";
 import { logVoiceFindings } from "./voice-check";
@@ -58,7 +58,7 @@ export async function generateRpeBranchedFollowUp(
   ].join("\n");
 
   const response = await anthropic().messages.create({
-    model: SONNET_MODEL,
+    model: MODELS.followupRpeBranched,
     max_tokens: 160,
     temperature: 0.85,
     system,

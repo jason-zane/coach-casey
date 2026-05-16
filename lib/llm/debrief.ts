@@ -1,6 +1,6 @@
 import "server-only";
 import type Anthropic from "@anthropic-ai/sdk";
-import { anthropic, SONNET_MODEL } from "./anthropic";
+import { anthropic, MODELS } from "./anthropic";
 import { buildSystemPrompt } from "./prompts";
 import {
   formatPace,
@@ -280,7 +280,7 @@ export async function generateDebriefBody(ctx: DebriefContext): Promise<string> 
 
   const response = await callWithRetry(() =>
     anthropic().messages.create({
-      model: SONNET_MODEL,
+      model: MODELS.debriefBody,
       max_tokens: 900,
       temperature: 1.0,
       system,
@@ -327,7 +327,7 @@ export async function generateConversationalFollowUp(
 
   const response = await callWithRetry(() =>
     anthropic().messages.create({
-      model: SONNET_MODEL,
+      model: MODELS.debriefConversationalFollowUp,
       max_tokens: 160,
       temperature: 0.9,
       system,
@@ -378,7 +378,7 @@ export async function generateStructuredFollowUp(
 
   const response = await callWithRetry(() =>
     anthropic().messages.create({
-      model: SONNET_MODEL,
+      model: MODELS.debriefStructuredFollowUp,
       max_tokens: 160,
       temperature: 0.7,
       system,

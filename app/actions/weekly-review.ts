@@ -13,7 +13,7 @@ import {
 import { ensureThread } from "@/lib/thread/repository";
 import { sendPushToAthlete } from "@/lib/push/send";
 import { leadFromBody } from "@/lib/push/lead-from-body";
-import { SONNET_MODEL } from "@/lib/llm/anthropic";
+import { MODELS } from "@/lib/llm/anthropic";
 
 export type GenerateWeeklyReviewResult =
   | { kind: "created"; reviewId: string }
@@ -117,7 +117,7 @@ export async function generateWeeklyReviewForAthlete(
       kind: "weekly_review",
       body: outcome.body,
       meta,
-      model_version: SONNET_MODEL,
+      model_version: MODELS.weeklyReview,
       prompt_version: WEEKLY_REVIEW_PROMPT_VERSION,
     })
     .select("id")
