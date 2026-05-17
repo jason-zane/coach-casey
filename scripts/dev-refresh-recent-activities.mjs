@@ -70,7 +70,40 @@ function paceSPerKm(d, t) {
   return Math.round(t / km);
 }
 
+// Mirrors the trim rules in lib/strava/ingest.ts. Kept in sync by hand; this
+// script is a manual dev tool that bypasses the webhook pipeline.
+const RAW_WHITELIST = new Set([
+  "id", "name", "description", "start_date_local", "timezone", "utc_offset",
+  "location_city", "type", "sport_type", "workout_type", "distance",
+  "moving_time", "elapsed_time", "average_heartrate", "max_heartrate",
+  "average_cadence", "average_temp", "total_elevation_gain", "elev_high",
+  "elev_low", "manual", "trainer", "commute", "suffer_score", "gear_id",
+  "device_name", "average_speed", "max_speed", "average_watts", "max_watts",
+  "weighted_average_watts", "kilojoules", "device_watts",
+]);
+const LAP_RUN = ["lap_index", "name", "distance", "moving_time", "elapsed_time", "total_elevation_gain", "average_cadence", "average_heartrate", "max_heartrate"];
+const LAP_RIDE = [...LAP_RUN, "average_speed", "max_speed", "average_watts", "max_watts"];
+const SPLIT_KEEP = ["split", "distance", "elapsed_time", "moving_time", "average_speed", "elevation_difference", "average_heartrate", "average_grade_adjusted_speed"];
+const BEST_EFFORT_KEEP = ["name", "distance", "elapsed_time", "moving_time", "pr_rank"];
+
+function pick(obj, keys) {
+  const out = {};
+  for (const k of keys) if (obj?.[k] != null) out[k] = obj[k];
+  return out;
+}
+function trimRaw(d) {
+  const out = {};
+  for (const k of Object.keys(d)) if (RAW_WHITELIST.has(k)) out[k] = d[k];
+  if (d.gear?.name) out.gear = { name: d.gear.name };
+  return out;
+}
+function isRun(type) {
+  return typeof type === "string" && /run/i.test(type);
+}
+
 function rowFromDetail(d, athleteId) {
+  const activityType = d.sport_type ?? d.type;
+  const run = isRun(activityType);
   return {
     athlete_id: athleteId,
     strava_id: d.id,
@@ -80,21 +113,21 @@ function rowFromDetail(d, athleteId) {
     location_city: d.location_city ?? null,
     description: d.description ?? null,
     name: d.name,
-    activity_type: d.sport_type ?? d.type,
+    activity_type: activityType,
     distance_m: d.distance,
     moving_time_s: d.moving_time,
     elapsed_time_s: d.elapsed_time ?? null,
     avg_pace_s_per_km: paceSPerKm(d.distance, d.moving_time),
     avg_hr: d.average_heartrate ? Math.round(d.average_heartrate) : null,
     max_hr: d.max_heartrate ? Math.round(d.max_heartrate) : null,
-    avg_watts: d.average_watts ?? null,
-    max_watts: d.max_watts != null ? Math.round(d.max_watts) : null,
-    weighted_avg_watts: d.weighted_average_watts ?? null,
-    kilojoules: d.kilojoules ?? null,
-    device_watts: d.device_watts ?? null,
+    avg_watts: run ? null : d.average_watts ?? null,
+    max_watts: run ? null : d.max_watts != null ? Math.round(d.max_watts) : null,
+    weighted_avg_watts: run ? null : d.weighted_average_watts ?? null,
+    kilojoules: run ? null : d.kilojoules ?? null,
+    device_watts: run ? null : d.device_watts ?? null,
     avg_cadence: d.average_cadence ?? null,
-    avg_speed_m_s: d.average_speed ?? null,
-    max_speed_m_s: d.max_speed ?? null,
+    avg_speed_m_s: run ? null : d.average_speed ?? null,
+    max_speed_m_s: run ? null : d.max_speed ?? null,
     suffer_score: d.suffer_score ?? null,
     avg_temp_c: d.average_temp ?? null,
     elevation_gain_m: d.total_elevation_gain ?? null,
@@ -103,12 +136,13 @@ function rowFromDetail(d, athleteId) {
     is_manual: d.manual ?? null,
     is_trainer: d.trainer ?? null,
     is_commute: d.commute ?? null,
-    raw: d,
-    laps: d.laps ?? null,
-    splits_metric: d.splits_metric ?? null,
-    splits_standard: d.splits_standard ?? null,
-    best_efforts: d.best_efforts ?? null,
-    segment_efforts: d.segment_efforts ?? null,
+    raw: trimRaw(d),
+    laps: d.laps ? d.laps.map((l) => pick(l, run ? LAP_RUN : LAP_RIDE)) : null,
+    splits_metric: d.splits_metric ? d.splits_metric.map((s) => pick(s, SPLIT_KEEP)) : null,
+    splits_standard: d.splits_standard ? d.splits_standard.map((s) => pick(s, SPLIT_KEEP)) : null,
+    // Deep fetch: best_efforts persists here.
+    best_efforts: d.best_efforts ? d.best_efforts.map((e) => pick(e, BEST_EFFORT_KEEP)) : null,
+    segment_efforts: null,
   };
 }
 
@@ -145,9 +179,8 @@ for (const r of rows) {
     } else {
       const splits = detail.splits_metric?.length ?? 0;
       const be = detail.best_efforts?.length ?? 0;
-      const segs = detail.segment_efforts?.length ?? 0;
       const laps = detail.laps?.length ?? 0;
-      console.log(`ok (laps=${laps} splits=${splits} best_efforts=${be} segs=${segs})`);
+      console.log(`ok (laps=${laps} splits=${splits} best_efforts=${be})`);
     }
     await new Promise((r) => setTimeout(r, 600));
   } catch (e) {

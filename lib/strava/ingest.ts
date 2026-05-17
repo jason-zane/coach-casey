@@ -9,10 +9,169 @@ import {
   type StravaLap,
   type StravaSplit,
   type StravaBestEffort,
-  type StravaSegmentEffort,
 } from "./client";
-import { classifyActivityType } from "./activity-types";
+import { classifyActivityType, isRunType } from "./activity-types";
 import { isRateLimited } from "./rate-limit";
+
+/**
+ * Persistence mode for `mapStravaActivity`.
+ *
+ *   summary, from the list endpoint, no per-activity detail. Used by the
+ *            long-history backfill where we trade detail for read budget.
+ *   detail,  from /activities/:id during the foreground 12-week ingest. Laps
+ *            and splits are stored; best_efforts is NOT (it's "more data than
+ *            we routinely need").
+ *   deep,    from /activities/:id on an explicit deeper fetch, the on-demand
+ *            refresh tool or the paywall deep-backfill. Best_efforts is
+ *            stored in addition to laps and splits.
+ *
+ * Segment_efforts is never persisted; the column is kept for back-compat with
+ * historical rows but new writes always set it to null.
+ */
+export type IngestMode = "summary" | "detail" | "deep";
+
+/**
+ * Whitelist of top-level fields kept inside the `raw` JSONB blob. Everything
+ * not in this set is dropped at ingest time, which is where most of the per-
+ * activity storage waste lived (polylines, social counts, photos, sharing
+ * preferences, Strava plumbing). The structured columns above carry the
+ * fields Casey actually reads day-to-day.
+ *
+ * Per-activity sub-objects (laps, splits_*, best_efforts, segment_efforts)
+ * are stored in their own columns, so they're explicitly excluded from raw
+ * to avoid duplicating large arrays.
+ */
+const RAW_WHITELIST: ReadonlySet<string> = new Set([
+  "id",
+  "name",
+  "description",
+  "start_date_local",
+  "timezone",
+  "utc_offset",
+  "location_city",
+  "type",
+  "sport_type",
+  "workout_type",
+  "distance",
+  "moving_time",
+  "elapsed_time",
+  "average_heartrate",
+  "max_heartrate",
+  "average_cadence",
+  "average_temp",
+  "total_elevation_gain",
+  "elev_high",
+  "elev_low",
+  "manual",
+  "trainer",
+  "commute",
+  "suffer_score",
+  "gear_id",
+  "device_name",
+  "average_speed",
+  "max_speed",
+  "average_watts",
+  "max_watts",
+  "weighted_average_watts",
+  "kilojoules",
+  "device_watts",
+]);
+
+// Speed and power are dropped from runs at the structured-column level. To
+// keep `raw` in sync, drop the matching keys for run activities here too,
+// otherwise the JSONB carries data the column null says we don't have.
+const RUN_RAW_DROP: ReadonlySet<string> = new Set([
+  "average_speed",
+  "max_speed",
+  "average_watts",
+  "max_watts",
+  "weighted_average_watts",
+  "kilojoules",
+  "device_watts",
+]);
+
+function trimRawBlob(
+  a: StravaActivity | StravaActivityDetail,
+  isRun: boolean,
+): Record<string, unknown> {
+  const src = a as unknown as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(src)) {
+    if (!RAW_WHITELIST.has(key)) continue;
+    if (isRun && RUN_RAW_DROP.has(key)) continue;
+    out[key] = src[key];
+  }
+  // Keep gear.name for shoe-rotation context, drop everything else under gear.
+  const gear = src.gear as { name?: string } | null | undefined;
+  if (gear?.name) out.gear = { name: gear.name };
+  return out;
+}
+
+const LAP_RUN_FIELDS = [
+  "lap_index",
+  "name",
+  "distance",
+  "moving_time",
+  "elapsed_time",
+  "total_elevation_gain",
+  "average_cadence",
+  "average_heartrate",
+  "max_heartrate",
+] as const;
+const LAP_RIDE_FIELDS = [
+  ...LAP_RUN_FIELDS,
+  "average_speed",
+  "max_speed",
+  "average_watts",
+  "max_watts",
+] as const;
+
+function trimLap(l: StravaLap, isRun: boolean): Record<string, unknown> {
+  const src = l as unknown as Record<string, unknown>;
+  const fields = isRun ? LAP_RUN_FIELDS : LAP_RIDE_FIELDS;
+  const out: Record<string, unknown> = {};
+  for (const k of fields) {
+    if (src[k] != null) out[k] = src[k];
+  }
+  return out;
+}
+
+const SPLIT_FIELDS = [
+  "split",
+  "distance",
+  "elapsed_time",
+  "moving_time",
+  "average_speed",
+  "elevation_difference",
+  "average_heartrate",
+  "average_grade_adjusted_speed",
+] as const;
+
+function trimSplit(s: StravaSplit): Record<string, unknown> {
+  const src = s as unknown as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const k of SPLIT_FIELDS) {
+    if (src[k] != null) out[k] = src[k];
+  }
+  return out;
+}
+
+const BEST_EFFORT_FIELDS = [
+  "name",
+  "distance",
+  "elapsed_time",
+  "moving_time",
+  "pr_rank",
+] as const;
+
+function trimBestEffort(e: StravaBestEffort): Record<string, unknown> {
+  const src = e as unknown as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const k of BEST_EFFORT_FIELDS) {
+    if (src[k] != null) out[k] = src[k];
+  }
+  return out;
+}
 
 export async function ingestMockActivitiesForAthlete(athleteId: string) {
   const admin = createAdminClient();
@@ -46,16 +205,39 @@ function paceSPerKm(distance_m: number, moving_time_s: number): number | null {
   return Math.round(moving_time_s / km);
 }
 
+/**
+ * Build the persisted activity row from a Strava activity payload.
+ *
+ * Power and speed columns are NULL for runs (TrailRun / VirtualRun included)
+ * and only populated for rides + other non-run activities. Segment_efforts is
+ * never persisted on new writes. `best_efforts` is included in the returned
+ * row only when `mode === "deep"`; in `summary` / `detail` mode the key is
+ * omitted entirely so a routine re-ingest of a row that was previously deep-
+ * fetched preserves its existing best_efforts data (Supabase `.upsert()`
+ * leaves columns missing from the row untouched on conflict). The `raw`
+ * JSONB is filtered through a whitelist so we stop carrying polylines,
+ * social counts, photos, and Strava plumbing.
+ */
 export function mapStravaActivity(
   a: StravaActivity,
   athleteId: string,
   laps: StravaLap[] | null = null,
-) {
-  // Detail-only fields. Present when the row was ingested via /activities/:id
-  // (the detail endpoint), absent when the row came from the list endpoint
-  // only. We pass them through; nulls land cleanly in the JSONB columns.
+  mode: IngestMode = "summary",
+): Record<string, unknown> {
+  const activityType = a.sport_type ?? a.type;
+  const isRun = isRunType(activityType);
+
   const detail = a as Partial<StravaActivityDetail>;
-  return {
+
+  const trimmedLaps = laps ? laps.map((l) => trimLap(l, isRun)) : null;
+  const splitsMetric = detail.splits_metric
+    ? detail.splits_metric.map(trimSplit)
+    : null;
+  const splitsStandard = detail.splits_standard
+    ? detail.splits_standard.map(trimSplit)
+    : null;
+
+  const row: Record<string, unknown> = {
     athlete_id: athleteId,
     strava_id: a.id,
     start_date_local: a.start_date_local,
@@ -64,21 +246,21 @@ export function mapStravaActivity(
     location_city: a.location_city ?? null,
     description: a.description ?? null,
     name: a.name,
-    activity_type: a.sport_type ?? a.type,
+    activity_type: activityType,
     distance_m: a.distance,
     moving_time_s: a.moving_time,
     elapsed_time_s: a.elapsed_time ?? null,
     avg_pace_s_per_km: paceSPerKm(a.distance, a.moving_time),
     avg_hr: a.average_heartrate ? Math.round(a.average_heartrate) : null,
     max_hr: a.max_heartrate ? Math.round(a.max_heartrate) : null,
-    avg_watts: a.average_watts ?? null,
-    max_watts: a.max_watts != null ? Math.round(a.max_watts) : null,
-    weighted_avg_watts: a.weighted_average_watts ?? null,
-    kilojoules: a.kilojoules ?? null,
-    device_watts: a.device_watts ?? null,
+    avg_watts: isRun ? null : a.average_watts ?? null,
+    max_watts: isRun ? null : a.max_watts != null ? Math.round(a.max_watts) : null,
+    weighted_avg_watts: isRun ? null : a.weighted_average_watts ?? null,
+    kilojoules: isRun ? null : a.kilojoules ?? null,
+    device_watts: isRun ? null : a.device_watts ?? null,
     avg_cadence: a.average_cadence ?? null,
-    avg_speed_m_s: a.average_speed ?? null,
-    max_speed_m_s: a.max_speed ?? null,
+    avg_speed_m_s: isRun ? null : a.average_speed ?? null,
+    max_speed_m_s: isRun ? null : a.max_speed ?? null,
     suffer_score: a.suffer_score ?? null,
     avg_temp_c: a.average_temp ?? null,
     elevation_gain_m: a.total_elevation_gain ?? null,
@@ -87,13 +269,20 @@ export function mapStravaActivity(
     is_manual: a.manual ?? null,
     is_trainer: a.trainer ?? null,
     is_commute: a.commute ?? null,
-    raw: a as unknown as Record<string, unknown>,
-    laps,
-    splits_metric: (detail.splits_metric ?? null) as StravaSplit[] | null,
-    splits_standard: (detail.splits_standard ?? null) as StravaSplit[] | null,
-    best_efforts: (detail.best_efforts ?? null) as StravaBestEffort[] | null,
-    segment_efforts: (detail.segment_efforts ?? null) as StravaSegmentEffort[] | null,
+    raw: trimRawBlob(a, isRun),
+    laps: trimmedLaps,
+    splits_metric: splitsMetric,
+    splits_standard: splitsStandard,
+    segment_efforts: null,
   };
+
+  if (mode === "deep") {
+    row.best_efforts = detail.best_efforts
+      ? detail.best_efforts.map(trimBestEffort)
+      : null;
+  }
+
+  return row;
 }
 
 /**
@@ -225,7 +414,7 @@ export async function ingestLiveActivitiesForAthlete(
   // stale row keeps the latest stats and the latest detail in sync).
   if (detailed.length > 0) {
     const detailRows = detailed.map((d) =>
-      mapStravaActivity(d, athleteId, d.laps ?? null),
+      mapStravaActivity(d, athleteId, d.laps ?? null, "detail"),
     );
     const { error } = await admin
       .from("activities")
@@ -250,7 +439,7 @@ export async function ingestLiveActivitiesForAthlete(
     );
     const newRows = summarized
       .filter((s) => !existingSet.has(s.id))
-      .map((s) => mapStravaActivity(s, athleteId, null));
+      .map((s) => mapStravaActivity(s, athleteId, null, "summary"));
     if (newRows.length > 0) {
       const { error } = await admin.from("activities").insert(newRows);
       if (error) throw error;
