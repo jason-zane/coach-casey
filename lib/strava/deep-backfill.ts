@@ -182,10 +182,17 @@ export async function runDeepBackfillSliceForAthlete(
       console.warn("deep backfill: activity fetch failed", t.id, r.reason);
     }
 
+    // Always step back to "pending" after a slice so the cron query picks
+    // the athlete up next pass. Slices end in three states: more rows remain
+    // (need next pass), rate-limited (need next pass after the 15-min window
+    // resets), and zero rows remain (caught by the targets.length === 0
+    // branch above and marked "done"). "running" is in-flight only; using
+    // it as a persisted post-slice state strands athletes outside the cron
+    // selector.
     await admin
       .from("athletes")
       .update({
-        deep_backfill_status: rateLimited ? "pending" : "running",
+        deep_backfill_status: "pending",
         deep_backfill_processed_count: await readProcessedCount(athleteId, deepened),
         deep_backfill_last_error: null,
       })
