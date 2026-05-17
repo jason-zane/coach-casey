@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { fetchActivityDetail } from "./client";
 import { mapStravaActivity } from "./ingest";
+import { isRateLimited } from "./rate-limit";
 
 /**
  * Lazily fetch full detail for an activity that was pulled by the long-history
@@ -64,6 +65,12 @@ export async function ensureActivityLapDetail(
     return { ok: true, laps };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "fetch_failed";
+    if (isRateLimited(e)) {
+      // Surface rate-limit specifically so callers in batch contexts (the
+      // deep-backfill cron) can abort the slice and wait for the next
+      // 15-minute window rather than burning budget on follow-on 429s.
+      return { ok: false, reason: "rate_limited" };
+    }
     console.warn("ensureActivityLapDetail failed", activityId, msg);
     return { ok: false, reason: msg };
   }
