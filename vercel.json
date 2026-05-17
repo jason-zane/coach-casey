@@ -10,6 +10,10 @@
       "schedule": "15 * * * *"
     },
     {
+      "path": "/api/cron/deep-backfill",
+      "schedule": "40 * * * *"
+    },
+    {
       "path": "/api/cron/account-purge",
       "schedule": "30 3 * * *"
     },

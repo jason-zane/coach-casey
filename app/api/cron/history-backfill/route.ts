@@ -4,6 +4,7 @@ import {
   announceBackfillComplete,
   runHistoryBackfillForAthlete,
 } from "@/lib/strava/backfill";
+import { kickOffDeepBackfill } from "@/lib/strava/deep-backfill";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -69,6 +70,24 @@ export async function GET(request: Request) {
     // the "I've now read…" message until everything is in.
     if (r.status === "ok" && r.complete) {
       await announceBackfillComplete(a.id, r.rowsUpserted);
+
+      // Re-trigger the deep backfill now that the deep window has its
+      // summary rows. Handles the race where paid conversion fired before
+      // the history-backfill cron had populated rows older than 12 weeks:
+      // kickOffDeepBackfill ran at conversion, saw target=0, marked done.
+      // Now that rows exist, we need to re-queue. Gated on a non-idle
+      // deep_backfill_status so trial users (who never converted) don't
+      // get a free deep backfill at history-completion.
+      const { data: athleteRow } = await admin
+        .from("athletes")
+        .select("deep_backfill_status")
+        .eq("id", a.id)
+        .maybeSingle();
+      const dbStatus = (athleteRow as { deep_backfill_status: string } | null)
+        ?.deep_backfill_status;
+      if (dbStatus && dbStatus !== "idle") {
+        await kickOffDeepBackfill(a.id);
+      }
     }
     results.push({ athleteId: a.id, ...r });
   }
