@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { recordAuditEvent } from "@/lib/audit/log";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -125,6 +126,13 @@ export async function GET() {
     console.error("account export failed", err);
     return NextResponse.json({ error: "export failed" }, { status: 500 });
   }
+
+  await recordAuditEvent({
+    actorType: "athlete",
+    actorId: athleteId,
+    action: "account.export",
+    targetAthleteId: athleteId,
+  });
 
   const filename = `coach-casey-export-${new Date().toISOString().slice(0, 10)}.json`;
   return new NextResponse(JSON.stringify(payload, null, 2), {

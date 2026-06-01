@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/server";
 import { buildWeeklyReviewContext } from "@/lib/thread/weekly-review-context";

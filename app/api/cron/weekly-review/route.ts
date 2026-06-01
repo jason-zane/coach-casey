@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { verifyCronSecret } from "@/lib/auth/cron";
+import { recordCronRun } from "@/lib/observability/cron";
 import { generateWeeklyReviewForAthlete } from "@/app/actions/weekly-review";
 import {
   computeReviewWeek,
@@ -50,18 +52,12 @@ type PreferenceRow = {
 };
 
 export async function GET(request: Request) {
-  const expected = process.env.CRON_SECRET;
-  if (expected) {
-    const got = request.headers.get("authorization");
-    if (got !== `Bearer ${expected}`) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-  } else if (process.env.NODE_ENV === "production") {
-    return NextResponse.json(
-      { error: "CRON_SECRET not configured" },
-      { status: 500 },
-    );
-  }
+  const denied = verifyCronSecret(request);
+  if (denied) return denied;
+  return recordCronRun("weekly-review", () => handleWeeklyReview(request));
+}
+
+async function handleWeeklyReview(request: Request): Promise<NextResponse> {
 
   // Override hooks for development / on-demand fires. ?force=athlete_id
   // generates for that one athlete bypassing the time gate (the week

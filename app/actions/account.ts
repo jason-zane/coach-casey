@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { requireAthlete } from "@/app/actions/onboarding";
+import { recordAuditEvent } from "@/lib/audit/log";
 
 const STRAVA_DEAUTHORIZE_URL = "https://www.strava.com/oauth/deauthorize";
 
@@ -57,6 +58,13 @@ export async function requestAccountDeletion() {
     .from("athletes")
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", athlete.id);
+
+  await recordAuditEvent({
+    actorType: "athlete",
+    actorId: athlete.id,
+    action: "account.delete",
+    targetAthleteId: athlete.id,
+  });
 
   // Step 3: end the session.
   const supabase = await createClient();

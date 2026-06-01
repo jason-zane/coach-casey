@@ -6,6 +6,8 @@ settings:
 
 overrides:
   postcss: 8.5.10
+  protobufjs: '>=7.5.8'
+  '@protobufjs/utf8': '>=1.1.1'
 
 importers:
 
@@ -15,8 +17,8 @@ importers:
         specifier: ^0.91.1
         version: 0.91.1(zod@4.3.6)
       '@supabase/ssr':
-        specifier: ^0.10.2
-        version: 0.10.2(@supabase/supabase-js@2.108.1)
+        specifier: ^0.10.3
+        version: 0.10.3(@supabase/supabase-js@2.108.1)
       '@supabase/supabase-js':
         specifier: ^2.108.1
         version: 2.108.1
@@ -27,8 +29,8 @@ importers:
         specifier: ^1.386.2
         version: 1.386.2
       posthog-node:
-        specifier: ^5.29.6
-        version: 5.29.6
+        specifier: ^5.35.11
+        version: 5.36.17
       react:
         specifier: 19.2.4
         version: 19.2.4
@@ -476,14 +478,17 @@ packages:
     resolution: {integrity: sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q==}
     engines: {node: '>=8.0.0'}
 
-  '@posthog/core@1.27.0':
-    resolution: {integrity: sha512-09IQgr7BocTrETbYVNQx5Dq06xsCItXbxYO8dpHIE4rEcDvWiIv3/4zEaVzsKrCI1cSLds3d5sgBGaEfh7RScA==}
-
   '@posthog/core@1.32.2':
     resolution: {integrity: sha512-TfJ7fbPCKOkJX4E/KAnTBKoyHHxz9j9soOxlKvcTEQwO9Dq6BNHacuV/QerneyOaud29vSXj+4VDyAddXqZuPg==}
 
+  '@posthog/core@1.32.3':
+    resolution: {integrity: sha512-vwOEMfZvGv5XxNWV7p9I52NSmvFNMhyW2IHpIoUHW5jLkgUrknzJW1H/qxVGSIrNNVQkfsoaDFzDhJdg10pgrA==}
+
   '@posthog/types@1.386.2':
     resolution: {integrity: sha512-IhWyxrCs0MEHarNlWB/Y4GPMDpEsSFAbE8j9tYSbmkxpYQTnLkYHaO1HmVqGJDw0QeiSl5CjY+GHX7x/uWSvaw==}
+
+  '@posthog/types@1.386.3':
+    resolution: {integrity: sha512-LqJoiQi2eyWn7rCUgnn+D+F3Efp6+04o72bjSX6kWHx0nFaYNC/nJuAIRliDTY/X7GPIUAaHAcSjbMI/9wfX1Q==}
 
   '@rtsao/scc@1.1.0':
     resolution: {integrity: sha512-zt6OdqaDoOnJ1ZYsCYGt9YmWzDXl4vQdKTyJev62gFhRGKdx7mcT54V9KIjg+d2wi9EXsPvAPKe7i7WjfVWB8g==}
@@ -510,10 +515,10 @@ packages:
     resolution: {integrity: sha512-mHGGqOjwd1XTydcoffUqEMsbFQHUi6A3uhQ0EXr3iqzpLqItxKA9nbN6gIQxrZ7JRRnuUe/iOFPUkYV9Tdc5lg==}
     engines: {node: '>=20.0.0'}
 
-  '@supabase/ssr@0.10.2':
-    resolution: {integrity: sha512-JFbchN63CXLFHJRNT7udec4/RoD9PmXkSGko3QSO6vUuqGBtSzdmxR7FPfQNr7SuFd65I7Xv46q66ALjEN1cgQ==}
+  '@supabase/ssr@0.10.3':
+    resolution: {integrity: sha512-ux2CJgX89h0Fz2lY7ZNafNG2SkXpyRc5dz77K9eKeBLPdtywQixKwIuetDeIViAJBp/buOUVmgj8PVesOklNpw==}
     peerDependencies:
-      '@supabase/supabase-js': ^2.102.1
+      '@supabase/supabase-js': ^2.105.3
 
   '@supabase/storage-js@2.108.1':
     resolution: {integrity: sha512-Er0SGGt85iT6ye+SSh98Az6L2CesoZJuyzEZYH2oBOAnIxa9Nn4CtwUC3veGxYggoT56X+3tVuuQeDBP8kR8sg==}
@@ -1814,8 +1819,8 @@ packages:
   posthog-js@1.386.2:
     resolution: {integrity: sha512-CLS+bF+roPI0ID9r4Xjctoz+FcRxePC53tz+Is+FHkqZIGLkpApUe4KupbH8oAPU8oKLorZDXKyEOiSRUKEADA==}
 
-  posthog-node@5.29.6:
-    resolution: {integrity: sha512-x77Ps+vLn2QgJ+i1wfFnAd+VVoMY1ZxpwV8un+jKRJUU/57zX8sInDyCaG8x08dlBd5Bys+xKtIV7uNJsUOFJw==}
+  posthog-node@5.36.17:
+    resolution: {integrity: sha512-ed1LT4a9hhiFJizB6XX7dkYYLVPAFHfUpkQSns7BRxoUyhFnvMq15QENKeAOUEKQgPmnaq2I+xNLdAHN0o9eAA==}
     engines: {node: ^20.20.0 || >=22.22.0}
     peerDependencies:
       rxjs: ^7.0.0
@@ -2516,13 +2521,17 @@ snapshots:
   '@opentelemetry/api@1.9.1':
     optional: true
 
-  '@posthog/core@1.27.0': {}
-
   '@posthog/core@1.32.2':
     dependencies:
       '@posthog/types': 1.386.2
 
+  '@posthog/core@1.32.3':
+    dependencies:
+      '@posthog/types': 1.386.3
+
   '@posthog/types@1.386.2': {}
+
+  '@posthog/types@1.386.3': {}
 
   '@rtsao/scc@1.1.0': {}
 
@@ -2547,7 +2556,7 @@ snapshots:
       '@supabase/phoenix': 0.4.2
       tslib: 2.8.1
 
-  '@supabase/ssr@0.10.2(@supabase/supabase-js@2.108.1)':
+  '@supabase/ssr@0.10.3(@supabase/supabase-js@2.108.1)':
     dependencies:
       '@supabase/supabase-js': 2.108.1
       cookie: 1.1.1
@@ -3980,9 +3989,9 @@ snapshots:
       query-selector-shadow-dom: 1.0.1
       web-vitals: 5.2.0
 
-  posthog-node@5.29.6:
+  posthog-node@5.36.17:
     dependencies:
-      '@posthog/core': 1.27.0
+      '@posthog/core': 1.32.3
 
   preact@10.29.1: {}
 

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/server";
 import { requireAthlete } from "@/app/actions/onboarding";
+import { recordAuditEvent } from "@/lib/audit/log";
 import { isDevMode, isLiveMode } from "@/lib/strava/client";
 
 const STRAVA_DEAUTHORIZE_URL = "https://www.strava.com/oauth/deauthorize";
@@ -87,6 +88,13 @@ export async function disconnectStrava() {
   }
 
   await admin.from("strava_connections").delete().eq("athlete_id", athlete.id);
+
+  await recordAuditEvent({
+    actorType: "athlete",
+    actorId: athlete.id,
+    action: "strava.disconnect",
+    targetAthleteId: athlete.id,
+  });
 
   revalidatePath("/app", "layout");
   revalidatePath("/app/settings");

@@ -1,0 +1,21 @@
+-- Coach Casey local seed.
+--
+-- Reproducibility model: the schema is fully rebuildable from the migrations
+-- in supabase/migrations via `supabase db reset`, which drops the local DB,
+-- replays every migration in order, then runs this file. The migrations are
+-- the single source of truth; this file only adds optional local dev data.
+--
+-- Why this is intentionally minimal: an `athletes` row requires a matching
+-- `auth.users` row (Supabase Auth owns that table). Seeding a usable athlete
+-- therefore means first creating an auth user, which is environment-specific
+-- and best done through the Auth API / Studio rather than raw SQL that could
+-- drift from Supabase's internal auth schema. Keeping real data out of here
+-- keeps `supabase db reset` deterministic across machines.
+--
+-- To seed a dev athlete locally, create a user via Supabase Studio (or the
+-- Auth admin API), then insert the matching athletes row, e.g.:
+--
+--   insert into public.athletes (user_id, email, display_name, onboarding_completed_at)
+--   values ('<auth-user-uuid>', 'dev@example.com', 'Dev', now());
+--
+-- Leave production seeding empty: real athletes onboard through the app.

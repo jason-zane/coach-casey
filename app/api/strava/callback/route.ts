@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { recordAuditEvent } from "@/lib/audit/log";
 import {
   exchangeCodeForToken,
   fetchAthleteProfileWithToken,
@@ -128,6 +129,14 @@ export async function GET(request: Request) {
     // exchange_failed redirect instead.
     if (connectionError) throw connectionError;
 
+    await recordAuditEvent({
+      actorType: "athlete",
+      actorId: athlete.id,
+      action: "strava.connect",
+      targetAthleteId: athlete.id,
+      metadata: { stravaAthleteId },
+    });
+
     // Pull sex + weight from Strava profile and seed the athlete row. The
     // token response sometimes includes the athlete object inline, but it's
     // not guaranteed across all Strava client versions, so do an explicit
@@ -149,7 +158,7 @@ export async function GET(request: Request) {
           .from("athletes")
           .select("display_name, sex, weight_kg")
           .eq("id", athlete.id)
-          .single();
+          .maybeSingle();
         if (!current?.display_name && profile.firstname) {
           const trimmed = profile.firstname.trim();
           if (trimmed.length > 0) update.display_name = trimmed;

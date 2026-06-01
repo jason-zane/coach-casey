@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { verifyCronSecret } from "@/lib/auth/cron";
+import { recordCronRun } from "@/lib/observability/cron";
 import {
   announceDeepBackfillComplete,
   runDeepBackfillSliceForAthlete,
@@ -31,18 +33,12 @@ export const maxDuration = 300;
 const MAX_ATHLETES_PER_PASS = 10;
 
 export async function GET(request: Request) {
-  const expected = process.env.CRON_SECRET;
-  if (expected) {
-    const got = request.headers.get("authorization");
-    if (got !== `Bearer ${expected}`) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-  } else if (process.env.NODE_ENV === "production") {
-    return NextResponse.json(
-      { error: "CRON_SECRET not configured" },
-      { status: 500 },
-    );
-  }
+  const denied = verifyCronSecret(request);
+  if (denied) return denied;
+  return recordCronRun("deep-backfill", () => handleDeepBackfill());
+}
+
+async function handleDeepBackfill(): Promise<NextResponse> {
 
   const admin = createAdminClient();
   const { data: queued, error } = await admin

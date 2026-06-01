@@ -3,6 +3,7 @@ import { after } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/server";
 import { fetchActivityDetail } from "@/lib/strava/client";
+import { captureError } from "@/lib/observability/capture";
 import { generateDebriefForActivity } from "@/lib/server/debrief-pipeline";
 import { generateCrossTrainingAckForActivity } from "@/lib/server/cross-training-pipeline";
 import { classifyActivityType } from "@/lib/strava/activity-types";
@@ -105,10 +106,19 @@ export async function POST(request: Request, ctx: RouteContext) {
     try {
       await handleEvent(event);
     } catch (e) {
-      // Strava won't retry unless we return non-2xx, so a failure here is
-      // on us to catch via logs. The poll-safety-net cron picks up
-      // activities that didn't produce a debrief.
+      // Strava won't retry unless we return non-2xx, so a failure here is on
+      // us to catch. The poll-safety-net cron recovers a missed debrief;
+      // captureError makes the failure visible on the admin dashboard.
       console.error("strava webhook handler failed", { event, error: e });
+      await captureError(e, {
+        source: "webhook",
+        route: "/api/strava/webhook",
+        context: {
+          objectType: event.object_type,
+          aspectType: event.aspect_type,
+          ownerId: event.owner_id,
+        },
+      });
     }
   });
 

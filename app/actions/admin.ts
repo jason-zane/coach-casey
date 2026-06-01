@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/admin/auth";
+import { recordAuditEvent } from "@/lib/audit/log";
 import { generateWeeklyReviewForAthlete } from "@/app/actions/weekly-review";
 import { generateDebriefForActivity } from "@/lib/server/debrief-pipeline";
 import { generateCrossTrainingAckForActivity } from "@/lib/server/cross-training-pipeline";
@@ -32,6 +33,15 @@ export async function toggleTestUser(formData: FormData) {
     .update({ is_test_user: target })
     .eq("id", athleteId);
   if (error) throw error;
+
+  await recordAuditEvent({
+    actorType: "admin",
+    actorId: gate.user.id,
+    actorEmail: gate.user.email ?? null,
+    action: "admin.toggle_test_user",
+    targetAthleteId: athleteId,
+    metadata: { target },
+  });
 
   revalidatePath("/app/admin");
 }
@@ -64,6 +74,15 @@ export async function adminGenerateWeeklyReview(formData: FormData) {
     force,
     weekStartIso: weekStart,
     weekEndIso: weekEnd,
+  });
+
+  await recordAuditEvent({
+    actorType: "admin",
+    actorId: gate.user.id,
+    actorEmail: gate.user.email ?? null,
+    action: "admin.generate_weekly_review",
+    targetAthleteId: athleteId,
+    metadata: { force, weekStart: weekStart ?? null, weekEnd: weekEnd ?? null },
   });
 
   revalidatePath("/app/admin");
@@ -135,6 +154,15 @@ export async function adminRegenerateLatestDebrief(formData: FormData) {
       `/app/admin?regen_error=${encodeURIComponent(detail.slice(0, 1500))}`,
     );
   }
+
+  await recordAuditEvent({
+    actorType: "admin",
+    actorId: gate.user.id,
+    actorEmail: gate.user.email ?? null,
+    action: "admin.regenerate_debrief",
+    targetAthleteId: athleteId,
+    metadata: { activityId: latest.id },
+  });
 
   revalidatePath("/app/admin");
 }
