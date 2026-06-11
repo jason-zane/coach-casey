@@ -113,10 +113,10 @@ export default function PrivacyPage() {
               inside Coach Casey. The one thing Casey writes to Strava is the
               verdict line: after each debrief, a single coaching line and
               signature appended to the bottom of that activity&apos;s
-              description on your own profile. This is on by default and
-              disclosed when you connect Strava; anything you wrote there is
-              kept, never replaced. You can turn the feature off, and
-              disconnect Strava entirely, from your settings page.
+              description on your own profile. This is on by default;
+              anything you wrote there is kept, never replaced. You can turn
+              the feature off, and disconnect Strava entirely, from your
+              settings page.
             </p>
 
             <h3>Information collected automatically</h3>
