@@ -1,4 +1,4 @@
-# Coach Casey — Home State & Chat (Working Draft)
+# Coach Casey: Home State & Chat (Working Draft)
 
 **Owner:** Jason
 **Last updated:** 2026-04-23
@@ -10,11 +10,11 @@ Read alongside `design-principles.md` (feel, voice posture, design implications)
 
 ## 1. What this doc covers
 
-The main surface of the product — the place the athlete is in when they're using Coach Casey. Three things scaffolded together because they're one connected piece:
+The main surface of the product: the place the athlete is in when they're using Coach Casey. Three things scaffolded together because they're one connected piece:
 
-1. **The home state** — what the athlete sees when they open the app.
-2. **Reactive chat** — how they talk to Coach Casey.
-3. **Navigation and retrieval** — how they find older content.
+1. **The home state** - what the athlete sees when they open the app.
+2. **Reactive chat** - how they talk to Coach Casey.
+3. **Navigation and retrieval** - how they find older content.
 
 **Out of scope for this doc:**
 - The post-run debrief as a designed moment (returns in its own doc after this closes)
@@ -29,20 +29,20 @@ The main surface of the product — the place the athlete is in when they're usi
 **Decision:** Coach Casey is a chat-first product. The home state is the conversation thread. There is no dashboard, no tab bar, no home screen separate from the chat.
 
 **Why:**
-- Matches the thesis — the product is a voice, the interface should be the voice's stage.
+- Matches the thesis: the product is a voice, the interface should be the voice's stage.
 - Respects `design-principles.md` §3: *moments over dashboards*. A home screen with tiles and activity cards is a dashboard.
-- Makes the moat visible — scrolling back through the thread is scrolling through the accumulated relationship. At month 3 the thread has 60+ debriefs, weekly reviews, and chats. The accumulation is tangible.
+- Makes the moat visible: scrolling back through the thread is scrolling through the accumulated relationship. At month 3 the thread has 60+ debriefs, weekly reviews, and chats. The accumulation is tangible.
 - One surface to design well, not three.
 
 **One continuous thread, not daily chunks.** Alternative considered and rejected: breaking the chat into daily threads with calendar navigation between them. Rejected because (a) fragmenting the thread undermines the visibility-of-accumulation property, (b) most days have no content, so daily threads are empty a lot of the time, (c) some conversations cross day boundaries. One continuous thread is the simpler, more honest model. The calendar navigates *within* the thread, not between threads.
 
-**Message types within the thread** (visual treatment TBD — visual-design workstream):
+**Message types within the thread** (visual treatment TBD; visual-design workstream):
 - Athlete chat messages
 - Coach Casey chat replies
 - Post-run debriefs (Coach Casey, longer, structured, arriving unprompted after a run)
 - Weekly reviews (Coach Casey, longer, structured, arriving on a cadence)
-- Follow-up questions (Coach Casey, attached to the end of debriefs — stylistically part of the debrief, not separate messages)
-- System messages (rare — "Plan uploaded," "Strava reconnected") — may not need visible representation at all; decision pending
+- Follow-up questions (Coach Casey, attached to the end of debriefs; stylistically part of the debrief, not separate messages)
+- System messages (rare: "Plan uploaded," "Strava reconnected") - may not need visible representation at all; decision pending
 
 All types live in the same thread. None of them live in a separate section.
 
@@ -50,27 +50,27 @@ All types live in the same thread. None of them live in a separate section.
 - Athlete messages on the right.
 - Coach Casey messages on the left.
 - Universal convention across messaging apps. Breaking it introduces friction for no benefit.
-- This applies to all message types within the thread regardless of length — a debrief is left-aligned (Coach Casey), an athlete's reply is right-aligned. Wider / longer Coach Casey messages (debriefs, reviews) may take more horizontal space but are still anchored left.
+- This applies to all message types within the thread regardless of length: a debrief is left-aligned (Coach Casey), an athlete's reply is right-aligned. Wider / longer Coach Casey messages (debriefs, reviews) may take more horizontal space but are still anchored left.
 
 ---
 
-## 3. The home state — what the athlete sees on open
+## 3. The home state: what the athlete sees on open
 
 **Default behaviour:** app opens to the thread. Scroll position lands on the most recent unread message, or on the most recent message if nothing is unread. Input field is at the bottom, persistent.
 
 **Three states the home cycles through:**
 
-**State 1 — Something to read.**
-A new debrief just landed, weekly review arrived, or Coach Casey replied to a message. The unread message is in view on open. No red badge, no notification count — opening the app *is* the notification. A subtle visual marker (e.g. a soft left-edge indicator) fades once the message has been viewed.
+**State 1: Something to read.**
+A new debrief just landed, weekly review arrived, or Coach Casey replied to a message. The unread message is in view on open. No red badge, no notification count - opening the app *is* the notification. A subtle visual marker (e.g. a soft left-edge indicator) fades once the message has been viewed.
 
-**State 2 — Conversation in progress.**
+**State 2: Conversation in progress.**
 Athlete has been chatting, Coach Casey has replied, or the athlete sent a message and Coach Casey is generating. Surface opens on the active exchange.
 
-**State 3 — Quiet.**
+**State 3: Quiet.**
 No new content. The surface shows the most recent exchange (could be yesterday's debrief, last Sunday's weekly review, a chat from three days ago). Input field is present. The product is at rest, not dead.
 
 **Empty state (brand-new user, pre-first-run):**
-The thread has one short Coach Casey message — voice direction: *First run and I'll have something to say. Or say something now if you like.* (Content skill to draft final.) Input field is live. The athlete can message Coach Casey before their first run and get a response. The product is not inert.
+The thread has one short Coach Casey message - voice direction: *First run and I'll have something to say. Or say something now if you like.* (Content skill to draft final.) Input field is live. The athlete can message Coach Casey before their first run and get a response. The product is not inert.
 
 **What's deliberately absent from the home state:**
 - No navigation tabs (Home / Activity / Stats / Chat). Nothing to put in tabs.
@@ -88,7 +88,7 @@ The thread has one short Coach Casey message — voice direction: *First run and
 **Frequent actions live at the bottom of the screen, not the top.** Mobile thumb-reach is the governing constraint. This is now a project-level design principle (see `design-principles.md` §3).
 
 **Mobile layout (top to bottom):**
-- Minimal header — Coach Casey wordmark or mark only. No controls in the header.
+- Minimal header: Coach Casey wordmark or mark only. No controls in the header.
 - Thread fills the main area, scrollable.
 - Persistent input field sits above the menu bar.
 - Menu bar at the bottom, holding the frequently-used controls. Exact contents TBD (see below), but includes at least: calendar, search, main menu (for settings, plan, subscription, etc.).
@@ -96,10 +96,10 @@ The thread has one short Coach Casey message — voice direction: *First run and
 **The menu bar is where the frequent controls live.** The principle: anything the athlete reaches for day-to-day is thumb-reachable. Settings-style controls (sign out, subscription management) can be one level deeper, accessed via the main menu button. Day-to-day controls (search, calendar, writing a message) are on the main surface.
 
 **Desktop layout:**
-- Header is allowed to do more on desktop — it's where desktop web conventions put navigation.
+- Header is allowed to do more on desktop: it's where desktop web conventions put navigation.
 - Search and calendar can live in the header on desktop. Menu likewise.
 - Thread fills the main area.
-- Input field is at the bottom of the thread area — this matches the chat convention across platforms.
+- Input field is at the bottom of the thread area: this matches the chat convention across platforms.
 - Desktop-specific keyboard shortcuts (Ctrl/Cmd-K for search, Ctrl/Cmd-D for calendar, etc.) are a nice-to-have, deferred.
 
 **What's settled:**
@@ -110,7 +110,7 @@ The thread has one short Coach Casey message — voice direction: *First run and
 **What's not settled:**
 - Exact menu bar composition on mobile (see §5).
 - Specific keyboard shortcuts on desktop.
-- Responsive breakpoint behaviour — where does mobile layout give way to desktop layout?
+- Responsive breakpoint behaviour: where does mobile layout give way to desktop layout?
 
 ---
 
@@ -118,15 +118,15 @@ The thread has one short Coach Casey message — voice direction: *First run and
 
 Three retrieval modes. Each has a right situation. None replaces the others.
 
-- **Scroll** — what you do for recent history. Default behaviour. Always available.
-- **Calendar** — for *"what was happening then?"* Time-anchored memory.
-- **Search** — for *"has this come up before?"* Content-anchored memory.
+- **Scroll** - what you do for recent history. Default behaviour. Always available.
+- **Calendar** - for *"what was happening then?"* Time-anchored memory.
+- **Search** - for *"has this come up before?"* Content-anchored memory.
 
 All three operate on the same thread. Calendar and search are navigation affordances onto the thread, not separate views.
 
 ### 5.1 Primary affordances (visible buttons)
 
-On mobile, the menu bar at the bottom of the screen contains visible buttons for calendar and search, plus a main menu button for settings/plan/subscription. Exact iconography and ordering — visual-design workstream.
+On mobile, the menu bar at the bottom of the screen contains visible buttons for calendar and search, plus a main menu button for settings/plan/subscription. Exact iconography and ordering: visual-design workstream.
 
 On desktop, the same controls live in the header.
 
@@ -137,31 +137,31 @@ On desktop, the same controls live in the header.
 - **Swipe-right from left edge:** opens calendar.
 - **Swipe-left from right edge:** opens search.
 
-**Reasoning on direction assignment:** left-to-right is the forward-in-time reading direction, so calendar (which navigates through time) sits on the left. Search (which is content-anchored, non-directional) is on the right. This is a weak preference — if user research later suggests it should swap, swap it without ceremony.
+**Reasoning on direction assignment:** left-to-right is the forward-in-time reading direction, so calendar (which navigates through time) sits on the left. Search (which is content-anchored, non-directional) is on the right. This is a weak preference: if user research later suggests it should swap, swap it without ceremony.
 
-**Gesture teaching:** in-context hint on the visible buttons. The first few times the athlete uses the calendar or search button, a subtle fading animation suggests the swipe alternative — a small arrow-out-from-edge indicator or equivalent. Fades after a few exposures. Athletes learn in the moment they're already using the feature, not via a scheduled pop-up or modal. **No pop-ups to teach this** (see `design-principles.md` §3).
+**Gesture teaching:** in-context hint on the visible buttons. The first few times the athlete uses the calendar or search button, a subtle fading animation suggests the swipe alternative: a small arrow-out-from-edge indicator or equivalent. Fades after a few exposures. Athletes learn in the moment they're already using the feature, not via a scheduled pop-up or modal. **No pop-ups to teach this** (see `design-principles.md` §3).
 
 **What's settled:**
 - Gestures exist alongside buttons, not instead of them.
-- Swipe directions assigned (weakly — revisable on evidence).
+- Swipe directions assigned (weakly; revisable on evidence).
 - Gestures are taught via in-context visual hints that fade after a few exposures.
 
 **What's not settled:**
 - Gesture behaviour on desktop (probably no gestures; keyboard shortcuts instead).
 - Exact treatment of the visual hint (visual-design workstream).
-- Number of exposures before the hint fades — probably 3–5, specifics with visual-design.
+- Number of exposures before the hint fades: probably 3-5, specifics with visual-design.
 
 ### 5.3 Calendar
 
 **Interaction:**
 - Tap calendar button (mobile menu bar or desktop header) or swipe-right from left edge on mobile.
-- Calendar picker appears — minimal month view, current month by default.
+- Calendar picker appears: minimal month view, current month by default.
 - Month navigable by tap (forward/back arrows or swipe within the calendar).
-- Dates with activity (runs, debriefs, weekly reviews, chat exchanges) are visually marked. Marking is subtle, not loud. Exact treatment — visual-design.
-- Tap a date → calendar dismisses, thread scrolls to that date's first message of the day. Surrounding context (day before and after) is visible as the athlete scrolls naturally from there.
+- Dates with activity (runs, debriefs, weekly reviews, chat exchanges) are visually marked. Marking is subtle, not loud. Exact treatment: visual-design.
+- Tap a date -> calendar dismisses, thread scrolls to that date's first message of the day. Surrounding context (day before and after) is visible as the athlete scrolls naturally from there.
 - Tap a date with no activity → thread scrolls to the nearest date with activity. A subtle indication that the selected date had nothing. Not an error, not an empty screen.
 
-**Calendar-jumps and performance:** tapping a date that's far back in the thread may require loading older messages. Expect a small load delay while the messages hydrate. Loading treatment — visual-design, consistent with the thread's scroll-pagination loading treatment.
+**Calendar-jumps and performance:** tapping a date that's far back in the thread may require loading older messages. Expect a small load delay while the messages hydrate. Loading treatment: visual-design, consistent with the thread's scroll-pagination loading treatment.
 
 **"Back to now" affordance:** after scrolling into history via calendar (or via natural scroll), a small button or gesture appears to jump the thread back to current position. Visual-design to specify.
 
@@ -177,27 +177,27 @@ On desktop, the same controls live in the header.
 
 **Interaction:**
 - Tap search button (mobile menu bar or desktop header) or swipe-left from right edge on mobile.
-- Search surface appears — input field focused, keyboard up on mobile.
+- Search surface appears: input field focused, keyboard up on mobile.
 - Athlete types. Results appear as a list below the input.
-- Each result is a message snippet with date context (e.g. "March 14 — debrief").
-- Tap a result → search dismisses, thread scrolls to that message, surrounding context visible.
-- Dismiss search without selecting → return to wherever the thread was before search opened.
+- Each result is a message snippet with date context (e.g. "March 14: debrief").
+- Tap a result -> search dismisses, thread scrolls to that message, surrounding context visible.
+- Dismiss search without selecting -> return to wherever the thread was before search opened.
 
 **What's searched:**
 - All messages in the thread (chat, debriefs, weekly reviews, follow-up questions, athlete replies).
-- Strava activity names and notes — *"find my last interval workout"* surfaces the activity and attached debrief.
-- Memory items — *"what have I said about the calf"* surfaces the original message and subsequent references.
+- Strava activity names and notes - *"find my last interval workout"* surfaces the activity and attached debrief.
+- Memory items - *"what have I said about the calf"* surfaces the original message and subsequent references.
 
 **Search behaviour (V1):**
 - Text match at V1. Fast, cheap, works.
-- Semantic search via pgvector as a V1.1 enhancement — *"find where I was worried about training load"* without those specific words.
+- Semantic search via pgvector as a V1.1 enhancement: *"find where I was worried about training load"* without those specific words.
 
 **What search doesn't do at V1:**
-- No filter UI (date range, message type). Typing constraints into the query gets most of the way there — *"weekly review March"* works.
+- No filter UI (date range, message type). Typing constraints into the query gets most of the way there: *"weekly review March"* works.
 - No query suggestions.
 - No search analytics surfaced to the athlete.
 
-**Type-filter gap to watch:** *"find all the weekly reviews"* is genuinely weak under text-match — "weekly review" will return many results, not only review messages. Flagged as a candidate V1.1 enhancement (filter by message type). Holding on shipping it at V1 on the view that athletes rarely need all-of-type at once.
+**Type-filter gap to watch:** *"find all the weekly reviews"* is genuinely weak under text-match: "weekly review" will return many results, not only review messages. Flagged as a candidate V1.1 enhancement (filter by message type). Holding on shipping it at V1 on the view that athletes rarely need all-of-type at once.
 
 ---
 
@@ -211,14 +211,14 @@ On desktop, the same controls live in the header.
 - Athlete types into the input field. Multi-line accepted (Shift+Return for new line on desktop; mobile long-press or soft-key for new line).
 - Sends via Return (desktop) or send button (mobile).
 - Athlete's message appears in the thread, right-aligned.
-- Coach Casey's thinking state shows briefly. Treatment TBD — must match deliberate-pace principle. Not bouncing dots.
+- Coach Casey's thinking state shows briefly. Treatment TBD: must match deliberate-pace principle. Not bouncing dots.
 - **Response streams in** (decision locked). Tokens appear progressively as they're generated. Matches modern chat UX conventions. Coach Casey's message is left-aligned and populates as the stream arrives.
 - Engineering specifics (smooth streaming, fallback behaviour if the stream fails mid-response, reconnection logic) are engineering calls, not design calls.
 
 **What chat does:**
 - Responds to forward-looking questions using the responsive-prescription posture. Coach Casey reasons from within the plan's logic, brings plan + recent training + life context to bear, names the decision as the athlete's. See `v1-scope.md` §2.4 and `strategy-foundation.md` §1 for the posture rules.
-- Captures life context. *"Calf tight,"* *"Slept badly,"* *"Work is a nightmare"* — Coach Casey acknowledges and persists via structured tool use. Invisible to the athlete. Surfaces in later debriefs and reviews.
-- Retrieves from memory to answer past-anchored questions. *"Was last Tuesday's tempo faster than my previous one?"* — Coach Casey checks and answers.
+- Captures life context. *"Calf tight,"* *"Slept badly,"* *"Work is a nightmare"* - Coach Casey acknowledges and persists via structured tool use. Invisible to the athlete. Surfaces in later debriefs and reviews.
+- Retrieves from memory to answer past-anchored questions. *"Was last Tuesday's tempo faster than my previous one?"* - Coach Casey checks and answers.
 
 **What chat doesn't do at V1:**
 - ~~No proactive or scheduled check-ins outside debriefs and weekly reviews.~~ Expanded in the 2026-05-16 Casey refresh. Casey now fires four additional proactive surfaces: race-week briefings (per goal race, scaled by tier A/B/C), pre-run fuelling nudges (~24h ahead of a known long run), retrospective fuelling checks (after a long run syncs), niggle escalation (when a body part crosses the mention threshold), and a mid-block flatness check-in (when a fatigue pattern persists). All are messages in the same single thread; the chat-first architecture is unchanged. The chat surface itself remains responsive-only to athlete-initiated messages.
@@ -229,12 +229,12 @@ On desktop, the same controls live in the header.
 - Conversational, not essay-length.
 - Shorter than debriefs by default.
 - Longer when the question warrants it.
-- Voice matches across surfaces — warm competence, specific, observational.
+- Voice matches across surfaces: warm competence, specific, observational.
 
 **Memory retrieval under the hood:**
 - Relevant memory context is pulled into the prompt at inference time. Recent runs, referenced activities, active injuries/niggles, plan context if present.
 - pgvector used surgically for this (per `technical-decision-log.md`). Semantic retrieval for content-anchored references that aren't in the immediate context window.
-- The retrieval is invisible — the athlete gets the answer, the work happens behind it.
+- The retrieval is invisible: the athlete gets the answer, the work happens behind it.
 
 **What's settled:**
 - Chat is the default mode; no mode switch.
@@ -247,7 +247,7 @@ On desktop, the same controls live in the header.
 - Thinking-state visual treatment (between athlete sending and first token arriving).
 - Streaming fallback behaviour when the stream breaks mid-response (engineering decision).
 - How memory retrieval scope is decided at inference (engineering call).
-- Whether the athlete sees any indication that Coach Casey looked something up (probably no — feels like a coach who just knows).
+- Whether the athlete sees any indication that Coach Casey looked something up (probably no: feels like a coach who just knows).
 
 ---
 
@@ -255,17 +255,17 @@ On desktop, the same controls live in the header.
 
 **Engineering direction** (for engineering-lead to specify the details against):
 
-- Rolling-window pagination. Load a default window of recent messages on app open (measured in days — a fixed day-count rather than a fixed message count, so quiet stretches don't load disproportionate date ranges).
-- As the athlete scrolls toward the top of the loaded window, load the next chunk (N more days back). Continuous experience — the athlete sees a small loading indicator at the top but the scroll doesn't break.
-- Calendar jumps to an old date load that date's messages on demand — small delay while the chunk hydrates. Acceptable.
-- Search result taps behave the same way — small delay loading the chunk containing the result, then scroll.
+- Rolling-window pagination. Load a default window of recent messages on app open (measured in days: a fixed day-count rather than a fixed message count, so quiet stretches don't load disproportionate date ranges).
+- As the athlete scrolls toward the top of the loaded window, load the next chunk (N more days back). Continuous experience: the athlete sees a small loading indicator at the top but the scroll doesn't break.
+- Calendar jumps to an old date load that date's messages on demand: small delay while the chunk hydrates. Acceptable.
+- Search result taps behave the same way: small delay loading the chunk containing the result, then scroll.
 - Default window size is an engineering call. Starting point: 14 days, tunable based on real usage.
 
 **What this means for engineering:**
 - Messages fetched via cursor-based paginated API, keyed on date range.
 - Client maintains a loaded-window state and requests additional chunks as the athlete approaches edges.
 - Prefetch strategy can be added later for performance (e.g. speculatively load the next chunk when approaching within 1 day of the current edge). V1 can be reactive-only.
-- Loading indicators at the top of the thread during chunk load — treatment per visual-design.
+- Loading indicators at the top of the thread during chunk load: treatment per visual-design.
 
 **Not a design call beyond that.** Engineering specifies default window, prefetch strategy, exact load boundaries.
 
@@ -299,7 +299,7 @@ Mental model: **one thread, one voice, one ongoing conversation.**
 - Empty state has a Coach Casey message and a live input field.
 - Calendar is minimal month-view, no stats overlay, no previews.
 - Search at V1 is text-match; semantic search is V1.1.
-- Chat has no mode switch — input field is always present.
+- Chat has no mode switch: input field is always present.
 - Responses stream, not block-delivered.
 - Responsive prescription posture lives in the chat system prompt.
 - Memory retrieval is invisible to the athlete.
@@ -341,7 +341,7 @@ Mental model: **one thread, one voice, one ongoing conversation.**
 **Edge and error states:**
 - All loading states.
 - All error states for chat generation, memory retrieval, calendar loading, search.
-- Offline behaviour — does the thread work from cache, and how much?
+- Offline behaviour: does the thread work from cache, and how much?
 - What happens when memory retrieval fails or returns nothing.
 - What happens when the search index is behind (new message not yet indexed).
 - What happens when pagination fails mid-load.
@@ -356,7 +356,7 @@ Work that doesn't depend on final design or copy:
 - **Message retrieval API.** Cursor-based pagination keyed on date range. Rolling-window loading per §7.
 - **Streaming response infrastructure.** Server-sent events or similar for Coach Casey's replies. Token-by-token delivery with graceful fallback if the stream breaks.
 - **Text-match search.** Postgres full-text search on message content and activity names/notes. Indexes, ranking, performance. Return structure: matched messages with surrounding-context handles.
-- **Calendar data.** A query that returns "dates on which this athlete had activity" for a given month window — feeds the calendar picker's visual marking.
+- **Calendar data.** A query that returns "dates on which this athlete had activity" for a given month window: feeds the calendar picker's visual marking.
 - **Memory retrieval layer for chat.** pgvector wiring for semantic recall of past messages and memory items at inference time. Retrieval scope decisions (how many past messages, what time window).
 - **Structured tool use for life-context capture.** Tool calls that Coach Casey invokes from within chat to persist memory items, injury flags, context notes. Schema defined in the prompt-engineering workstream; the engineering side is wiring the tools, executing them, and handling failures.
 - **Empty state scaffolding.** First-message seeding for brand-new athletes (so the thread isn't literally empty when onboarding completes).
@@ -388,7 +388,7 @@ Work that doesn't depend on final design or copy:
 
 ## 13. How this document is used
 
-- **Engineer:** start on §11 (infrastructure). Don't build user-facing surfaces from this doc — wait for build-spec promotion. Pagination and streaming specifics are engineering-led; specify and log in `technical-decision-log.md`.
+- **Engineer:** start on §11 (infrastructure). Don't build user-facing surfaces from this doc: wait for build-spec promotion. Pagination and streaming specifics are engineering-led; specify and log in `technical-decision-log.md`.
 - **Visual-design workstream:** this doc is input. Treats the items flagged as "visual-design" in §10 and §12 as its scope.
 - **Content skill:** pass on §10 content items.
 - **Continuing design work (Jason + Claude):** close §12. Each item closes into an updated version of this doc.

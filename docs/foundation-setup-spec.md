@@ -1,4 +1,4 @@
-# Coach Casey — Foundation Setup Spec
+# Coach Casey: Foundation Setup Spec
 
 **Owner:** Jason
 **Last updated:** 2026-04-23 (spec correction: Python runtime on Vercel)
@@ -16,21 +16,21 @@ Source of truth for the "what" and "why" is `engineering-foundation.md`. This sp
 
 Before starting, have these ready on your local machine:
 
-- **Node.js 22+** installed (`node --version` to check). If not, install via [nvm](https://github.com/nvm-sh/nvm) — it lets you switch Node versions later without pain.
+- **Node.js 22+** installed (`node --version` to check). If not, install via [nvm](https://github.com/nvm-sh/nvm) - it lets you switch Node versions later without pain.
 - **Python 3.12+** installed (`python3 --version`).
 - **Git** installed, with your GitHub identity configured (`git config --global user.name` and `user.email` set).
-- **A password manager** for capturing API keys and secrets as you go. 1Password, Bitwarden, or similar. Don't skip this — you'll be generating 10+ credentials across services and losing track is the start of trouble.
+- **A password manager** for capturing API keys and secrets as you go. 1Password, Bitwarden, or similar. Don't skip this - you'll be generating 10+ credentials across services and losing track is the start of trouble.
 - **A credit card** for services that require one at signup (domains, Stripe). No service in Phase 1 will actually charge you at this stage.
 
 If any prerequisite is missing, install it first. Don't start Phase 1 mid-missing-tool.
 
 ---
 
-## 2. Phase 1 — Register service accounts (~2–3 hours, mostly parallel)
+## 2. Phase 1: Register service accounts (~2–3 hours, mostly parallel)
 
 Goal: every service listed in `engineering-foundation.md` §3 under "Connect now" and "Set up account but manage spend carefully" has an account, and you have the API keys or credentials stored safely.
 
-No ordering dependency between these — do them in whatever order feels natural. Capture every credential to your password manager as you generate it, under a clearly labelled entry ("Coach Casey — [service]").
+No ordering dependency between these - do them in whatever order feels natural. Capture every credential to your password manager as you generate it, under a clearly labelled entry ("Coach Casey: [service]").
 
 **Free-tier or free-to-setup services:**
 
@@ -42,7 +42,7 @@ No ordering dependency between these — do them in whatever order feels natural
 | **Sentry** | DSN for Next.js project, DSN for Python project, auth token for source map uploads |
 | **PostHog** | Project API key, project host URL |
 | **Langfuse** | Public key, secret key, host URL (use cloud.langfuse.com unless self-hosting) |
-| **Resend** | API key (use the `resend.dev` subdomain for now — you'll verify `coachcasey.app` in Phase 2) |
+| **Resend** | API key (use the `resend.dev` subdomain for now; you'll verify `coachcasey.app` in Phase 2) |
 
 **Paid-on-usage services (add small dev credit, no subscription):**
 
@@ -50,16 +50,16 @@ No ordering dependency between these — do them in whatever order feels natural
 |---|---|
 | **Anthropic** | Sign up at console.anthropic.com, add $5 credit, generate API key |
 | **OpenAI** | Sign up at platform.openai.com, add $5 credit, generate API key |
-| **Stripe** | Sign up, activate test mode only, capture test publishable key + test secret key. **Don't complete business verification yet** — not needed for dev, and you'll want your business details finalised before you do |
+| **Stripe** | Sign up, activate test mode only, capture test publishable key + test secret key. **Don't complete business verification yet** - not needed for dev, and you'll want your business details finalised before you do |
 
 **Defer for now (named here so you don't forget):**
 
-- **Strava developer application** — see Phase 6 below. Submit in parallel with the rest of foundation work.
-- **Domain registration** — Phase 2.
+- **Strava developer application**: see Phase 6 below. Submit in parallel with the rest of foundation work.
+- **Domain registration**: Phase 2.
 
 ### Notes on a few of these
 
-**Vercel.** Use the Hobby (free) plan. You'll upgrade to Pro only when you hit a real limit — not pre-emptively.
+**Vercel.** Use the Hobby (free) plan. You'll upgrade to Pro only when you hit a real limit - not pre-emptively.
 
 **Supabase.** When you create the project, pick the **Sydney (ap-southeast-2)** region. Your users are AU/NZ and region choice affects database latency noticeably. You can't change region later without a full data migration.
 
@@ -71,26 +71,26 @@ No ordering dependency between these — do them in whatever order feels natural
 
 ---
 
-## 3. Phase 2 — Register domains (~15 minutes)
+## 3. Phase 2: Register domains (~15 minutes)
 
 Goal: own the product domains before anything else gets labelled.
 
 1. **Register `coachcasey.app`.** Use any reputable registrar (Namecheap, Cloudflare, Porkbun). Cloudflare is slightly cheaper and has better DNS tooling, but all three are fine.
 2. **Register `coachcasey.run`.** Same registrar. Defensive registration, will redirect to the primary later.
-3. **Do not attempt to register `coachcasey.com`** — premium-priced, deferred (see `engineering-foundation.md` §3).
+3. **Do not attempt to register `coachcasey.com`** - premium-priced, deferred (see `engineering-foundation.md` §3).
 4. Keep `themarathonclinic.com` as-is under Jason's existing registration. Not part of Coach Casey's operational infrastructure at launch.
 
-Don't point DNS at anything yet — Vercel will give you DNS records to add in Phase 5. Just own the domains.
+Don't point DNS at anything yet - Vercel will give you DNS records to add in Phase 5. Just own the domains.
 
 ---
 
-## 4. Phase 3 — Create the GitHub repository and initial scaffold (~45 minutes)
+## 4. Phase 3: Create the GitHub repository and initial scaffold (~45 minutes)
 
 Goal: a private GitHub repo named `coach-casey` with the directory structure from `engineering-foundation.md` §2, minimally scaffolded, pushed, and protected.
 
 ### Step-by-step
 
-1. **Create the repo.** On GitHub: `coach-casey`, private, no README/licence/gitignore (you'll add these locally). Under your personal account is fine — you can transfer to an org later without friction.
+1. **Create the repo.** On GitHub: `coach-casey`, private, no README/licence/gitignore (you'll add these locally). Under your personal account is fine - you can transfer to an org later without friction.
 
 2. **Clone locally.**
    ```bash
@@ -116,7 +116,7 @@ Goal: a private GitHub repo named `coach-casey` with the directory structure fro
    ```
    These are empty placeholders. They'll get real content in subsequent specs. Creating them now establishes the shape so you don't have to re-organise later.
 
-5. **Add Python dependency management.** Create `pyproject.toml` at the repo root with minimal content (pick `uv` as the tool — it's fast and modern):
+5. **Add Python dependency management.** Create `pyproject.toml` at the repo root with minimal content (pick `uv` as the tool - it's fast and modern):
    ```bash
    uv init --python 3.12
    ```
@@ -125,7 +125,7 @@ Goal: a private GitHub repo named `coach-casey` with the directory structure fro
    uv add fastapi anthropic openai supabase pydantic pydantic-settings
    uv add --dev pytest ruff black mypy
    ```
-   Export a `requirements.txt` for Vercel's Python runtime to read. `uv` does not generate this automatically — run it yourself, and re-run it whenever deps change (you can automate this later via a pre-commit hook):
+   Export a `requirements.txt` for Vercel's Python runtime to read. `uv` does not generate this automatically - run it yourself, and re-run it whenever deps change (you can automate this later via a pre-commit hook):
    ```bash
    uv export --no-hashes --no-dev -o requirements.txt
    ```
@@ -133,7 +133,7 @@ Goal: a private GitHub repo named `coach-casey` with the directory structure fro
 
 6. **Create `.env.example`** at the repo root with the variable names from `engineering-foundation.md` §4, no real values. This is the checked-in template.
 
-7. **Create `.gitignore`** — `create-next-app` gives you a good default. Add these lines to be safe:
+7. **Create `.gitignore`**: `create-next-app` gives you a good default. Add these lines to be safe:
    ```
    .env.local
    .env
@@ -144,7 +144,7 @@ Goal: a private GitHub repo named `coach-casey` with the directory structure fro
    *.pyc
    ```
 
-8. **Write a minimal README.md** — purpose, how to set up locally, link to the project docs. Keep it thin; it'll grow.
+8. **Write a minimal README.md**: purpose, how to set up locally, link to the project docs. Keep it thin; it'll grow.
 
 9. **Make the initial commit and push.**
    ```bash
@@ -155,18 +155,18 @@ Goal: a private GitHub repo named `coach-casey` with the directory structure fro
 
 10. **Enable branch protection on `main`.** On GitHub → Settings → Branches → Add rule for `main`:
     - Require a pull request before merging
-    - Require status checks to pass before merging (you'll add CI in a later spec — the rule can exist without checks yet)
+    - Require status checks to pass before merging (you'll add CI in a later spec - the rule can exist without checks yet)
     - Do not allow bypassing the above settings
 
     Why this matters even as a solo builder: it forces you to work through PRs, which means CI gates catch problems, and the habit carries over if contractors join later.
 
-11. **Enable GitHub secret scanning.** Settings → Code security → Secret scanning: Enable. Free on public repos, included on GitHub Free/Pro for private repos. Catches accidental API key commits before they leave your machine in practice — it's cheap insurance.
+11. **Enable GitHub secret scanning.** Settings → Code security → Secret scanning: Enable. Free on public repos, included on GitHub Free/Pro for private repos. Catches accidental API key commits before they leave your machine in practice - it's cheap insurance.
 
-At the end of Phase 3: repo exists on GitHub, is scaffolded, pushes work, branch protection is on. Nothing deploys yet — that's Phase 4.
+At the end of Phase 3: repo exists on GitHub, is scaffolded, pushes work, branch protection is on. Nothing deploys yet - that's Phase 4.
 
 ---
 
-## 5. Phase 4 — Connect to Vercel and deploy the shell (~30 minutes)
+## 5. Phase 4: Connect to Vercel and deploy the shell (~30 minutes)
 
 Goal: every push to `main` triggers an automatic deploy to Vercel; the live URL serves your landing page.
 
@@ -176,7 +176,7 @@ Goal: every push to `main` triggers an automatic deploy to Vercel; the live URL 
    - **Deployment region:** Sydney (`syd1`). Under Project Settings → Functions → Default Region.
    - **Node.js version:** 22.x. Usually auto-detected from your `package.json` engines field; confirm it.
 
-3. **Python version pinning — no `vercel.json` needed.** Vercel's `vercel.json` `functions.runtime` field is only for *community* runtimes (things like `vercel-php@0.5.2`). Python is a built-in runtime and rejects that syntax — a `vercel.json` trying to set `"runtime": "python3.12"` fails the build with `Error: Function Runtimes must have a valid version, for example 'now-php@1.0.0'.`
+3. **Python version pinning: no `vercel.json` needed.** Vercel's `vercel.json` `functions.runtime` field is only for *community* runtimes (things like `vercel-php@0.5.2`). Python is a built-in runtime and rejects that syntax - a `vercel.json` trying to set `"runtime": "python3.12"` fails the build with `Error: Function Runtimes must have a valid version, for example 'now-php@1.0.0'.`
 
    Instead, pin the Python version via `requires-python` in `pyproject.toml` (which `uv init --python 3.12` already wrote). Vercel's built-in Python runtime reads this and provisions the matching version. No `vercel.json` required at this stage.
 
@@ -192,7 +192,7 @@ At the end of Phase 4: pushing to `main` auto-deploys, `coachcasey.app` serves t
 
 ---
 
-## 6. Phase 5 — Wire service credentials into Vercel (~30 minutes)
+## 6. Phase 5: Wire service credentials into Vercel (~30 minutes)
 
 Goal: every environment variable from `engineering-foundation.md` §4 is set in Vercel, scoped correctly to Production and Preview environments. Local development uses `.env.local` with dev credentials.
 
@@ -213,15 +213,15 @@ At the end of Phase 5: env vars are everywhere they need to be, nothing is hardc
 
 ---
 
-## 7. Parallel track — Strava developer application
+## 7. Parallel track: Strava developer application
 
-Submit in parallel with Phases 1–5. Nothing here blocks on Strava approval, but Strava approval is V1-blocking for all Strava-integration work later — so the clock should start ticking now.
+Submit in parallel with Phases 1-5. Nothing here blocks on Strava approval, but Strava approval is V1-blocking for all Strava-integration work later - so the clock should start ticking now.
 
 1. Read `strava-api-compliance-note.md` in full.
 2. Follow the "Action" section at the end of that doc. Draft the application using Strava's own framing language ("coaching platforms focused on providing feedback to users"), optionally email developer support for written confirmation first, then submit.
 3. Log the submission date and (when it arrives) the approval date in `open-questions-log.md` as the closure of the V1-blocking Strava question.
 
-Approval timelines vary — days to weeks. You'll know the outcome by the time feature work reaches the Strava-integration phase.
+Approval timelines vary - days to weeks. You'll know the outcome by the time feature work reaches the Strava-integration phase.
 
 ---
 
@@ -263,6 +263,6 @@ A few failure modes worth naming:
 - **Vercel Python function fails to deploy.** Usually a `requirements.txt` missing a dependency, or a Python version mismatch. Check the Vercel build log; it names the offending package.
 - **Domain doesn't resolve after adding DNS records.** DNS propagation can take up to 24 hours; usually minutes. Use `dig coachcasey.app` or [whatsmydns.net](https://www.whatsmydns.net) to check propagation status.
 - **Env var shows as `undefined` in deployed app.** Either the variable isn't scoped to Production, or you forgot to redeploy after adding it. Vercel does not hot-reload env vars.
-- **Accidentally committed a secret.** Rotate the key immediately on the service side (don't trust that reverting the commit is sufficient — git history preserves it). Regenerate, update everywhere, move on.
+- **Accidentally committed a secret.** Rotate the key immediately on the service side (don't trust that reverting the commit is sufficient - git history preserves it). Regenerate, update everywhere, move on.
 
 For anything outside these, the Vercel and Supabase Discord/community forums are active and responsive.

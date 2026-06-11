@@ -1,8 +1,8 @@
-# Coach Casey — Build Standards
+# Coach Casey - Build Standards
 
 **Owner:** Jason
 **Last updated:** 2026-04-24
-**Status:** Living document. Engineering baselines — accessibility targets, error handling patterns, performance targets, observability requirements, and the engineering side of offline/network behaviour. Companion to `engineering-foundation.md` (the setup runbook) and `technical-decision-log.md` (individual decisions). This doc is the *how we build*, not the *what we build with*.
+**Status:** Living document. Engineering baselines: accessibility targets, error handling patterns, performance targets, observability requirements, and the engineering side of offline/network behaviour. Companion to `engineering-foundation.md` (the setup runbook) and `technical-decision-log.md` (individual decisions). This doc is the *how we build*, not the *what we build with*.
 
 Supersedes project memory when they conflict. Read alongside `engineering-foundation.md` (services, repo, deployment), `technical-decision-log.md` (locked engineering decisions), `interaction-principles.md` (concrete interaction specs, some of which have engineering implications), and `design-principles.md` (principle-level constraints).
 
@@ -47,16 +47,16 @@ Not a tutorial. Not a style guide. The baseline expectations against which code 
 
 - Every interactive element reachable via keyboard. Every action achievable without a mouse.
 - Visible focus ring on every focused element. High contrast, matches plum accent at reasonable luminance.
-- Logical tab order — DOM order matches visual order for every surface.
+- Logical tab order: DOM order matches visual order for every surface.
 - Skip-to-content link on the main surface for screen reader users navigating past the header.
-- Keyboard shortcuts as specified in `interaction-principles.md` §8 — implemented without capturing system shortcuts.
+- Keyboard shortcuts as specified in `interaction-principles.md` §8: implemented without capturing system shortcuts.
 
 ### 2.3 Screen reader behaviour
 
 - Semantic HTML first. `<button>` for buttons, `<nav>` for navigation, `<main>` for the main surface. ARIA used only where semantic HTML is insufficient.
 - Chat messages announced with sender and content. Athlete messages announced as "You," Coach Casey messages as "Coach Casey."
-- Debriefs and weekly reviews announced as structured content — the opening claim functions as a heading for screen reader navigation within the message.
-- New-message-arriving announced politely (`aria-live="polite"`) — never intrusive interrupts.
+- Debriefs and weekly reviews announced as structured content: the opening claim functions as a heading for screen reader navigation within the message.
+- New-message-arriving announced politely (`aria-live="polite"`); never intrusive interrupts.
 - Streaming responses announced on completion, not per-token. Token-by-token announcement would be unbearable for screen reader users.
 - Error messages announced (`aria-live="assertive"` for errors that need immediate attention; `aria-live="polite"` for inline validation).
 
@@ -97,10 +97,10 @@ Every function that can fail should fail gracefully. No silent crashes, no throw
 
 Errors are categorised by their surface:
 
-- **User-actionable** — the athlete did something; something went wrong; they need to do something to resolve it.
-- **Background recoverable** — work happening behind the scenes; failure is retryable; eventual consistency is acceptable.
-- **Background unrecoverable** — background work that failed permanently; may need to surface to the athlete eventually.
-- **System failures** — something's wrong in the infrastructure; neither the athlete nor the runtime can fix it at that moment.
+- **User-actionable**: the athlete did something; something went wrong; they need to do something to resolve it.
+- **Background recoverable**: work happening behind the scenes; failure is retryable; eventual consistency is acceptable.
+- **Background unrecoverable**: background work that failed permanently; may need to surface to the athlete eventually.
+- **System failures**: something's wrong in the infrastructure; neither the athlete nor the runtime can fix it at that moment.
 
 ### 3.2 Retry patterns
 
@@ -142,14 +142,14 @@ Per `design-principles.md` §2: warm competence applies to errors.
 
 ### 4.1 What gets logged
 
-- **Every LLM call** — Langfuse — prompt, response, tokens, latency, model, cache hit/miss, cost, trace ID. Tags for prompt name and version, athlete ID.
-- **Every application error** — Sentry — stack trace, environment, feature area, sanitised context.
-- **Every user-facing event** — PostHog — page views, feature interactions, conversion events. Athlete identified by user ID only.
-- **Every background job completion** — structured logs — job type, duration, result, retry count.
+- **Every LLM call**: Langfuse; prompt, response, tokens, latency, model, cache hit/miss, cost, trace ID. Tags for prompt name and version, athlete ID.
+- **Every application error**: Sentry; stack trace, environment, feature area, sanitised context.
+- **Every user-facing event**: PostHog; page views, feature interactions, conversion events. Athlete identified by user ID only.
+- **Every background job completion**: structured logs; job type, duration, result, retry count.
 
 ### 4.2 What does not get logged
 
-- Athlete messages or Coach Casey's chat replies (except as needed inside Langfuse for LLM observability — scoped access).
+- Athlete messages or Coach Casey's chat replies (except as needed inside Langfuse for LLM observability; scoped access).
 - Strava activity content.
 - Email addresses, names, or other PII in Sentry or PostHog.
 - Anything that would make a leaked log a privacy incident.
@@ -157,7 +157,7 @@ Per `design-principles.md` §2: warm competence applies to errors.
 ### 4.3 Structured logging
 
 - JSON logs from backend services. No `print()` or `console.log()` in production code paths.
-- Log levels used correctly — ERROR for actual errors, WARN for recoverable issues, INFO for notable events, DEBUG for diagnostic detail.
+- Log levels used correctly: ERROR for actual errors, WARN for recoverable issues, INFO for notable events, DEBUG for diagnostic detail.
 - Correlation IDs (request ID, trace ID) propagated through every log entry for a given operation.
 
 ### 4.4 Alerting
@@ -173,7 +173,7 @@ Per `design-principles.md` §2: warm competence applies to errors.
 ### 5.1 User-facing latency
 
 - **Thread open (cached):** under 300ms from app launch to first visible content.
-- **Thread open (cold — first load of day, cache miss):** under 1.2s.
+- **Thread open (cold; first load of day, cache miss):** under 1.2s.
 - **Chat message send to first streamed token:** under 2s at p50, under 4s at p95.
 - **Calendar picker open:** under 200ms (respects §1.1 transition duration).
 - **Search result population on text-match query:** under 500ms.
@@ -202,22 +202,22 @@ Standard Core Web Vitals. Measured via PostHog and real-user data, not lab tools
 ### 6.1 What gets tested
 
 - **Unit tests** for all business logic functions. Backend services, data transformation, non-trivial frontend utilities.
-- **Integration tests** for API endpoints — every endpoint has at least one happy path test and one error path test.
+- **Integration tests** for API endpoints: every endpoint has at least one happy path test and one error path test.
 - **End-to-end tests** for the three critical flows: sign-up + onboarding, debrief generation, chat message send. Run on every PR.
-- **Accessibility tests** in CI — axe-core or equivalent, failures block deploy.
-- **LLM eval tests** for every production prompt — runs on prompt changes, not on every PR (separate workflow).
+- **Accessibility tests** in CI: axe-core or equivalent, failures block deploy.
+- **LLM eval tests** for every production prompt: runs on prompt changes, not on every PR (separate workflow).
 
 ### 6.2 What does not get tested
 
-- Visual regression at V1 — too expensive to maintain pre-launch. Revisit post-V1 if visual bugs become a pattern.
-- Performance benchmarking on every PR — slow. Spot-check instead.
-- Full screen reader automation — manual testing on significant changes is the bar at V1.
+- Visual regression at V1: too expensive to maintain pre-launch. Revisit post-V1 if visual bugs become a pattern.
+- Performance benchmarking on every PR: slow. Spot-check instead.
+- Full screen reader automation: manual testing on significant changes is the bar at V1.
 
 ### 6.3 CI
 
 - Every PR runs: lint, typecheck, unit tests, integration tests, E2E tests, accessibility audit.
 - All must pass to merge.
-- No coverage thresholds enforced at V1 — discipline over gaming. Revisit if coverage becomes a concern.
+- No coverage thresholds enforced at V1: discipline over gaming. Revisit if coverage becomes a concern.
 
 ---
 
@@ -265,15 +265,15 @@ Per `engineering-foundation.md` §4:
 
 ### 8.1 Where state lives
 
-- **Server state** (database, Strava activities, generated content) — the source of truth. Queried via React Query or equivalent with caching.
-- **URL state** (current view, search query, calendar selection) — reflects navigational state. Bookmarkable where meaningful.
-- **Component state** (form input, local UI toggles) — React `useState` or `useReducer`. Lives in the component that owns it.
-- **Global client state** (authenticated user, theme preference) — Context API at V1. Revisit if it grows.
+- **Server state** (database, Strava activities, generated content): the source of truth. Queried via React Query or equivalent with caching.
+- **URL state** (current view, search query, calendar selection): reflects navigational state. Bookmarkable where meaningful.
+- **Component state** (form input, local UI toggles): React `useState` or `useReducer`. Lives in the component that owns it.
+- **Global client state** (authenticated user, theme preference): Context API at V1. Revisit if it grows.
 
 ### 8.2 What does not happen
 
 - No Redux, no Zustand, no MobX at V1. Context + React Query cover the need.
-- No localStorage or sessionStorage for application state — use in-memory state and reload from server on app start.
+- No localStorage or sessionStorage for application state: use in-memory state and reload from server on app start.
 - No client-side caching of sensitive data beyond React Query's in-memory cache for the session.
 
 ---
@@ -282,28 +282,28 @@ Per `engineering-foundation.md` §4:
 
 ### 9.1 What works offline
 
-- Thread reads from React Query's cache — last-loaded window viewable.
+- Thread reads from React Query's cache: last-loaded window viewable.
 - Calendar works on cached data.
 - Search works on cached data.
 - Settings and account info readable where cached.
 
 ### 9.2 What doesn't
 
-- New message sending — queues locally, sends on reconnect.
-- New debriefs or weekly reviews — require server.
-- Plan upload — requires server.
-- Pagination older than cache — fails gracefully, surfaces a soft "can't reach the network" indicator.
+- New message sending: queues locally, sends on reconnect.
+- New debriefs or weekly reviews: require server.
+- Plan upload: requires server.
+- Pagination older than cache: fails gracefully, surfaces a soft "can't reach the network" indicator.
 
 ### 9.3 Indicators
 
-Per `interaction-principles.md` §4.3 — soft offline banner at the top of the surface, voice-aligned copy. Clears on reconnect.
+Per `interaction-principles.md` §4.3: soft offline banner at the top of the surface, voice-aligned copy. Clears on reconnect.
 
 ### 9.4 Service worker
 
 - Registered from day one.
 - Caches app shell (JS, CSS, HTML) aggressively.
 - Uses network-first for API calls, falls back to cache on failure.
-- Handles background sync for queued messages (Android only — iOS doesn't support).
+- Handles background sync for queued messages (Android only; iOS doesn't support).
 
 ---
 
@@ -318,7 +318,7 @@ Per `interaction-principles.md` §4.3 — soft offline banner at the top of the 
 
 ### 10.2 Cookie and tracking disclosure
 
-- Minimal banner — what's required, nothing more.
+- Minimal banner: what's required, nothing more.
 - AU/NZ targeted at launch. Content meets AU Privacy Act and NZ Privacy Act 2020 requirements.
 - EU/UK expansion would require revisiting (GDPR consent, cookie banner). Not at V1.
 

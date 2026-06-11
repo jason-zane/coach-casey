@@ -1,8 +1,8 @@
-# Coach Casey — Engineering Foundation
+# Coach Casey: Engineering Foundation
 
 **Owner:** Jason
 **Last updated:** 2026-04-23
-**Status:** Living document. The starting point for building — repo structure, services to connect, environment setup, deployment pipeline, database foundation, observability. Precedes feature work; it's the runbook for getting the shell of the product production-ready before any user-facing features exist.
+**Status:** Living document. The starting point for building: repo structure, services to connect, environment setup, deployment pipeline, database foundation, observability. Precedes feature work; it's the runbook for getting the shell of the product production-ready before any user-facing features exist.
 
 Supersedes project memory when they conflict. Separate from `technical-decision-log.md` (individual engineering decisions), `strategy-foundation.md` (why), `v1-scope.md` (what), and `strava-api-compliance-note.md` (Strava application prep).
 
@@ -10,15 +10,15 @@ Supersedes project memory when they conflict. Separate from `technical-decision-
 
 ## 1. What this doc is
 
-This is the engineering foundation — everything that needs to be in place *before* feature work starts. Not an architecture spec, not a handoff pack, not a code tutorial. The bridge between decisions already locked (in the technical decision log) and the first line of feature code.
+This is the engineering foundation: everything that needs to be in place *before* feature work starts. Not an architecture spec, not a handoff pack, not a code tutorial. The bridge between decisions already locked (in the technical decision log) and the first line of feature code.
 
 Success after following this doc: a GitHub repo exists with the right shape; every service needed for V1 has an account and an env var; the repo deploys cleanly to Vercel on every push; the database has schema migrations in place with RLS; observability captures every request, LLM call, and error; the LLM pipeline is wired for real calls in staging and mockable in dev; nothing in the foundation is stopping feature work from starting.
 
 **Explicitly out of scope here:**
-- Feature implementation (debriefs, chat, onboarding, etc.) — that's V1 build work
-- Individual prompt design — lives in `prompts/` and is its own workstream (see V1 scope §4)
-- Detailed API surface specs — produced per-feature as needed
-- Exhaustive cost modelling at scale — only named where relevant to setup choices
+- Feature implementation (debriefs, chat, onboarding, etc.): that's V1 build work
+- Individual prompt design: lives in `prompts/` and is its own workstream (see V1 scope §4)
+- Detailed API surface specs: produced per-feature as needed
+- Exhaustive cost modelling at scale: only named where relevant to setup choices
 
 **Guiding principle for this stage:** free where free is good enough; architecturally ready for paid services to slot in when needed; nothing left to retrofit.
 
@@ -72,7 +72,7 @@ coach-casey/
 │   ├── migrations/                   # Timestamped SQL migration files
 │   ├── seed.sql                      # Dev seed data
 │   └── config.toml                   # Supabase CLI config
-├── prompts/                          # V1-scope §4 workstream — starts empty, grows
+├── prompts/                          # V1-scope §4 workstream: starts empty, grows
 │   └── prompt-engineering-principles.md
 ├── scripts/
 │   ├── generate-types.sh             # Pydantic → OpenAPI → TypeScript
@@ -91,7 +91,7 @@ coach-casey/
 **Why this shape:**
 
 - **Single repo, not monorepo tooling.** No Turborepo, no pnpm workspaces. Over-engineering for one person building with Claude Code. Plain file organisation is enough.
-- **Python under `/api`.** Vercel's convention — any Python file under `/api` becomes a serverless function at that path. Clean separation of concerns without deployment complexity.
+- **Python under `/api`.** Vercel's convention: any Python file under `/api` becomes a serverless function at that path. Clean separation of concerns without deployment complexity.
 - **`_shared/` prefix (underscore).** Vercel ignores files/directories prefixed with `_` when generating function routes. Prevents shared code from being exposed as endpoints.
 - **Migrations co-located in repo.** `supabase/migrations/` tracks schema evolution in git. Never run manual SQL against production; every change is a migration file.
 - **Pydantic as the type source of truth.** Backend owns the data shapes. TypeScript types are generated from Pydantic via OpenAPI. One source of truth prevents frontend/backend drift.
@@ -99,7 +99,7 @@ coach-casey/
 
 ---
 
-## 3. Services — connect now vs later
+## 3. Services: connect now vs later
 
 Split by cost model, not by importance. The paid services get accounts and wiring but no active spend.
 
@@ -127,18 +127,18 @@ Every one of these costs nothing until usage exceeds the free tier. At 100–200
 
 ### Domains (register now)
 
-- **`coachcasey.app`** — primary product domain. Register at foundation setup; forward to Vercel once deployed. Also the basis for product email (`hello@coachcasey.app`, `coach@coachcasey.app` via Resend for transactional, forwarding to Workspace inbox for inbound).
-- **`coachcasey.run`** — defensive registration, redirects to primary. Cheap insurance against on-theme competitors.
-- **`themarathonclinic.com`** — Jason owns this separately. Placeholder at V1 launch; content buildout deferred post-V1 (see `strategy-foundation.md` §9). Not part of Coach Casey's operational infrastructure at launch.
-- **`coachcasey.com`** — premium-priced (~$10k). Deferred. Revisit post-launch if warranted.
+- **`coachcasey.app`**: primary product domain. Register at foundation setup; forward to Vercel once deployed. Also the basis for product email (`hello@coachcasey.app`, `coach@coachcasey.app` via Resend for transactional, forwarding to Workspace inbox for inbound).
+- **`coachcasey.run`**: defensive registration, redirects to primary. Cheap insurance against on-theme competitors.
+- **`themarathonclinic.com`**: Jason owns this separately. Placeholder at V1 launch; content buildout deferred post-V1 (see `strategy-foundation.md` §9). Not part of Coach Casey's operational infrastructure at launch.
+- **`coachcasey.com`**: premium-priced (~$10k). Deferred. Revisit post-launch if warranted.
 
 ### Hold off entirely until needed
 
-- **Vercel Pro** ($20/month) — only upgrade when hitting Hobby limits (bandwidth, function execution time, team features). Unlikely pre-launch.
-- **Supabase Pro** ($25/month) — upgrade when the 500MB DB is tight or when daily backups become necessary (they are pre-launch, but not *strictly* — we can take manual snapshots).
-- **Paid Sentry / PostHog / Langfuse tiers** — only at actual usage limits.
-- **Email deliverability upgrades** (Resend paid, or SendGrid) — only if deliverability becomes a problem or volume exceeds 3K/month.
-- **Strava developer app** (free, but requires application) — wait until foundation is solid and the application can be submitted with a real-looking app (see `strava-api-compliance-note.md`).
+- **Vercel Pro** ($20/month): only upgrade when hitting Hobby limits (bandwidth, function execution time, team features). Unlikely pre-launch.
+- **Supabase Pro** ($25/month): upgrade when the 500MB DB is tight or when daily backups become necessary (they are pre-launch, but not *strictly*; we can take manual snapshots).
+- **Paid Sentry / PostHog / Langfuse tiers**: only at actual usage limits.
+- **Email deliverability upgrades** (Resend paid, or SendGrid): only if deliverability becomes a problem or volume exceeds 3K/month.
+- **Strava developer app** (free, but requires application): wait until foundation is solid and the application can be submitted with a real-looking app (see `strava-api-compliance-note.md`).
 
 ---
 
@@ -152,8 +152,8 @@ Every service above produces credentials. Rules for handling them:
 - `.env.example` in repo: checked in, contains variable *names* and descriptions, no real values. The template for local setup.
 
 **Environment separation from day one.**
-- `NEXT_PUBLIC_SUPABASE_URL` — fine to expose
-- `SUPABASE_SERVICE_ROLE_KEY` — server-only, never exposed, never prefixed `NEXT_PUBLIC_`
+- `NEXT_PUBLIC_SUPABASE_URL`: fine to expose
+- `SUPABASE_SERVICE_ROLE_KEY`: server-only, never exposed, never prefixed `NEXT_PUBLIC_`
 - Same discipline for every other secret. If in doubt: server-only.
 
 **Variable naming convention.**
@@ -198,7 +198,7 @@ RESEND_API_KEY=
 # App config
 NEXT_PUBLIC_APP_URL=
 NODE_ENV=
-LLM_MODE=  # 'real' | 'mock' — see §9
+LLM_MODE=  # 'real' | 'mock': see §9
 ```
 
 **Rotation discipline.** Any accidental commit of a secret: rotate immediately (all affected services), regardless of whether the commit was reverted. Git history preserves reverted commits.
@@ -217,16 +217,16 @@ One-shot setup target. Someone pulling the repo for the first time should be abl
 - pnpm or npm (pnpm preferred)
 - uv for Python dependency management (fast, modern, replaces pip + venv)
 - Supabase CLI (for local DB + migrations)
-- Docker (for local Supabase — optional, remote Supabase is simpler for solo dev)
+- Docker (for local Supabase; optional, remote Supabase is simpler for solo dev)
 
 **First-run steps** (captured in `scripts/local-setup.sh` and documented in README):
 
 1. Clone repo
-2. `pnpm install` — frontend deps
-3. `uv sync` — Python deps
-4. Copy `.env.example` → `.env.local`, fill in dev credentials
-5. `pnpm dev` — runs Next.js locally
-6. In separate terminal: `vercel dev` — runs Python functions locally matching Vercel behaviour
+2. `pnpm install`: frontend deps
+3. `uv sync`: Python deps
+4. Copy `.env.example` to `.env.local`, fill in dev credentials
+5. `pnpm dev`: runs Next.js locally
+6. In separate terminal: `vercel dev`: runs Python functions locally matching Vercel behaviour
 7. Point at remote Supabase dev instance (simpler than running local Supabase)
 
 **Dev database strategy.** Use a dedicated Supabase project for development. Separate from production. Migrations run against both. Seed data can be loaded via `supabase/seed.sql`.
@@ -240,8 +240,8 @@ One-shot setup target. Someone pulling the repo for the first time should be abl
 GitHub → Vercel on every push. Preview deployments for PRs, production deployment for `main`.
 
 **Branch strategy (solo builder):**
-- `main` — always deployable. Protected. No direct pushes; everything via PR.
-- `feature/*` — short-lived feature branches. Merged via PR after CI passes.
+- `main`: always deployable. Protected. No direct pushes; everything via PR.
+- `feature/*`: short-lived feature branches. Merged via PR after CI passes.
 - Preview deploys on every PR (Vercel does this automatically once connected to GitHub).
 
 Why protect `main` even as a solo builder: muscle memory for when contractors or collaborators come in, and a CI gate catches mistakes before they hit production.
@@ -256,7 +256,7 @@ Why protect `main` even as a solo builder: muscle memory for when contractors or
 **Vercel configuration:**
 - Framework preset: Next.js (auto-detected)
 - Python runtime: specified in `vercel.json`
-- Env vars: set in Vercel dashboard, scoped to Production/Preview/Development
+- Env vars: set in Vercel dashboard, scoped to Production, Preview, Development
 - Function region: Sydney (syd1) for lowest latency to AU/NZ users
 
 **Deployment verification.** Every production deploy runs a smoke test: one GET request to a `/api/health` endpoint that verifies DB connection and returns 200. Fails loud if anything's broken.
@@ -268,7 +268,7 @@ Why protect `main` even as a solo builder: muscle memory for when contractors or
 The discipline that's most painful to retrofit. Get it right on day one.
 
 **Migrations, not manual SQL.**
-Every schema change authored as a file under `supabase/migrations/`, committed to git, run through `supabase db push` (or equivalent). Never run SQL directly against production. Never. This is how schema drift happens.
+Every schema change authored as a file under `supabase/migrations/`, committed to git, run through `supabase db push` (or equivalent). Never run SQL directly against production; this is how schema drift happens.
 
 **RLS on every table from day one.**
 Every table gets a Row Level Security policy. Default policy: deny all. Explicit policies grant read/write only to authenticated users accessing their own data.
@@ -290,19 +290,18 @@ Service role key bypasses RLS (server-side operations). Anon/auth key respects R
 
 **First migrations to run** (before any feature code):
 
-1. `00001_enable_extensions.sql` — enable pgvector, pg_cron, uuid-ossp
-2. `00002_create_athletes.sql` — athletes table tied to auth.users
-3. `00003_rls_defaults.sql` — baseline RLS helper functions if needed
+1. `00001_enable_extensions.sql`: enable pgvector, pg_cron, uuid-ossp
+2. `00002_create_athletes.sql`: athletes table tied to auth.users
+3. `00003_rls_defaults.sql`: baseline RLS helper functions if needed
 4. Subsequent migrations per data-model table as features come online
 
-The full V1 data model is captured in `technical-decision-log.md` — that's the source of truth for table list. Migrations implement it incrementally as features land.
+The full V1 data model is captured in `technical-decision-log.md`; that's the source of truth for table list. Migrations implement it incrementally as features land.
 
 **Backups.**
-Supabase free tier does daily backups with 7-day retention. Sufficient for pre-launch dev.
-Before launch: take a manual snapshot before any risky change. Upgrade to Pro for longer retention once real user data exists.
+Supabase free tier does daily backups with 7-day retention. Sufficient for pre-launch dev. Before launch: take a manual snapshot before any risky change. Upgrade to Pro for longer retention once real user data exists.
 
 **pgvector setup.**
-Extension enabled in first migration. Indexes added lazily — per-table, when actually needed. Don't create vector indexes speculatively; they're expensive to maintain and "surgical use" was a deliberate data-architecture decision (see technical decision log).
+Extension enabled in first migration. Indexes added lazily: per-table, when actually needed. Don't create vector indexes speculatively; they're expensive to maintain and "surgical use" was a deliberate data-architecture decision (see technical decision log).
 
 ---
 
@@ -310,19 +309,19 @@ Extension enabled in first migration. Indexes added lazily — per-table, when a
 
 Wire everything from day one. Catching production issues starts here.
 
-**Sentry** — every uncaught error, in both frontend and backend.
+**Sentry**: every uncaught error, in both frontend and backend.
 - Next.js: `@sentry/nextjs` SDK, configured via Sentry wizard
 - Python: `sentry-sdk` with FastAPI integration
 - Source maps uploaded on every deploy so stack traces are readable
-- Tags: environment (production/preview/development), user ID (where available), feature area
+- Tags: environment (production, preview, development), user ID (where available), feature area
 
-**PostHog** — every user-facing event.
+**PostHog**: every user-facing event.
 - JS snippet in Next.js root layout
 - Feature flag evaluation from day one (empty flag set initially; infrastructure ready)
 - Autocapture enabled; custom events added as features land
 - Session recordings: off initially (privacy-sensitive, uses quota fast); toggle on for first-100-users watching period
 
-**Langfuse** — every LLM call.
+**Langfuse**: every LLM call.
 - Wrapped around every Anthropic SDK call in `api/_shared/llm/anthropic_client.py`
 - Captures: prompt, response, input tokens, output tokens, latency, model, cache hit/miss, cost
 - Trace IDs correlate with Sentry errors so an error on an LLM call surfaces both the app-layer stack trace and the prompt/response context
@@ -330,7 +329,7 @@ Wire everything from day one. Catching production issues starts here.
 
 **Logging discipline.**
 - Structured JSON logs from both Next.js and Python backends
-- No `print()` or `console.log()` in production code paths — use proper loggers
+- No `print()` or `console.log()` in production code paths: use proper loggers
 - Log levels used correctly (ERROR is for actual errors, not "something happened")
 
 **Alerting.**
@@ -351,10 +350,10 @@ The highest-cost variable component. Design the dev strategy deliberately.
 | `real` | Staging + specific tests | Real Anthropic API calls with small dev credit budget. |
 | `real` | Production | Real calls, real budget, full observability. |
 
-The mock layer matters. A developer iterating on UI shouldn't be burning dev credits on every page refresh. The mocks should be good enough that UI and flow logic can be built without hitting the real API — real API is only needed when iterating on prompt quality specifically.
+The mock layer matters. A developer iterating on UI shouldn't be burning dev credits on every page refresh. The mocks should be good enough that UI and flow logic can be built without hitting the real API; real API is only needed when iterating on prompt quality specifically.
 
 **Prompt caching from day one.**
-Anthropic's prompt caching reduces cached-prefix costs by 50–90%. Cache the system prompt and athlete context (the parts reused across every debrief, chat turn, weekly review). Cache TTL: 5 minutes (default) or 1 hour (extended). The longer TTL is right for athlete context — it's the same for a conversation burst.
+Anthropic's prompt caching reduces cached-prefix costs by 50-90%. Cache the system prompt and athlete context (the parts reused across every debrief, chat turn, weekly review). Cache TTL: 5 minutes (default) or 1 hour (extended). The longer TTL is right for athlete context; it's the same for a conversation burst.
 
 **Structured tool use for all LLM writes.**
 Never parse freeform text to extract structured data. Every DB write originating from an LLM goes through a tool call with a Pydantic schema. This is non-negotiable; the data layer's integrity depends on it.
@@ -366,7 +365,7 @@ Never parse freeform text to extract structured data. Every DB write originating
 
 ---
 
-## 10. The initial scaffold — what to build first
+## 10. The initial scaffold: what to build first
 
 The minimum the foundation needs to be "done" and feature work can start.
 
@@ -390,19 +389,19 @@ When all thirteen of those pass, the foundation is done. Feature work starts.
 
 ## 11. What's wired but dormant
 
-Things in the scaffold that exist but don't do anything user-facing yet. Deliberate — builds the structural discipline before features need it.
+Things in the scaffold that exist but don't do anything user-facing yet. Deliberate: builds the structural discipline before features need it.
 
-- **Stripe integration** — SDK installed, webhook endpoint created, subscription models in schema, but no UI to subscribe and no production keys live. When the first real user signs up for the trial, this flips on.
-- **Strava integration** — Python OAuth handler file exists, webhook handler file exists, schema supports activities. Activated when the developer application is approved.
-- **Web push notifications** — service worker registered, subscription flow stubbed, preferences table supports channel toggles. Activated when the first notification needs to go out (post-first-debrief).
-- **PWA install prompt** — manifest and service worker in place, install banner hidden by a feature flag. Flipped on close to launch.
-- **Feature flags in PostHog** — no flags defined initially, but the evaluation path exists. Every new rolling feature gets a flag by default.
+- **Stripe integration**: SDK installed, webhook endpoint created, subscription models in schema, but no UI to subscribe and no production keys live. When the first real user signs up for the trial, this flips on.
+- **Strava integration**: Python OAuth handler file exists, webhook handler file exists, schema supports activities. Activated when the developer application is approved.
+- **Web push notifications**: service worker registered, subscription flow stubbed, preferences table supports channel toggles. Activated when the first notification needs to go out (post-first-debrief).
+- **PWA install prompt**: manifest and service worker in place, install banner hidden by a feature flag. Flipped on close to launch.
+- **Feature flags in PostHog**: no flags defined initially, but the evaluation path exists. Every new rolling feature gets a flag by default.
 
 ---
 
 ## 12. What this unblocks
 
-With the foundation in place, feature work can start in the order defined by V1 scope §7. No more "we need to set up X before we can build Y" conversations — everything's set up. The remaining questions are about features, prompts, and flows.
+With the foundation in place, feature work can start in the order defined by V1 scope section 7. No more "we need to set up X before we can build Y" conversations; everything's set up. The remaining questions are about features, prompts, and flows.
 
 **The single external blocker that still remains:** Strava developer application approval. This is the one thing that can't be built around. Submit it in parallel with foundation work so it's approved (or rejected with feedback to iterate) by the time feature work reaches the Strava-dependent surfaces.
 

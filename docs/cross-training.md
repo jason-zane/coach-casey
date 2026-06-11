@@ -1,14 +1,14 @@
-# Coach Casey — Cross-Training and Other Activities
+# Coach Casey: Cross-Training and Other Activities
 
 **Owner:** Jason
 **Last updated:** 2026-04-25
-**Status:** Living document. Full feature spec — product behaviour, design intent, and engineering implementation. Built so an engineer can implement against it directly. Expected to evolve as build surfaces decisions the spec didn't anticipate.
+**Status:** Living document. Full feature spec: product behaviour, design intent, and engineering implementation. Built so an engineer can implement against it directly. Expected to evolve as build surfaces decisions the spec didn't anticipate.
 
-Supersedes project memory when they conflict. Read alongside `strategy-foundation.md` (thesis — Coach Casey is a marathon coach, not a multi-sport coach), `v1-scope.md` (post-run debriefs and follow-ups, which this surface mirrors), `voice-guidelines.md` (in-product register), `interaction-principles.md` (push behaviour, message rhythm), `engineering-foundation.md` (services, data model conventions), `build-standards.md` (engineering baselines), and `technical-decision-log.md` (locked engineering decisions).
+Supersedes project memory when they conflict. Read alongside `strategy-foundation.md` (thesis: Coach Casey is a marathon coach, not a multi-sport coach), `v1-scope.md` (post-run debriefs and follow-ups, which this surface mirrors), `voice-guidelines.md` (in-product register), `interaction-principles.md` (push behaviour, message rhythm), `engineering-foundation.md` (services, data model conventions), `build-standards.md` (engineering baselines), and `technical-decision-log.md` (locked engineering decisions).
 
 ---
 
-## Part A — Product behaviour and design
+## Part A: Product behaviour and design
 
 Sections 1–8 describe what this surface does and why. The engineering sections (9 onwards) implement against this part.
 
@@ -16,12 +16,12 @@ Sections 1–8 describe what this surface does and why. The engineering sections
 
 ## 1. Why this exists
 
-Marathon training doesn't happen only on the runs. The bike on a recovery day, the gym session on Tuesday, the swim that replaced an aborted tempo — all of it shapes how the next run goes, and all of it carries information about the athlete's life and body that Coach Casey should be paying attention to.
+Marathon training doesn't happen only on the runs. The bike on a recovery day, the gym session on Tuesday, the swim that replaced an aborted tempo: all of it shapes how the next run goes, and all of it carries information about the athlete's life and body that Coach Casey should be paying attention to.
 
 Three jobs this surface does:
 
 1. **Captures life and load context.** Cross-training activities are part of the picture Coach Casey holds about the athlete. Memory lives here as much as in chat.
-2. **Lightly interprets.** Coach Casey is a marathon coach, not a strength coach or a swim coach. The interpretation is honest about that — observational, focused on running impact, not pretending to coach the activity itself.
+2. **Lightly interprets.** Coach Casey is a marathon coach, not a strength coach or a swim coach. The interpretation is honest about that: observational, focused on running impact, not pretending to coach the activity itself.
 3. **Detects substitution.** When a cross-training session appears where a run was planned, that's a signal worth surfacing. Often it's an injury or niggle; sometimes it's life. Either way, Coach Casey should notice and ask.
 
 What this surface is not: a cross-training coaching surface. Coach Casey does not write strength programmes, prescribe yoga sequences, or build swim sets. The interpretive depth is intentionally light.
@@ -48,7 +48,7 @@ Note: Virtual Run flows into the run debrief pipeline, not this one. Listed in �
 
 These sync to context but produce no thread message:
 
-- Walk — too noisy (dog walks, commutes). Captured as ambient load context only.
+- Walk: too noisy (dog walks, commutes). Captured as ambient load context only.
 
 If usage data later shows athletes wanting walks acknowledged (e.g. they're using long deliberate walks as recovery), revisit.
 
@@ -56,7 +56,7 @@ If usage data later shows athletes wanting walks acknowledged (e.g. they're usin
 
 - One message per activity. No batching.
 - No daily or weekly cap. A daily lifter gets a prompt per gym session. Pattern recognition (§4) reshapes what the prompt says, not whether it fires.
-- Each prompt is its own thread message — visually distinct from run debriefs but in the same thread.
+- Each prompt is its own thread message: visually distinct from run debriefs but in the same thread.
 - Push notification fires on every cross-training prompt, same as run debriefs. Athlete can toggle this off in preferences if it becomes too much (§17).
 
 ---
@@ -65,12 +65,12 @@ If usage data later shows athletes wanting walks acknowledged (e.g. they're usin
 
 ### 3.1 Structural shape
 
-Shorter than a run debrief. One short paragraph or a single sentence-plus-question. Always in-product register (`voice-guidelines.md` §3) — quiet, observational, trusting the athlete to fill in the rest.
+Shorter than a run debrief. One short paragraph or a single sentence-plus-question. Always in-product register (`voice-guidelines.md` §3): quiet, observational, trusting the athlete to fill in the rest.
 
 Three components, in order:
 
 1. **Acknowledge specifically.** The activity type, the duration or distance, and one observable detail if Strava provided it (title, HR, the day's context).
-2. **Interpret lightly.** A line that connects this activity to the running picture — recovery, load, substitution, pattern. Drawn from the per-activity knowledge base (§5).
+2. **Interpret lightly.** A line that connects this activity to the running picture: recovery, load, substitution, pattern. Drawn from the per-activity knowledge base (§5).
 3. **Open the door.** A short question that invites context. Skipped if the title or data already answers it.
 
 ### 3.2 Question vs no question
@@ -84,7 +84,7 @@ Three components, in order:
 
 ### 3.3 Reply behaviour
 
-Athlete replies in the same way they reply to post-run follow-ups — taps the message, types a response.
+Athlete replies in the same way they reply to post-run follow-ups: taps the message, types a response.
 
 - The reply is a real chat turn (not a system message). Goes into memory via structured tool use.
 - Follow-up turns work normally if the athlete wants to keep talking.
@@ -97,10 +97,10 @@ Marketing-register and motivational language stay out. Anchor examples:
 
 - ✅ *"40 min easy spin. Legs probably appreciated it after Sunday's long run."*
 - ✅ *"Saw the swim today. Anything going on with the legs, or just mixing it up?"*
-- ✅ *"Yoga again — third time this week. Anything in particular you're working on?"*
-- ❌ *"Great cross-training session!"* — sycophancy, generic.
-- ❌ *"Strong work on the bike today — keep it up!"* — performative, not the voice.
-- ❌ *"Your bike session shows excellent zone 2 discipline."* — pretending to coach the activity.
+- ✅ *"Yoga again: third time this week. Anything in particular you're working on?"*
+- ❌ *"Great cross-training session!"* (sycophancy, generic).
+- ❌ *"Strong work on the bike today: keep it up!"* (performative, not the voice).
+- ❌ *"Your bike session shows excellent zone 2 discipline."* (pretending to coach the activity).
 
 ---
 
@@ -116,8 +116,8 @@ Pattern recognition shapes what the prompt says, not whether it fires. The athle
 **What changes when a pattern is established:**
 
 - The message acknowledges the rhythm rather than asking what the activity was. *"Tuesday gym, like clockwork. How was it?"*
-- The interpretive line can refer to the pattern's relationship to running. *"Tuesday gym, day before tempo — usually fine for you, the legs have been good on Wednesdays this block."*
-- The question, when present, gets sharper — it asks about *this* session in the context of the pattern, not about the activity in general.
+- The interpretive line can refer to the pattern's relationship to running. *"Tuesday gym, day before tempo: usually fine for you, the legs have been good on Wednesdays this block."*
+- The question, when present, gets sharper: it asks about *this* session in the context of the pattern, not about the activity in general.
 
 **When a pattern is broken:**
 
@@ -130,11 +130,11 @@ Pattern recognition shapes what the prompt says, not whether it fires. The athle
 
 This is the substantive coaching layer Coach Casey draws on when interpreting. Each entry covers: load profile (what this costs the body), typical use case in marathon training, substitution signals, interpretation patterns.
 
-**These are first drafts. Jason to review and rewrite in his coaching voice.** The substance here directly shapes prompt quality — generic descriptions produce generic prompts. The voice and judgement need to be Jason's, not generic endurance-training boilerplate.
+**These are first drafts. Jason to review and rewrite in his coaching voice.** The substance here directly shapes prompt quality: generic descriptions produce generic prompts. The voice and judgement need to be Jason's, not generic endurance-training boilerplate.
 
 ### 5.1 Ride (outdoor / virtual)
 
-**Load profile.** Aerobic, low impact. Easy spinning is genuinely recovery-promoting (light venous return, low neuromuscular cost). Hard riding (sustained intervals, sprints, climbing) is real cardiovascular load that shows up in subsequent runs as fatigue, sometimes for 24–48 hours.
+**Load profile.** Aerobic, low impact. Easy spinning is genuinely recovery-promoting (light venous return, low neuromuscular cost). Hard riding (sustained intervals, sprints, climbing) is real cardiovascular load that shows up in subsequent runs as fatigue, sometimes for 24 to 48 hours.
 
 **Typical use cases.** Recovery the day after a hard run. Aerobic supplement on a non-run day. Substitute for a run when injured or managing load.
 
@@ -160,7 +160,7 @@ This is the substantive coaching layer Coach Casey draws on when interpreting. E
 
 ### 5.3 Gym / Weight Training
 
-**Load profile.** Highly variable. Heavy lower-body strength work is genuinely costly to the legs and shows up the next day. Upper-body or light maintenance work is not. Coach Casey can't always tell which from Strava data alone — duration and HR are weak signals; the title sometimes helps.
+**Load profile.** Highly variable. Heavy lower-body strength work is genuinely costly to the legs and shows up the next day. Upper-body or light maintenance work is not. Coach Casey can't always tell which from Strava data alone: duration and HR are weak signals; the title sometimes helps.
 
 **Typical use cases.** Strength supplement (typical for serious marathon runners). Injury prevention or rehab. Sometimes pure habit unrelated to running.
 
@@ -177,7 +177,7 @@ This is the substantive coaching layer Coach Casey draws on when interpreting. E
 
 **Typical use cases.** Mobility, recovery, stress management. Sometimes prescribed for injury prevention.
 
-**Substitution signal strength: low to medium.** Less common as a direct substitute for a run, but a yoga session replacing a planned run often signals the athlete is dialling back — niggle, fatigue, or life stress.
+**Substitution signal strength: low to medium.** Less common as a direct substitute for a run, but a yoga session replacing a planned run often signals the athlete is dialling back: niggle, fatigue, or life stress.
 
 **Interpretation patterns.**
 - Pattern session → acknowledge, ask what they're working on if context is thin.
@@ -186,11 +186,11 @@ This is the substantive coaching layer Coach Casey draws on when interpreting. E
 
 ### 5.5 Pilates
 
-**Load profile.** Similar to yoga — low to moderate, depending on style. Reformer Pilates can be more loading than mat. Generally low impact, focused on core and stabilisers.
+**Load profile.** Similar to yoga: low to moderate, depending on style. Reformer Pilates can be more loading than mat. Generally low impact, focused on core and stabilisers.
 
 **Typical use cases.** Core work, injury prevention, rehab. Often prescribed by physios.
 
-**Substitution signal strength: low to medium.** Same logic as yoga — a Pilates session replacing a planned run often signals an injury management decision.
+**Substitution signal strength: low to medium.** Same logic as yoga: a Pilates session replacing a planned run often signals an injury management decision.
 
 **Interpretation patterns.** Same shape as yoga. Acknowledge, ask if context is thin, watch for substitution patterns.
 
@@ -198,7 +198,7 @@ This is the substantive coaching layer Coach Casey draws on when interpreting. E
 
 Virtual runs flow into the run debrief pipeline, not this one. Listed here for explicit boundary clarity.
 
-If the athlete has been running outdoors and suddenly switches to treadmill for a session, that's worth noticing — usually weather, sometimes injury management. Surfaces in the run debrief, not as a cross-training prompt.
+If the athlete has been running outdoors and suddenly switches to treadmill for a session, that's worth noticing: usually weather, sometimes injury management. Surfaces in the run debrief, not as a cross-training prompt.
 
 ### 5.7 Catch-all (other activity types)
 
@@ -224,7 +224,7 @@ All three conditions:
 2. The plan had a run prescribed for the day in question.
 3. A cross-training activity synced for that day, and no run did.
 
-Without an uploaded plan, substitution detection is not possible — Coach Casey can't know what was meant to happen. This is one of the unlocked behaviours that comes with plan upload, and worth flagging in the upload re-prompt copy (`v1-scope.md` §2.2).
+Without an uploaded plan, substitution detection is not possible: Coach Casey can't know what was meant to happen. This is one of the unlocked behaviours that comes with plan upload, and worth flagging in the upload re-prompt copy (`v1-scope.md` §2.2).
 
 ### 6.2 What the prompt looks like
 
@@ -232,7 +232,7 @@ The standard cross-training message (§3) gets a substitution-aware variant.
 
 - **Acknowledge the activity.** Same as standard.
 - **Note the substitution explicitly but lightly.** *"Saw the swim today instead of the tempo."* Not framed as a problem; framed as something Coach Casey noticed.
-- **Open the door with a specific question.** The question is sharpened by what's already in context — known niggles, recent complaints, life stress.
+- **Open the door with a specific question.** The question is sharpened by what's already in context: known niggles, recent complaints, life stress.
 
 Three substitution scenarios with example shape:
 
@@ -251,7 +251,7 @@ Substitution events are high-value memory. Whatever the athlete says in response
 
 - The injuries/niggles record (if injury is the reason).
 - The training context record (if life is the reason).
-- Subsequent run debriefs, which can reference the substitution. *"First tempo back after swimming through the calf flare — easy day, see how it feels."*
+- Subsequent run debriefs, which can reference the substitution. *"First tempo back after swimming through the calf flare: easy day, see how it feels."*
 
 Substitution detection is one of the clearest demonstrations of the moat. Coach Casey notices a pattern that requires plan + activity + life context to read correctly. This is exactly the kind of thing Strava structurally won't build.
 
@@ -259,7 +259,7 @@ Substitution detection is one of the clearest demonstrations of the moat. Coach 
 
 ## 7. Plan-prescribed cross-training
 
-Some plans (Pfitzinger, some coach-written plans) prescribe cross-training explicitly. When the plan includes cross-training entries, those entries are interpreted alongside running entries — same logic as run sessions.
+Some plans (Pfitzinger, some coach-written plans) prescribe cross-training explicitly. When the plan includes cross-training entries, those entries are interpreted alongside running entries: same logic as run sessions.
 
 **What this means in practice:**
 
@@ -287,7 +287,7 @@ This is a prompt engineering call as much as a design call. The debrief prompt n
 
 ---
 
-## Part B — Engineering implementation
+## Part B: Engineering implementation
 
 Sections 9 onwards specify how this gets built. An engineer should be able to implement against this part directly, with §1–8 as reference for behaviour and intent.
 
@@ -301,7 +301,7 @@ This feature depends on the following being in place. If any are missing or inco
 
 - **Strava webhook integration.** Activities sync from Strava to the `activities` table on creation. The webhook pipeline is the entry point for this feature.
 - **Sonnet LLM client with prompt caching** (per `technical-decision-log.md`). Cross-training prompts use the same client as run debriefs.
-- **`debriefs` table** (or equivalent — see §10.1 note on data model assumption) with the ability to store activity-linked Coach Casey messages.
+- **`debriefs` table** (or equivalent: see §10.1 note on data model assumption) with the ability to store activity-linked Coach Casey messages.
 - **`activities` table** with type, duration, distance, HR, title, and start_time fields populated from Strava.
 - **Push notification system.** Run debriefs trigger push; cross-training rides on the same channel.
 - **Athlete preferences surface.** Adding a new toggle requires the preferences UI to exist.
@@ -321,9 +321,9 @@ This feature depends on the following being in place. If any are missing or inco
 
 ### 10.1 Assumption to confirm
 
-The existing schema (per `technical-decision-log.md` and `v1-scope.md` §3) lists a `debriefs` table. This spec assumes `debriefs` is the right home for cross-training acknowledgement messages — it already exists for run debriefs (proactive, activity-linked, Coach Casey-generated content), and cross-training acknowledgements share the same shape (proactive, activity-linked, generated content with optional athlete reply).
+The existing schema (per `technical-decision-log.md` and `v1-scope.md` §3) lists a `debriefs` table. This spec assumes `debriefs` is the right home for cross-training acknowledgement messages: it already exists for run debriefs (proactive, activity-linked, Coach Casey-generated content), and cross-training acknowledgements share the same shape (proactive, activity-linked, generated content with optional athlete reply).
 
-**Engineer to confirm against the actual built schema before applying changes.** If `debriefs` is structured run-only (e.g. has run-specific columns like `pace_summary` that don't apply to cross-training), the alternative is to extend it with a `kind` discriminator and nullable run-specific columns, or to introduce a parallel `activity_messages` table. Recommendation is to extend `debriefs` with a `kind` discriminator — adding a parallel table is more code paths for the same conceptual artifact.
+**Engineer to confirm against the actual built schema before applying changes.** If `debriefs` is structured run-only (e.g. has run-specific columns like `pace_summary` that don't apply to cross-training), the alternative is to extend it with a `kind` discriminator and nullable run-specific columns, or to introduce a parallel `activity_messages` table. Recommendation is to extend `debriefs` with a `kind` discriminator: adding a parallel table is more code paths for the same conceptual artifact.
 
 ### 10.2 Changes to `debriefs`
 
@@ -335,9 +335,9 @@ Add the following columns:
 | `is_pattern_session` | boolean | false | Whether the linked activity matched an established pattern at generation time. |
 | `pattern_description` | text | null | Cached pattern description (e.g. "Tuesday gym, 5 of last 4 weeks") used in the prompt. Null when not a pattern. |
 
-Existing columns (assumed to exist; engineer to verify): `id`, `athlete_id`, `activity_id`, `content`, `created_at`, `model_version`, `prompt_version`. If `model_version` and `prompt_version` aren't already there, add them — non-negotiable for prompt-iteration discipline (per `engineering-foundation.md` §8).
+Existing columns (assumed to exist; engineer to verify): `id`, `athlete_id`, `activity_id`, `content`, `created_at`, `model_version`, `prompt_version`. If `model_version` and `prompt_version` aren't already there, add them: non-negotiable for prompt-iteration discipline (per `engineering-foundation.md` §8).
 
-**RLS:** existing debrief RLS policies apply. No changes needed — same athlete-scoped access.
+**RLS:** existing debrief RLS policies apply. No changes needed: same athlete-scoped access.
 
 ### 10.3 Changes to `preferences`
 
@@ -355,7 +355,7 @@ Activities sync from Strava as-is. The activity type field (already present from
 
 ### 10.5 No new tables
 
-Pattern detection runs as a query against `activities` (§13). Substitution detection runs as a query against `planned_sessions` and `activities` (§14). No caching tables — at V1 user scale, on-the-fly queries are trivially cheap and pre-optimisation adds complexity for no benefit.
+Pattern detection runs as a query against `activities` (§13). Substitution detection runs as a query against `planned_sessions` and `activities` (§14). No caching tables: at V1 user scale, on-the-fly queries are trivially cheap and pre-optimisation adds complexity for no benefit.
 
 If pattern detection becomes a performance issue at scale (unlikely below 10k users), a denormalised `athlete_patterns` table with daily refresh becomes the answer. Don't build it now.
 
@@ -410,7 +410,7 @@ If a debrief already exists for the activity, exit early. Strava can send webhoo
 
 ### 11.4 Retroactive activities
 
-Activities synced more than 24 hours after their `start_time` should be treated as ambient capture only — no message generated, no push. Rationale: a debrief or cross-training prompt arriving for a 5-day-old activity is jarring and stale; the moment has passed.
+Activities synced more than 24 hours after their `start_time` should be treated as ambient capture only: no message generated, no push. Rationale: a debrief or cross-training prompt arriving for a 5-day-old activity is jarring and stale; the moment has passed.
 
 ```
 if (now() - activity.start_time) > 24 hours:
@@ -432,20 +432,20 @@ The standard path. Substitution detection (§14) runs as an extension of this pa
 2. **Retroactive check** (§11.4). Exit to ambient capture if too old.
 3. **Pattern detection query** (§13). Returns `is_pattern: bool, pattern_description: str | null`.
 4. **Substitution detection query** (§14). Returns `is_substitution: bool, planned_session: object | null`. Only runs if a current plan exists.
-5. **Build prompt input** — activity data, pattern info, substitution info, recent context, per-activity knowledge base entry (§15.2).
-6. **Sonnet call with structured tool use** — generates the message text. Tool use available for memory writes if the prompt determines they're warranted (rare on initial generation; more common on athlete reply).
+5. **Build prompt input**: activity data, pattern info, substitution info, recent context, per-activity knowledge base entry (§15.2).
+6. **Sonnet call with structured tool use**: generates the message text. Tool use available for memory writes if the prompt determines they're warranted (rare on initial generation; more common on athlete reply).
 7. **Persist to `debriefs`** with `kind = 'cross_training_ack'` (or `'cross_training_substitution'` if §14 fired), `is_pattern_session`, `pattern_description`, `model_version`, `prompt_version`.
 8. **Trigger push notification** if `preferences.cross_training_push_enabled = true`.
 9. **Log to PostHog**: `cross_training_ack_generated` with tags for `activity_type`, `is_pattern`, `is_substitution`.
-10. **Log to Langfuse** (per `engineering-foundation.md` §8) — full prompt, response, tokens, latency, cost.
+10. **Log to Langfuse** (per `engineering-foundation.md` §8): full prompt, response, tokens, latency, cost.
 
 ### 12.2 Failure handling
 
 Per `build-standards.md` §3.2:
 
-- **LLM call timeout/error** → one silent retry, 500ms backoff. If still failing, log to Sentry and skip silently. The athlete sees no message; the activity remains in context. Do not surface a failure — a failed cross-training acknowledgement is a silent miss, not a user-facing error.
-- **Database write failure** → three retries, exponential backoff. If all fail, log to Sentry. The Sonnet call has already happened (cost incurred); failing to persist is bad. Worth alerting on.
-- **Push notification failure** → silent. The message exists in the thread; athlete sees it on next app open.
+- **LLM call timeout/error**: one silent retry, 500ms backoff. If still failing, log to Sentry and skip silently. The athlete sees no message; the activity remains in context. Do not surface a failure: a failed cross-training acknowledgement is a silent miss, not a user-facing error.
+- **Database write failure**: three retries, exponential backoff. If all fail, log to Sentry. The Sonnet call has already happened (cost incurred); failing to persist is bad. Worth alerting on.
+- **Push notification failure**: silent. The message exists in the thread; athlete sees it on next app open.
 
 ### 12.3 Latency target
 
@@ -484,7 +484,7 @@ Inputs: `athlete_id`, `activity_type` (current activity's type), `id` (current a
 
 ### 13.3 Timezone handling
 
-Day-of-week must be computed in the athlete's timezone, not UTC. An athlete in Sydney whose Tuesday gym session starts at 7pm local can sync as a Wednesday morning UTC activity — naive UTC handling would break pattern detection.
+Day-of-week must be computed in the athlete's timezone, not UTC. An athlete in Sydney whose Tuesday gym session starts at 7pm local can sync as a Wednesday morning UTC activity: naive UTC handling would break pattern detection.
 
 Athlete timezone source: `athletes.timezone` (assumed to exist; if not, capture during onboarding from browser locale or Strava profile). Must be available before pattern detection can run reliably.
 
@@ -528,7 +528,7 @@ The `IN (...)` list above must match the run-session type values used by the pla
 
 ### 14.3 The "wait until end of day" rule
 
-A cross-training activity arriving at 6am where a run is planned for 6pm should not trigger substitution detection — the run might still happen.
+A cross-training activity arriving at 6am where a run is planned for 6pm should not trigger substitution detection: the run might still happen.
 
 Implementation: only run substitution detection if the cross-training activity's `start_time` is in the second half of the athlete's day (after 12:00 local time). Rough heuristic, not perfect. The alternative (defer the cross-training message until end of day) breaks the "message arrives shortly after activity sync" rhythm and is worse for the athlete experience.
 
@@ -540,7 +540,7 @@ Set `kind = 'cross_training_substitution'` on the debrief row. Pass the planned 
 
 ### 14.5 Edge cases
 
-- **Multiple run sessions planned for the same day** (rare — doubles in elite training, occasionally in marathon plans). Treat as substitution if no run happened that day; pass the most significant session (long > tempo > easy) into the prompt.
+- **Multiple run sessions planned for the same day** (rare: doubles in elite training, occasionally in marathon plans). Treat as substitution if no run happened that day; pass the most significant session (long > tempo > easy) into the prompt.
 - **Plan exists but is past end-date.** `is_current = true` should be false in this case; query won't return rows. If a stale plan is marked current, that's a plan-management bug, not a substitution detection bug.
 - **Plan was uploaded but not yet processed by extraction.** `planned_sessions` would be empty for the day; query returns nothing; no substitution fires. Acceptable.
 
@@ -557,7 +557,7 @@ The single prompt handles:
 - Standard acknowledgement (no pattern, no substitution).
 - Pattern-aware acknowledgement.
 - Substitution-aware acknowledgement (when input includes substitution data).
-- Catch-all activity types (handled via the per-activity knowledge base prompt context — see §15.2).
+- Catch-all activity types (handled via the per-activity knowledge base prompt context: see §15.2).
 
 One prompt with conditional logic in input. Not three separate prompts. The Sonnet call branches on input flags rather than the application code routing to different prompts.
 
@@ -608,14 +608,14 @@ One prompt with conditional logic in input. Not three separate prompts. The Sonn
 }
 ```
 
-Structured tool use enforces this shape (per `technical-decision-log.md` — never parse freeform text for structured data).
+Structured tool use enforces this shape (per `technical-decision-log.md`: never parse freeform text for structured data).
 
 ### 15.4 Prompt caching strategy
 
 Same as run debriefs:
 
 - System prompt (the voice, the rules, the thesis) → cached. Stable across all athletes.
-- Per-activity knowledge base entries → cached. Stable across all uses.
+- Per-activity knowledge base entries: cached. Stable across all uses.
 - Athlete-specific context → cached for the conversation burst (5-minute TTL).
 - Activity-specific data → not cached. Variable per call.
 
@@ -658,8 +658,8 @@ The notification *is* the opening of the experience (per `design-principles.md` 
 Variants by message kind:
 
 - Standard cross-training: notification preview shows the first sentence of the message.
-- Pattern cross-training: same — first sentence carries the pattern reference.
-- Substitution: same — first sentence carries the substitution acknowledgement.
+- Pattern cross-training: same (first sentence carries the pattern reference).
+- Substitution: same (first sentence carries the substitution acknowledgement).
 
 Engineer doesn't write the copy; the prompt produces the message and the first sentence is used as the preview. Truncation at ~80 chars per platform conventions.
 
@@ -696,17 +696,17 @@ Caught above where they belong; consolidated here for engineer convenience.
 | Case | Handling | Reference |
 |---|---|---|
 | Activity with missing data (no HR, no duration) | Fall back to type + title only in prompt | §3.1 |
-| Manual activities (no GPS) | Same as above | — |
-| Activities longer than 4 hours | Acknowledge normally; flag in prompt as unusual | — |
+| Manual activities (no GPS) | Same as above | (N/A) |
+| Activities longer than 4 hours | Acknowledge normally; flag in prompt as unusual | (N/A) |
 | Activities synced retroactively (>24h old) | Ambient capture only, no pipeline | §11.4 |
 | Multiple activities synced in burst | Process each, batch push notifications via group key | §16.4 |
-| Strava activity edited after sync (renamed, type changed) | First sync wins, edits don't regenerate the message | — |
-| Activity later deleted on Strava | Soft-delete the linked debrief; preserve any thread reply | — |
+| Strava activity edited after sync (renamed, type changed) | First sync wins, edits don't regenerate the message | (N/A) |
+| Activity later deleted on Strava | Soft-delete the linked debrief; preserve any thread reply | (N/A) |
 | Webhook fires twice for same activity | Idempotency check exits early | §11.3 |
 | Duplicate / near-duplicate activities (Strava bug) | Idempotency check on activity_id; if Strava sends a different ID, both get processed (acceptable, very rare) | §11.3 |
 | Pattern query returns multiple matching days | Take the most-occurrences row (LIMIT 1) | §13.1 |
 | Plan exists but is past end-date | `is_current = false` should prevent query match | §14.5 |
-| Athlete deletes account mid-pipeline | RLS prevents cross-athlete data; pipeline either completes or fails — both are acceptable | — |
+| Athlete deletes account mid-pipeline | RLS prevents cross-athlete data; pipeline either completes or fails (both acceptable) | (N/A) |
 | Sonnet returns malformed structured output | Tool-use schema enforces shape; if Anthropic returns invalid output (rare), retry once, then log to Sentry and skip | §12.2 |
 | Athlete timezone unknown | Pattern detection falls back to UTC; substitution detection skipped (correctness > coverage) | §13.3 |
 
@@ -731,12 +731,12 @@ Captures: prompt input, response, tokens (input/output, cached/uncached), latenc
 
 ### 19.2 PostHog events
 
-- `cross_training_ack_generated` — fires after successful persistence. Properties: `activity_type`, `is_pattern`, `is_substitution`, `latency_ms`.
-- `cross_training_ack_replied` — fires when athlete replies to a cross-training message. Properties: `activity_type`, `is_substitution`, `time_to_reply_minutes`.
-- `cross_training_ack_skipped` — fires after 7 days with no reply. Properties: `activity_type`, `is_substitution`. Used for engagement analysis.
-- `walk_ambient_capture` — fires when a walk syncs without triggering. Used for monitoring whether walks should re-enter the prompt list.
-- `retroactive_activity_skip` — fires on retroactive activity short-circuit. Properties: `activity_type`, `age_hours`.
-- `cross_training_push_sent` — fires when push fires. Properties: `activity_type`.
+- `cross_training_ack_generated`: fires after successful persistence. Properties: `activity_type`, `is_pattern`, `is_substitution`, `latency_ms`.
+- `cross_training_ack_replied`: fires when athlete replies to a cross-training message. Properties: `activity_type`, `is_substitution`, `time_to_reply_minutes`.
+- `cross_training_ack_skipped`: fires after 7 days with no reply. Properties: `activity_type`, `is_substitution`. Used for engagement analysis.
+- `walk_ambient_capture`: fires when a walk syncs without triggering. Used for monitoring whether walks should re-enter the prompt list.
+- `retroactive_activity_skip`: fires on retroactive activity short-circuit. Properties: `activity_type`, `age_hours`.
+- `cross_training_push_sent`: fires when push fires. Properties: `activity_type`.
 
 ### 19.3 Sentry
 
@@ -759,10 +759,10 @@ At 100 active users averaging 3 cross-training activities per week → ~1,200 ca
 Order to build, with dependencies named.
 
 1. **Schema migration** (§10.6). Adds columns to `debriefs` and `preferences`. Required first.
-2. **Activity sync routing** (§11). Add the type-based routing to the webhook handler. At this stage, cross-training activities are received but no pipeline processes them — they hit a stub.
+2. **Activity sync routing** (§11). Add the type-based routing to the webhook handler. At this stage, cross-training activities are received but no pipeline processes them: they hit a stub.
 3. **Pattern detection query** (§13). Implement and test against fixture data. Returns pattern info to a logger before any prompt uses it.
-4. **Cross-training prompt file** (§15) — initial version, no substitution variant. Includes per-activity knowledge base content from §5 (Jason to finalise voice before this lands).
-5. **Cross-training acknowledgement pipeline** (§12) — wires routing → pattern → prompt → persistence → push. End-to-end happy path working.
+4. **Cross-training prompt file** (§15): initial version, no substitution variant. Includes per-activity knowledge base content from §5 (Jason to finalise voice before this lands).
+5. **Cross-training acknowledgement pipeline** (§12): wires routing, pattern, prompt, persistence, push. End-to-end happy path working.
 6. **Preferences UI toggle** (§17). Athletes can opt out of pushes.
 7. **Eval fixtures** (§15.5). Run the eval suite. Iterate prompt until quality bar is met.
 8. **Substitution detection query** (§14). Depends on plan upload working. Adds substitution path to existing pipeline.
@@ -812,11 +812,11 @@ Before launch:
 
 Items to resolve as build progresses or as this surface is specified for prompt engineering. Not build-blocking unless flagged.
 
-- **Per-activity knowledge base** (§5) — written here in placeholder voice, needs Jason rewrite in his coaching voice. **Blocks step 4 of build sequence.**
-- **Voice anchor examples** in §3.4 — first-pass placeholders. Worth running through `voice-guidelines.md` anti-pattern checks during prompt engineering.
-- **Plan extraction handling cross-training entries** (§7) — needs verification when the plan extraction prompt is being written. Doesn't block the standard cross-training pipeline; only affects plan-prescribed cross-training interpretation.
-- **Notification copy details** (§17.1) — content skill drafts the toggle label and description copy.
-- **Session-type list alignment** (§14.2) — confirm against plan extraction prompt once it exists.
+- **Per-activity knowledge base** (§5): written here in placeholder voice, needs Jason rewrite in his coaching voice. **Blocks step 4 of build sequence.**
+- **Voice anchor examples** in §3.4: first-pass placeholders. Worth running through `voice-guidelines.md` anti-pattern checks during prompt engineering.
+- **Plan extraction handling cross-training entries** (§7): needs verification when the plan extraction prompt is being written. Doesn't block the standard cross-training pipeline; only affects plan-prescribed cross-training interpretation.
+- **Notification copy details** (§17.1): content skill drafts the toggle label and description copy.
+- **Session-type list alignment** (§14.2): confirm against plan extraction prompt once it exists.
 
 ---
 
@@ -825,11 +825,11 @@ Items to resolve as build progresses or as this surface is specified for prompt 
 This document creates work in adjacent docs. Tracked here so it doesn't get lost.
 
 - **`v1-scope.md` §2.3** currently lists "non-run activities (cycling, cross-training)" as an edge case to handle. Update to reference this document and confirm the surface is in V1 scope.
-- **`v1-scope.md` §4** (prompt engineering workstream) — add `cross-training-acknowledgement.md` to the prompt files list.
-- **`v1-scope.md` §7** (build sequencing) — note that cross-training acknowledgement pipeline lands after debriefs and before chat.
-- **`open-questions-log.md`** — close the cross-training open question, point to this doc.
-- **`technical-decision-log.md`** — log the data model decision (extending `debriefs` with `kind` discriminator vs introducing `activity_messages` table). Also log the "wait until end of day" heuristic for substitution detection — it's a real engineering call worth preserving the reasoning for.
-- **`roadmap.md`** — no change needed (cross-training behaviour is in V1, not a new bucket item).
+- **`v1-scope.md` §4** (prompt engineering workstream): add `cross-training-acknowledgement.md` to the prompt files list.
+- **`v1-scope.md` §7** (build sequencing): note that cross-training acknowledgement pipeline lands after debriefs and before chat.
+- **`open-questions-log.md`**: close the cross-training open question, point to this doc.
+- **`technical-decision-log.md`**: log the data model decision (extending `debriefs` with `kind` discriminator vs introducing `activity_messages` table). Also log the "wait until end of day" heuristic for substitution detection: it's a real engineering call worth preserving the reasoning for.
+- **`roadmap.md`**: no change needed (cross-training behaviour is in V1, not a new bucket item).
 
 ---
 
