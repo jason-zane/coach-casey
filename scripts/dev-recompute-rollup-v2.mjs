@@ -1,6 +1,6 @@
 // One-off: recompute monthly_history_rollup with the new shape that includes
 // cross-training (rides, swims, gym, yoga) alongside running. Mirrors the
-// aggregation in lib/strava/history-rollup.ts — stays a node script so we
+// aggregation in lib/strava/history-rollup.ts. Stays a node script so we
 // don't have to wait for the cron-driven backfill cycle to refresh it.
 //
 // Run: node scripts/dev-recompute-rollup-v2.mjs

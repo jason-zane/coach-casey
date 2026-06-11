@@ -2,7 +2,7 @@
 
 /* Raw tokens on :root. Light mode is default; dark-mode is a :root override
    triggered by prefers-color-scheme. Nesting @theme inside @media is invalid
-   in Tailwind v4 — keep values here, reference them in @theme below. */
+   in Tailwind v4: keep values here, reference them in @theme below. */
 :root {
   --paper: #faf8f5;
   --surface: #ffffff;
@@ -64,7 +64,7 @@ body {
 
 /* Safe-area insets are applied per-surface (the home thread pins its own
    header / menu bar to the viewport) rather than on body, so padding can't
-   accumulate and make the document taller than the viewport — that's what
+   accumulate and make the document taller than the viewport. That's what
    introduced a whole-page scroll alongside the thread's inner scroll. */
 
 /* Editorial hairlines */
@@ -75,7 +75,7 @@ body {
   border-color: var(--rule-strong-color);
 }
 
-/* Fluid display type — scales with viewport without media-query jumps */
+/* Fluid display type: scales with viewport without media-query jumps */
 .display-hero {
   font-family: var(--font-newsreader), ui-serif, Georgia, serif;
   font-weight: 450;
@@ -167,7 +167,7 @@ body {
   text-decoration-color: var(--color-ink);
 }
 
-/* Subtle rising animation — hero load only */
+/* Subtle rising animation: hero load only */
 @keyframes rise {
   from {
     opacity: 0;
@@ -186,7 +186,7 @@ body {
 .rise-3 { animation-delay: 0.25s; }
 .rise-4 { animation-delay: 0.35s; }
 
-/* Observation-specific timings — compositional reveal for the validation
+/* Observation-specific timings: compositional reveal for the validation
    moment. Text arrives, response surface follows. */
 .rise-observation {
   animation: rise 440ms cubic-bezier(0.2, 0, 0, 1) both;
@@ -196,7 +196,7 @@ body {
   animation-delay: 280ms;
 }
 
-/* Route transitions — each page fades in softly on mount. Onboarding-only
+/* Route transitions: each page fades in softly on mount. Onboarding-only
    per its parent wrapper. 360ms reads as deliberate without feeling slow. */
 .page-enter {
   animation: page-enter 360ms cubic-bezier(0.2, 0, 0, 1) both;
@@ -216,7 +216,7 @@ body {
   animation: breath 1.8s ease-in-out infinite;
 }
 
-/* Gesture-teaching hint — a short outward drift on the menu-bar button to
+/* Gesture-teaching hint: a short outward drift on the menu-bar button to
    suggest the swipe-from-edge alternative. Fired for the first few uses of
    calendar / search, then disabled per home-state §5.2. */
 @keyframes hint-drift-left {
@@ -287,14 +287,14 @@ body {
   }
 }
 
-/* Focus rings — plum */
+/* Focus rings: plum */
 :where(a, button):focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
   border-radius: 2px;
 }
 
-/* Click feedback — every button-ish control (including anchors used as
+/* Click feedback: every button-ish control (including anchors used as
    buttons and Next <Link>s) registers the press visually. Wrapped in
    @layer base so Tailwind utilities (in @layer utilities) win the cascade
    for any element that sets its own transition or transform. Anchors are
@@ -324,7 +324,7 @@ body {
 /* Pending indicator for <Link>s on dynamic routes. Reserves layout space
    while invisible so the dot can fade in without shifting the icon. The
    delayed fade-in means fast prefetched navigations never show the dot
-   at all — only when the round trip actually takes a beat. */
+   at all, only when the round trip actually takes a beat. */
 .nav-pending-dot {
   position: absolute;
   top: 4px;

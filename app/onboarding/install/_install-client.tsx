@@ -99,7 +99,7 @@ export function InstallClient({ platform }: { platform: MobilePlatform }) {
 
       <div className="flex flex-wrap items-center gap-4">
         {deferred ? (
-          // Any browser that fired beforeinstallprompt \u2014 desktop Chrome /
+          // Any browser that fired beforeinstallprompt: desktop Chrome /
           // Edge / Brave, Android Chrome, etc. iOS browsers never fire
           // this so this branch is silently skipped on iOS.
           <PrimaryButton

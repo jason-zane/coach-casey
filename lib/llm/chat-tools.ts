@@ -69,7 +69,7 @@ async function reserveDetailFetchSlot(athleteId: string): Promise<number | null>
 }
 
 // =============================================================================
-// lookup_activity — DB read of a single activity by id
+// lookup_activity: DB read of a single activity by id
 // =============================================================================
 
 export type LookupActivityArgs = { activity_id: string };
@@ -278,7 +278,7 @@ function renderActivityLookup(r: ActivityRow): string {
 }
 
 // =============================================================================
-// query_activities — DB range/aggregate read across types
+// query_activities: DB range/aggregate read across types
 // =============================================================================
 
 export type QueryActivitiesArgs = {
@@ -431,7 +431,7 @@ function defaultFromIso(): string {
 }
 
 // =============================================================================
-// read_rpe_history — DB read of trailing RPE answers joined to activity
+// read_rpe_history: DB read of trailing RPE answers joined to activity
 // =============================================================================
 
 export type ReadRpeHistoryArgs = {
@@ -519,7 +519,7 @@ function defaultFromIsoMonths(months: number): string {
 }
 
 // =============================================================================
-// refresh_activity_from_strava — live Strava call to top up missing detail
+// refresh_activity_from_strava: live Strava call to top up missing detail
 // =============================================================================
 
 export type RefreshActivityArgs = { activity_id: string };

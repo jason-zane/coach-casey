@@ -18,12 +18,12 @@ AI-powered run coaching platform. Next.js on Vercel, Python functions for the co
 
 ## Layout
 
-- `app/` — Next.js App Router pages and UI.
-- `api/` — Python serverless functions (Vercel Python runtime). `api/_shared/` holds shared config, DB, LLM clients, observability.
-- `supabase/` — SQL migrations and seeds, applied via the Supabase CLI.
-- `prompts/` — LLM prompt templates and prompt-engineering principles.
-- `scripts/` — one-off scripts and maintenance utilities.
-- `docs/` — product, engineering, and strategy docs. Start with `docs/engineering-foundation.md` and `docs/foundation-setup-spec.md`.
+- `app/`: Next.js App Router pages and UI.
+- `api/`: Python serverless functions (Vercel Python runtime). `api/_shared/` holds shared config, DB, LLM clients, observability.
+- `supabase/`: SQL migrations and seeds, applied via the Supabase CLI.
+- `prompts/`: LLM prompt templates and prompt-engineering principles.
+- `scripts/`: one-off scripts and maintenance utilities.
+- `docs/`: product, engineering, and strategy docs. Start with `docs/engineering-foundation.md` and `docs/foundation-setup-spec.md`.
 
 ## Deployment
 
