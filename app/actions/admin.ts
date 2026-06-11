@@ -38,9 +38,12 @@ export async function toggleTestUser(formData: FormData) {
 
 /**
  * Manually trigger a weekly review for an athlete, bypassing the
- * cron's local-Monday gate. Used to seed friends who joined mid-week
- * with a first review immediately, or to re-fire when the cron missed
- * an athlete due to outage.
+ * cron's local-time gate (Sunday evening by default). Used to seed
+ * friends who joined mid-week with a first review immediately, or to
+ * re-fire when the cron missed an athlete due to outage. Without
+ * explicit week bounds it covers the week ending at the most recent
+ * athlete-local Sunday, today included, matching what the cron would
+ * send.
  *
  * Idempotent unless ?force=1, in which case the existing review for
  * the same week is deleted and replaced.

@@ -4,10 +4,10 @@ import { generateWeeklyReviewForAthlete } from "@/app/actions/weekly-review";
 
 /**
  * Dev trigger for the weekly-review pipeline. Cron-driven in production,
- * but local dev rarely lines up with Monday morning local-time, so this
+ * but local dev rarely lines up with Sunday evening local-time, so this
  * route lets us exercise the full path on demand.
  *
- *   GET /api/dev/weekly-review                                  , previous week
+ *   GET /api/dev/weekly-review                                  , latest review week
  *   GET /api/dev/weekly-review?week_start=2026-04-27&week_end=2026-05-03
  *   GET /api/dev/weekly-review?force=1                          , bypass exists check
  *

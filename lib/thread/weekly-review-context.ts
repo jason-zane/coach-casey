@@ -161,45 +161,9 @@ function mondayOfIso(iso: string): string {
   return monday.toISOString().slice(0, 10);
 }
 
-/**
- * Compute the Monday and the following Sunday of the *previous* full week
- * in the athlete's local timezone, returned as "YYYY-MM-DD" strings.
- * "Previous full week" means the most recently completed Monday-to-Sunday
- * window. If today is Monday, the previous week is M-1 to S; if Wednesday,
- * also M-1 to S (the in-progress week is not reviewed).
- */
-export function computePreviousFullWeek(
-  tz: string | null,
-  now: Date = new Date(),
-): { weekStartIso: string; weekEndIso: string } {
-  // Resolve "what day-of-week is it for the athlete?". Without a tz we
-  // fall back to UTC; that's wrong for a Sydney athlete whose UTC day
-  // crosses midnight, but the cron schedules at multiple hours so the
-  // wrong call resolves itself within 24h.
-  const fmt = new Intl.DateTimeFormat("en-CA", {
-    timeZone: tz ?? "UTC",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    weekday: "short",
-  });
-  const parts = Object.fromEntries(
-    fmt.formatToParts(now).map((p) => [p.type, p.value]),
-  ) as { year: string; month: string; day: string; weekday: string };
-  const dayShort = parts.weekday;
-  const dayIdx = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(
-    dayShort,
-  );
-  // 0 = Mon for our purposes
-  const mondayOffset = (dayIdx + 6) % 7;
-  const todayLocal = new Date(`${parts.year}-${parts.month}-${parts.day}T00:00:00Z`);
-  const lastMonday = new Date(todayLocal.getTime() - (mondayOffset + 7) * DAY_MS);
-  const lastSunday = new Date(lastMonday.getTime() + 6 * DAY_MS);
-  return {
-    weekStartIso: lastMonday.toISOString().slice(0, 10),
-    weekEndIso: lastSunday.toISOString().slice(0, 10),
-  };
-}
+// Week selection (computePreviousFullWeek, computeCurrentWeek and the
+// cron gate) lives in lib/thread/week-window.ts, which stays free of
+// "server-only" so plain-Node tests can pin the timing math.
 
 export type BuildWeeklyReviewContextInput = {
   athleteId: string;

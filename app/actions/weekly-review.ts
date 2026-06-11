@@ -1,10 +1,8 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/server";
-import {
-  buildWeeklyReviewContext,
-  computePreviousFullWeek,
-} from "@/lib/thread/weekly-review-context";
+import { buildWeeklyReviewContext } from "@/lib/thread/weekly-review-context";
+import { computeReviewWeek } from "@/lib/thread/week-window";
 import {
   generateWeeklyReview,
   WEEKLY_REVIEW_PROMPT_VERSION,
@@ -24,9 +22,9 @@ export type GenerateWeeklyReviewResult =
  * Idempotency: at most one weekly_review per athlete per (weekStartIso).
  * Looked up by meta->>week_start_iso instead of a unique index, the
  * existing partial-uniques on `messages` are debrief-keyed and adding
- * another would be over-coupled to one surface. The cron runs every hour
- * looking at the previous full week, so the existence check is the
- * cheaper and clearer guard.
+ * another would be over-coupled to one surface. Every hourly cron fire
+ * inside an athlete's send window resolves to the same week's Monday,
+ * so the existence check is the cheaper and clearer guard.
  */
 async function findExistingWeeklyReview(
   athleteId: string,
@@ -52,7 +50,11 @@ async function findExistingWeeklyReview(
 export async function generateWeeklyReviewForAthlete(
   athleteId: string,
   opts: {
-    /** Override for backfills / dev. Defaults to "previous full week in athlete-local time". */
+    /**
+     * Override for backfills / dev. Defaults to the latest review week:
+     * the week ending at the most recent athlete-local Sunday, today
+     * included (so a Sunday fire covers the week closing that evening).
+     */
     weekStartIso?: string;
     weekEndIso?: string;
     force?: boolean;
@@ -76,7 +78,7 @@ export async function generateWeeklyReviewForAthlete(
   const week =
     opts.weekStartIso && opts.weekEndIso
       ? { weekStartIso: opts.weekStartIso, weekEndIso: opts.weekEndIso }
-      : computePreviousFullWeek(athlete.timezone);
+      : computeReviewWeek(athlete.timezone);
 
   if (!opts.force) {
     const existing = await findExistingWeeklyReview(athleteId, week.weekStartIso);

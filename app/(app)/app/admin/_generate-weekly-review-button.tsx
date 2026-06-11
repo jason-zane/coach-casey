@@ -33,7 +33,7 @@ export function GenerateWeeklyReviewButton({
           onClick={() => fire(false)}
           disabled={pending}
           className="rounded-md border border-rule px-2 py-1 text-[11px] font-mono uppercase tracking-[0.14em] text-ink-subtle hover:text-ink hover:border-rule-strong disabled:opacity-50"
-          title="Generate weekly review for previous full week (idempotent)"
+          title="Generate weekly review for the latest review week (idempotent)"
         >
           {pending ? "…" : "review"}
         </button>
