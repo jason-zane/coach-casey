@@ -11,6 +11,7 @@ import {
   type StravaBestEffort,
 } from "./client";
 import { classifyActivityType, isRunType } from "./activity-types";
+import { claimStravaAthleteId } from "./connections";
 import { isRateLimited } from "./rate-limit";
 
 /**
@@ -530,6 +531,14 @@ async function maybeHealConnectionAndDemographics(
     if (!profile) return;
 
     if (needsAthleteId && typeof profile.id === "number") {
+      // The heal completes the most recent OAuth grant, so it claims the id
+      // the same way the callback does: any other athlete still holding it
+      // loses their connection (last-connect-wins), otherwise this update
+      // would trip the unique index and the row would stay NULL forever.
+      await claimStravaAthleteId(admin, {
+        athleteId,
+        stravaAthleteId: profile.id,
+      });
       await admin
         .from("strava_connections")
         .update({ strava_athlete_id: profile.id })

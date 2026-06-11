@@ -7,6 +7,7 @@ import {
   fetchAthleteProfileWithTokenRetrying,
   isLiveMode,
 } from "@/lib/strava/client";
+import { claimStravaAthleteId } from "@/lib/strava/connections";
 
 const STRAVA_STATE_COOKIE = "strava_oauth_state";
 
@@ -96,19 +97,36 @@ export async function GET(request: Request) {
       }
     }
 
-    await admin.from("strava_connections").upsert(
-      {
-        athlete_id: athlete.id,
-        strava_athlete_id: stravaAthleteId,
-        access_token: token.access_token,
-        refresh_token: token.refresh_token,
-        expires_at: new Date(token.expires_at * 1000).toISOString(),
-        scope: scope,
-        is_mock: false,
-        connected_at: new Date().toISOString(),
-      },
-      { onConflict: "athlete_id" },
-    );
+    // One Strava account backs at most one app account. If a different
+    // athlete row already holds this strava_athlete_id (same human under a
+    // fresh sign-in, a recreated account), the newest grant wins and the
+    // older connection is deleted, mirroring Strava's deauth webhook. The
+    // partial unique index on strava_connections.strava_athlete_id
+    // backstops the race between two concurrent callbacks.
+    await claimStravaAthleteId(admin, {
+      athleteId: athlete.id,
+      stravaAthleteId,
+    });
+
+    const { error: connectionError } = await admin
+      .from("strava_connections")
+      .upsert(
+        {
+          athlete_id: athlete.id,
+          strava_athlete_id: stravaAthleteId,
+          access_token: token.access_token,
+          refresh_token: token.refresh_token,
+          expires_at: new Date(token.expires_at * 1000).toISOString(),
+          scope: scope,
+          is_mock: false,
+          connected_at: new Date().toISOString(),
+        },
+        { onConflict: "athlete_id" },
+      );
+    // A connection row that silently failed to write strands the athlete on
+    // the reading page with nothing to ingest; fail loud into the
+    // exchange_failed redirect instead.
+    if (connectionError) throw connectionError;
 
     // Pull sex + weight from Strava profile and seed the athlete row. The
     // token response sometimes includes the athlete object inline, but it's
