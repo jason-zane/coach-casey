@@ -9,7 +9,8 @@ The form is short — most of the work happens in the single
 closely. The long-form answer below covers every point the November
 2024 API agreement requires applicants to address.
 
-Last reviewed: 28 April 2026.
+Last reviewed: 12 June 2026 (activity:write scope and the opt-in
+description verdict added back; description text updated to match).
 
 ---
 
@@ -112,7 +113,7 @@ reviewers actually look for.
 ```
 Coach Casey is a reflective coaching platform for runners who already follow a training plan — from a coach, a club, an app, or written themselves — and want interpretation and feedback on top of execution. After each run we generate a written debrief that places the workout in the context of the athlete's plan, recent training load, goal race, and any niggles they've told us about. Athletes can ask follow-up questions and get answers grounded in their own training history.
 
-Strava is the source of truth for the runs themselves. We use the API on a strictly read-only basis: list activities, fetch activity detail with laps, and receive webhook events for new activities. We never write to a runner's Strava account, post anything back, or use any non-read scope. The scopes we request are read, activity:read_all, and profile:read_all — activity:read_all is needed because many runners log private workouts, and a coaching tool that only saw public runs would be unable to do its job.
+Strava is the source of truth for the runs themselves. We use the API to list activities, fetch activity detail with laps, and receive webhook events for new activities. The scopes we request are read, activity:read_all, profile:read_all, and activity:write. activity:read_all is needed because many runners log private workouts, and a coaching tool that only saw public runs would be unable to do its job. activity:write powers exactly one narrow, opt-in feature: after a post-run debrief, an athlete can choose to have Coach Casey append a single coaching line plus a short signature to the bottom of that activity's description. It is off by default, only ever touches the authenticated athlete's own activities, appends below any existing description text rather than replacing it, and is never re-added if the athlete edits or removes it. We make no other writes of any kind: no uploads, no activity creation or deletion, no edits to titles or any other field.
 
 Strava data is stored on Supabase in the Sydney (ap-southeast-2) region, encrypted at rest, with row-level security policies scoped to athlete_id so an athlete can only ever see their own data. We never surface other athletes' runs, build leaderboards, or display Strava data in any cross-athlete view.
 
@@ -138,9 +139,10 @@ penalise an empty optional field; the contact email in /privacy and
 ✓ Tick the checkbox.
 
 (The application description above already names the November 2024
-clarification, the no-training rule, and our compliance with the
-read-only / no-cross-athlete-display rules. If you want to re-read the
-agreement first: https://www.strava.com/legal/api.)
+clarification, the no-training rule, the single-athlete data boundary
+and no-cross-athlete-display rules, and the narrow opt-in description
+write. If you want to re-read the agreement first:
+https://www.strava.com/legal/api.)
 
 ### Brand Guidelines Review
 
@@ -162,7 +164,7 @@ production:
 2. **Strava OAuth consent** — the screen the athlete sees on strava.com when granting access (proves the standard OAuth flow).
 3. **Post-run debrief** — a debrief message in the thread with the "View on Strava" attribution visible at the bottom.
 4. **Cross-training acknowledgement** — same surface for non-run activity types, again with the "View on Strava" attribution.
-5. **Settings → Strava connection** — connection status, "Since" date, Disconnect button, link to Strava's authorised apps page.
+5. **Settings → Strava connection**, connection status, "Since" date, the Strava verdicts opt-in toggle, Disconnect button, link to Strava's authorised apps page.
 
 Optional but useful if you want to be thorough:
 
@@ -202,5 +204,7 @@ Most likely review points and how to respond:
 - **"Reduce request volume"** — webhook is the primary trigger; the 30-min poll is only a safety net for missed webhooks. We can extend the lookback window or remove the poll entirely if asked (it isn't load-bearing).
 
 - **"Justify activity:read_all"** — covered in the description: many runners log workouts privately, and a coaching tool that only saw public runs would be unable to do its job.
+
+- **"Justify activity:write"**, one feature only: the opt-in verdict line appended to the athlete's own activity description after a debrief. Off by default, enabled per athlete from Settings, never replaces athlete-written text (it appends below a blank line), skipped entirely if the athlete has edited around a previous line, and gone for good if they toggle it off or delete it on Strava. No uploads, no activity creation, no edits to any field other than the description append.
 
 - **"Are you training on Strava data?"** — no, never; explicitly stated in /privacy and /terms; Anthropic configured under zero-data-retention.

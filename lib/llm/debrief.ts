@@ -9,8 +9,13 @@ import {
   renderGoalRacesBlock,
   renderMemoryItemsBlock,
 } from "./context-render";
-import { mockDebrief, mockMode } from "./mocks";
+import { mockDebrief, mockMode, mockStravaBlurb } from "./mocks";
 import { logVoiceFindings } from "./voice-check";
+import {
+  passesStravaBlurbVoiceCheck,
+  sanitizeStravaBlurb,
+  STRAVA_BLURB_MAX_CHARS,
+} from "./blurb-sanitize";
 import type {
   DebriefActivity,
   DebriefArcRun,
@@ -37,6 +42,16 @@ export type DebriefOutcome =
       followUp: string | null;
     }
   | { kind: "skip"; reason: DebriefSkipReason };
+
+/**
+ * Fixed signature line appended (on its own line, below the verdict)
+ * to the Strava activity description. Also the marker the writeback
+ * path anchors on when stripping a previously-appended Casey block,
+ * so changes here must keep the "coached by Coach Casey" stem (see
+ * `lib/strava/blurb-description.ts`).
+ */
+export const STRAVA_BLURB_SIGNATURE =
+  "coached by Coach Casey · coachcasey.app";
 
 const ABORTED_NAME_TOKENS = ["abort", "dnf", "stopped", "cut short"];
 
@@ -444,6 +459,76 @@ export async function generateFollowUp(
 
   const text = await generateConversationalFollowUp(ctx);
   return { pick, text };
+}
+
+/**
+ * Strava blurb, one dry sentence appended to the athlete's Strava
+ * activity description after the debrief lands. Public-facing, strangers
+ * read it over the athlete's shoulder; the prompt enforces the
+ * eavesdropping voice and the 140-char target.
+ *
+ * Post-generation the text is mechanically repaired (em dashes and
+ * exclamation marks are violations a regex can fix), then has to clear
+ * both the shared `checkVoice` validator and the hard tripwire in
+ * `blurb-sanitize.ts`, plus the absolute length cap. Anything that fails
+ * is dropped rather than posted, `null` means "skip the description
+ * update". Not called from `generateDebrief`; the pipeline invokes it
+ * after the debrief is persisted, and only for opted-in athletes whose
+ * connection holds `activity:write`.
+ */
+export async function generateStravaBlurb(
+  ctx: DebriefContext,
+): Promise<string | null> {
+  let raw: string;
+  if (mockMode()) {
+    raw = mockStravaBlurb(ctx);
+  } else {
+    const stable = renderStableContext(ctx);
+    const volatile = renderVolatileContext(ctx);
+    const system = await buildSystemPrompt({
+      surface: "strava-blurb.md",
+      voice: "eavesdropping",
+      context: stable,
+    });
+
+    const response = await callWithRetry(() =>
+      anthropic().messages.create({
+        model: MODELS.stravaBlurb,
+        max_tokens: 120,
+        temperature: 1.0,
+        system,
+        messages: [
+          {
+            role: "user",
+            content: `${volatile}\n\n# Task\n\nWrite the one-sentence Verdict for the run described above. Output the verdict text only, no signature.`,
+          },
+        ],
+      }),
+    );
+
+    raw =
+      response.content
+        .filter((b): b is Anthropic.TextBlock => b.type === "text")
+        .map((b) => b.text)
+        .join("\n")
+        .trim() || "";
+  }
+
+  const text = sanitizeStravaBlurb(raw);
+  if (!text) return null;
+  if (text.length > STRAVA_BLURB_MAX_CHARS) return null;
+
+  // Findings from the shared validator are log-and-ship warnings on
+  // in-app surfaces; on this public one any finding kills the blurb.
+  const voice = logVoiceFindings(text, {
+    surface: "strava-blurb",
+    athleteId: ctx.athleteId,
+    profile: "eavesdropping",
+    athleteName: ctx.displayName,
+  });
+  if (!voice.ok) return null;
+  if (!passesStravaBlurbVoiceCheck(text)) return null;
+  return text;
 }
 
 /**

@@ -92,6 +92,24 @@ export async function disconnectStrava() {
   revalidatePath("/app/settings");
 }
 
+/**
+ * Flip the opt-in for Casey's public verdict line on Strava activity
+ * descriptions. Server function, so the boolean from the client is
+ * coerced before it touches the row. The debrief pipeline additionally
+ * checks the connection's `activity:write` scope at write time, turning
+ * this on with a pre-write-scope connection is allowed and simply waits
+ * for a reconnect.
+ */
+export async function setStravaBlurbEnabled(enabled: boolean): Promise<void> {
+  const { athlete } = await requireAthlete();
+  const admin = createAdminClient();
+  await admin.from("preferences").upsert(
+    { athlete_id: athlete.id, strava_blurb_enabled: enabled === true },
+    { onConflict: "athlete_id" },
+  );
+  revalidatePath("/app/settings");
+}
+
 async function connectStravaMock() {
   const { athlete } = await requireAthlete();
   const admin = createAdminClient();
