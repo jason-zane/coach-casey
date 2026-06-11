@@ -75,10 +75,6 @@ export default async function StravaStepPage({
         <ul className="font-sans text-sm text-ink-muted space-y-1.5 list-disc pl-4">
           <li>Reads each run and sends a short debrief after it finishes.</li>
           <li>Remembers what&rsquo;s happened, so the next read is sharper.</li>
-          <li>
-            Adds a one-line verdict under each run&rsquo;s description on
-            Strava, signed by Casey. One tap in settings turns it off.
-          </li>
         </ul>
       </aside>
     </div>
