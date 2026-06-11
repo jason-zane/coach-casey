@@ -186,7 +186,7 @@ export default function TermsPage() {
 
           <Section title="Your content; our content">
             <p>
-              You retain ownership of the content you give us &mdash; your
+              You retain ownership of the content you give us: your
               training plan, your messages, your runs. You grant us a
               limited, worldwide, royalty-free licence to host, process, and
               display that content solely so we can run the service for
@@ -231,7 +231,7 @@ export default function TermsPage() {
             <p>
               To the maximum extent permitted by law, Coach Casey is provided
               &ldquo;as is&rdquo; and &ldquo;as available&rdquo;. We make no
-              warranties &mdash; express or implied &mdash; about
+              warranties, express or implied, about
               merchantability, fitness for a particular purpose, accuracy,
               or non-infringement.
             </p>

@@ -146,7 +146,7 @@ export function checkVoice(text: string, opts: VoiceCheckOptions = {}): VoiceChe
     findings.push({ rule, match, offset });
   };
 
-  // Em dashes — both the literal character and the doubled hyphen
+  // Em dashes: both the literal character and the doubled hyphen
   // surrogate that some models emit.
   for (const idx of findAll(text, "—")) add("em-dash", "—", idx);
   // ASCII double-hyphen used as em-dash. Heuristic: bounded by spaces.
@@ -165,7 +165,7 @@ export function checkVoice(text: string, opts: VoiceCheckOptions = {}): VoiceChe
     add("emoji", emojiMatch[0], emojiMatch.index);
   }
 
-  // Hype words. Allowed in eavesdropping voice? No — even
+  // Hype words. Allowed in eavesdropping voice? No, even
   // eavesdropping bans hype; what it allows is wry humour and amused
   // tone, not "let's go".
   for (const word of HYPE_WORDS) {

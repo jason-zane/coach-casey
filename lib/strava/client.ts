@@ -117,7 +117,7 @@ export async function fetchAthleteProfileWithToken(
  * Retrying wrapper for `fetchAthleteProfileWithToken`. Used by the OAuth
  * callback where a single failed /athlete fetch leaves the connection with
  * `strava_athlete_id = null` and silently breaks all webhook lookups for
- * the athlete (verified 2026-05-14 — onboarding ran during a Strava 429
+ * the athlete (verified 2026-05-14, onboarding ran during a Strava 429
  * window and shipped a permanently broken connection).
  *
  * Retry policy: linear backoff at 500ms, 1500ms. We stop on:

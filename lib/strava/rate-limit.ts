@@ -7,7 +7,7 @@
  * on the human "Rate Limit Exceeded" body Strava returns.
  *
  * Lives in its own file (rather than `ingest.ts`) so it can be imported
- * by the unit-test runner — `node --experimental-strip-types` doesn't
+ * by the unit-test runner: `node --experimental-strip-types` doesn't
  * resolve the `@/...` path alias that `ingest.ts` uses, so importing
  * `ingest.ts` from a test file blows up at module load.
  */

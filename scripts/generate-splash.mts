@@ -2,7 +2,7 @@
  * Generate iOS PWA splash screens from the existing 512x512 icon.
  *
  * iOS without apple-touch-startup-image falls back to the manifest's
- * background_color + the largest icon scaled up — readable but generic.
+ * background_color + the largest icon scaled up: readable but generic.
  * We render a high-resolution splash with the brand "C" mark centred
  * on a paper background, in light + dark variants, and let iOS scale
  * it to fit whatever device the user is on.
