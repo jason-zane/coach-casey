@@ -2,6 +2,19 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   devIndicators: false,
+  // Pin Turbopack's root to this config file's own directory. Next infers the
+  // workspace root from the nearest lockfile, and with multiple pnpm lockfiles
+  // present (the main checkout plus every .claude/worktrees/* copy) it can pick
+  // the main checkout instead of the worktree the dev server is actually
+  // running in. When that happens it compiles files from the main checkout's
+  // currently checked-out branch into this build, which has produced phantom
+  // "Module not found" errors for files that exist only on another branch.
+  // __dirname follows wherever this file lives, so it resolves to the main
+  // checkout or the active worktree automatically. See
+  // node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/turbopack.md.
+  turbopack: {
+    root: __dirname,
+  },
   // Prompt files are loaded at runtime via readFile from lib/llm/prompts.ts.
   // The path is resolved dynamically (import.meta.url + relative segments) so
   // @vercel/nft cannot statically detect the references. Without an explicit
