@@ -351,7 +351,7 @@ Three changes. (1) "Fair for what it does" replaced with "Fair for serious runne
 
 > **Where does my data go?**
 >
-> Strava data comes in read-only through their API. Your runs, plan, and chat history are stored on Supabase, in Sydney. Coach Casey uses large language models to write debriefs and respond to you; your data is never used to train them.
+> Strava data comes in read-only through their API. Your runs, plan, and chat history are stored on Supabase, in Tokyo. Coach Casey uses large language models to write debriefs and respond to you; your data is never used to train them.
 
 **Q5 — edited:**
 

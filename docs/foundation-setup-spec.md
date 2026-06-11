@@ -63,6 +63,8 @@ No ordering dependency between these — do them in whatever order feels natural
 
 **Supabase.** When you create the project, pick the **Sydney (ap-southeast-2)** region. Your users are AU/NZ and region choice affects database latency noticeably. You can't change region later without a full data migration.
 
+> **Correction (12 June 2026):** the production project was actually created in Tokyo (ap-northeast-1), and the preview project in Seoul. Published copy (privacy policy, marketing FAQ, Strava application pack) now says Tokyo. Moving to Sydney later would need the full data migration described above.
+
 **Langfuse.** If you're unsure self-host vs cloud, pick cloud. Self-hosting is more operational surface area than it's worth pre-launch.
 
 **Anthropic/OpenAI.** Set a billing alert on each ($5, $20, $50 monthly thresholds is fine). LLM costs are the easiest line item to let run away.
