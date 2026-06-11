@@ -1,4 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/server";
+import {
+  composeDescriptionWithBlurb,
+  scopeHasActivityWrite,
+} from "@/lib/strava/blurb-description";
 
 const STRAVA_AUTH_BASE = "https://www.strava.com/oauth";
 const STRAVA_API_BASE = "https://www.strava.com/api/v3";
@@ -28,9 +32,12 @@ export function stravaAuthorizeUrl(state: string): string {
     redirect_uri: redirect,
     response_type: "code",
     approval_prompt: "auto",
-    // Coach Casey is read-only against Strava. Debriefs and notes stay inside
-    // the app rather than being written back to public activity descriptions.
-    scope: "read,activity:read_all,profile:read_all",
+    // `activity:write` is required to append Casey's verdict line to the
+    // athlete's activity description after each debrief (opt-in, default
+    // off). Existing connections predating this scope keep working for
+    // read; the description-write path no-ops until the athlete reconnects
+    // with the broader scope.
+    scope: "read,activity:read_all,activity:write,profile:read_all",
     state,
   });
   return `${STRAVA_AUTH_BASE}/authorize?${params.toString()}`;
@@ -413,4 +420,131 @@ export async function fetchActivityDetail(
     );
   }
   return res.json();
+}
+
+/**
+ * Low-level PUT of an activity's description. Requires `activity:write`
+ * scope. Throws on any non-2xx with the status embedded in the message
+ * so `isRateLimited` (lib/strava/rate-limit.ts) can recognise 429s the
+ * same way it does for the read endpoints; callers must not retry a 429
+ * within the same 15-minute window.
+ */
+export async function updateActivityDescription(
+  athleteId: string,
+  activityId: number,
+  description: string,
+): Promise<void> {
+  const token = await getValidAccessToken(athleteId);
+  const res = await fetch(`${STRAVA_API_BASE}/activities/${activityId}`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ description }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(
+      `Strava update activity ${activityId} failed: ${res.status} ${body}`,
+    );
+  }
+}
+
+export type UpdateActivityDescriptionResult =
+  | { kind: "ok" }
+  | {
+      kind: "skip";
+      reason:
+        | "mock_connection"
+        | "no_connection"
+        | "missing_scope"
+        | "athlete_edited";
+    }
+  | { kind: "error"; status: number | null; message: string };
+
+/**
+ * Append-safe Strava activity description update.
+ *
+ * Checks the stored connection scope, reads the current description,
+ * strips any previously-appended Casey block (so force-regen replaces
+ * rather than stacks), and PUTs the combined text. Athlete-written text
+ * is never replaced; if the athlete edited around our block the write is
+ * skipped entirely, and an already-current description no-ops so webhook
+ * retries don't churn Strava. The composition rules live in
+ * `lib/strava/blurb-description.ts`.
+ *
+ * Failures are returned, not thrown, so the caller can run this from
+ * the debrief commit path without risking the debrief itself.
+ *
+ * Athletes connected before `activity:write` was added to our OAuth
+ * scope are skipped via the stored-scope check, and a 401 from Strava
+ * (scope revoked on their side since) maps to the same `missing_scope`
+ * skip. They'll get the description appended once they reconnect.
+ */
+export async function updateActivityDescriptionAppend(
+  athleteId: string,
+  stravaActivityId: number,
+  appended: string,
+  signature: string,
+): Promise<UpdateActivityDescriptionResult> {
+  const admin = createAdminClient();
+  const { data: conn } = await admin
+    .from("strava_connections")
+    .select("scope, is_mock")
+    .eq("athlete_id", athleteId)
+    .maybeSingle<{ scope: string | null; is_mock: boolean | null }>();
+  if (!conn) return { kind: "skip", reason: "no_connection" };
+  if (conn.is_mock) return { kind: "skip", reason: "mock_connection" };
+  if (!scopeHasActivityWrite(conn.scope)) {
+    return { kind: "skip", reason: "missing_scope" };
+  }
+
+  let token: string;
+  try {
+    token = await getValidAccessToken(athleteId);
+  } catch (err) {
+    const msg = (err as Error).message ?? "";
+    if (msg.includes("Mock connection")) return { kind: "skip", reason: "mock_connection" };
+    if (msg.includes("No Strava connection")) return { kind: "skip", reason: "no_connection" };
+    return { kind: "error", status: null, message: msg };
+  }
+
+  // Read the current description so we append below whatever the athlete
+  // (or another tool) wrote there, never over it.
+  const getRes = await fetch(
+    `${STRAVA_API_BASE}/activities/${stravaActivityId}?include_all_efforts=false`,
+    { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
+  );
+  if (!getRes.ok) {
+    if (getRes.status === 401) return { kind: "skip", reason: "missing_scope" };
+    return {
+      kind: "error",
+      status: getRes.status,
+      message: `Strava get-for-update ${stravaActivityId} failed`,
+    };
+  }
+  const current = (await getRes.json()) as { description?: string | null };
+  const existing = current.description ?? "";
+
+  const composed = composeDescriptionWithBlurb(existing, appended, signature);
+  if (composed.kind === "skip") {
+    if (composed.reason === "already_current") return { kind: "ok" };
+    return { kind: "skip", reason: composed.reason };
+  }
+
+  try {
+    await updateActivityDescription(athleteId, stravaActivityId, composed.next);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/ 401 /.test(msg)) return { kind: "skip", reason: "missing_scope" };
+    const statusMatch = msg.match(/failed: (\d{3}) /);
+    return {
+      kind: "error",
+      status: statusMatch ? Number(statusMatch[1]) : null,
+      message: msg,
+    };
+  }
+  return { kind: "ok" };
 }

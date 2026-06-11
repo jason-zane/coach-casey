@@ -397,6 +397,23 @@ export async function loadStravaConnection(
   };
 }
 
+/**
+ * Whether Casey appends the public verdict line to the athlete's Strava
+ * activity descriptions. Default false (opt-in); the missing-row and
+ * missing-column cases both read as off.
+ */
+export async function loadStravaBlurbEnabled(
+  athleteId: string,
+): Promise<boolean> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("preferences")
+    .select("strava_blurb_enabled")
+    .eq("athlete_id", athleteId)
+    .maybeSingle<{ strava_blurb_enabled: boolean | null }>();
+  return data?.strava_blurb_enabled ?? false;
+}
+
 // --- Display helpers --------------------------------------------------------
 
 export function formatDistance(

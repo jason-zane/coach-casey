@@ -24,7 +24,20 @@ test("sameOriginPath normalizes push URLs to paths", () => {
   assert.equal(sameOriginPath("https://evil.example/app", "/app", origin), "/app");
 });
 
-test("Strava OAuth remains read-only", () => {
+// The 2026-05-07 hardening pinned the client to read-only scopes. The
+// opt-in description verdict (restored 2026-06-12) reintroduces
+// activity:write on purpose, so the tripwire now pins the narrower
+// contract instead: the exact scope ask, and a write surface that is
+// one PUT carrying only the description field.
+test("Strava write surface stays scoped to the description verdict", () => {
   const client = readFileSync("lib/strava/client.ts", "utf8");
-  assert.doesNotMatch(client, /activity:write/);
+  assert.match(
+    client,
+    /scope: "read,activity:read_all,activity:write,profile:read_all"/,
+  );
+  assert.doesNotMatch(client, /profile:write/);
+  // The only field Casey ever writes is the activity description.
+  assert.match(client, /JSON\.stringify\(\{ description \}\)/);
+  // And the only API mutation in the module is that single PUT.
+  assert.equal(client.match(/method: "PUT"/g)?.length ?? 0, 1);
 });
