@@ -1,9 +1,12 @@
-import Link from "next/link";
 import {
   loadStravaBlurbEnabled,
   loadStravaConnection,
 } from "@/lib/athlete/page-data";
-import { disconnectStrava, setStravaBlurbEnabled } from "@/app/actions/strava";
+import {
+  connectStrava,
+  disconnectStrava,
+  setStravaBlurbEnabled,
+} from "@/app/actions/strava";
 import { isLiveMode } from "@/lib/strava/client";
 import { scopeHasActivityWrite } from "@/lib/strava/blurb-description";
 import { DisconnectStravaButton } from "../_disconnect-button";
@@ -78,14 +81,14 @@ export async function StravaSection({ athleteId }: { athleteId: string }) {
                     working either way.
                   </p>
                   {isLiveMode() ? (
-                    <div className="pt-1">
-                      <a
-                        href="/api/strava/authorize"
+                    <form action={connectStrava} className="pt-1">
+                      <button
+                        type="submit"
                         className="inline-flex items-center h-9 px-3 rounded-[6px] border border-rule text-ink text-[13px] font-medium hover:bg-rule/40 transition-colors duration-150"
                       >
                         Reconnect Strava
-                      </a>
-                    </div>
+                      </button>
+                    </form>
                   ) : (
                     <p className="text-[12px] leading-[1.5] text-ink-subtle">
                       Reconnecting needs live Strava mode.
@@ -121,14 +124,14 @@ export async function StravaSection({ athleteId }: { athleteId: string }) {
             Connect Strava to let Coach Casey read your runs and write
             debriefs.
           </p>
-          <div className="pt-3">
-            <Link
-              href="/onboarding/strava"
+          <form action={connectStrava} className="pt-3">
+            <button
+              type="submit"
               className="inline-flex items-center h-9 px-3 rounded-[6px] border border-rule text-ink text-[13px] font-medium hover:bg-rule/40 transition-colors duration-150"
             >
               Connect Strava
-            </Link>
-          </div>
+            </button>
+          </form>
         </>
       )}
     </Section>
