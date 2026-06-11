@@ -399,8 +399,8 @@ export async function loadStravaConnection(
 
 /**
  * Whether Casey appends the public verdict line to the athlete's Strava
- * activity descriptions. Default false (opt-in); the missing-row and
- * missing-column cases both read as off.
+ * activity descriptions. Default true (on unless the athlete turns it
+ * off); the missing-row and missing-column cases both read as on.
  */
 export async function loadStravaBlurbEnabled(
   athleteId: string,
@@ -411,7 +411,7 @@ export async function loadStravaBlurbEnabled(
     .select("strava_blurb_enabled")
     .eq("athlete_id", athleteId)
     .maybeSingle<{ strava_blurb_enabled: boolean | null }>();
-  return data?.strava_blurb_enabled ?? false;
+  return data?.strava_blurb_enabled ?? true;
 }
 
 // --- Display helpers --------------------------------------------------------

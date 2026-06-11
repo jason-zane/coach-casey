@@ -108,12 +108,13 @@ export default function PrivacyPage() {
               </li>
             </ul>
             <p>
-              <strong>Strava writes are opt-in and minimal.</strong> By
-              default Coach Casey writes nothing back to Strava. Debriefs,
-              follow-up questions, notes, and training context stay inside
-              Coach Casey. If you turn on Strava verdicts in settings, Casey
-              appends a single coaching line and signature to the bottom of
-              your own activity descriptions; anything you wrote there is
+              <strong>Strava writes are minimal and under your control.</strong>{" "}
+              Debriefs, follow-up questions, notes, and training context stay
+              inside Coach Casey. The one thing Casey writes to Strava is the
+              verdict line: after each debrief, a single coaching line and
+              signature appended to the bottom of that activity&apos;s
+              description on your own profile. This is on by default and
+              disclosed when you connect Strava; anything you wrote there is
               kept, never replaced. You can turn the feature off, and
               disconnect Strava entirely, from your settings page.
             </p>
