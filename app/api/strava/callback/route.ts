@@ -57,9 +57,9 @@ export async function GET(request: Request) {
   const admin = createAdminClient();
   const { data: athlete } = await admin
     .from("athletes")
-    .select("id")
+    .select("id, onboarding_completed_at")
     .eq("user_id", user.id)
-    .maybeSingle();
+    .maybeSingle<{ id: string; onboarding_completed_at: string | null }>();
   if (!athlete) {
     return redirectClearingState(`${appUrl}/signin`);
   }
@@ -158,10 +158,20 @@ export async function GET(request: Request) {
       console.warn("Strava /athlete profile seed failed (non-fatal)", e);
     }
 
-    // Don't run ingest inline, let the reading-state page do it behind
-    // the designed loading moment. Keeps the callback fast so the browser
-    // isn't hanging on the redirect back from Strava.
-    return redirectClearingState(`${appUrl}/onboarding/reading`);
+    // Initial connect: don't run ingest inline, let the reading-state page
+    // do it behind the designed loading moment. Keeps the callback fast so
+    // the browser isn't hanging on the redirect back from Strava.
+    //
+    // Reconnect (athlete already onboarded, e.g. granting the activity:write
+    // scope the blurb feature needs): the reading page is gated to
+    // onboarding by the middleware, which would bounce /onboarding/reading
+    // to /app. Send them straight back to settings instead, where the
+    // verdicts toggle lives. History already exists, so no inline ingest is
+    // needed; the webhook and poll pick up anything new.
+    const destination = athlete.onboarding_completed_at
+      ? `${appUrl}/app/settings`
+      : `${appUrl}/onboarding/reading`;
+    return redirectClearingState(destination);
   } catch (e) {
     console.error("Strava callback failed", e);
     return redirectClearingState(
