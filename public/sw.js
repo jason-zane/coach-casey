@@ -263,7 +263,7 @@ self.addEventListener("push", (event) => {
     badge: "/icon-192.png",
     tag: payload.tag,
     // renotify=true forces the device to re-alert when an existing tag is
-    // replaced — important so an updated debrief doesn't slide in silently.
+    // replaced; important so an updated debrief doesn't slide in silently.
     renotify: Boolean(payload.tag),
     data: {
       url: sameOriginPath(payload.url, "/app"),

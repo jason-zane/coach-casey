@@ -1,9 +1,9 @@
-# Strava API Compliance — Coach Casey
+# Strava API Compliance: Coach Casey
 
 **Last reviewed:** 2026-04-24
 **Status:** V1-blocking open question. Review and execute the "Action" section below before submitting the Strava developer application.
 
-**Recent revision (2026-04-24):** Application framing language adjusted to match the thesis refinement in `strategy-foundation.md`. Coach Casey's thesis is now "interpretive by default, responsive when asked" rather than "retrospective only." Strava's allowed category — "coaching platforms focused on providing feedback to users" — covers both interpretive reading of activities and responsive engagement with athlete questions, so the compliance argument does not weaken; it fits Strava's own language more accurately. Autonomous plan generation remains explicitly out of scope.
+**Recent revision (2026-04-24):** Application framing language adjusted to match the thesis refinement in `strategy-foundation.md`. Coach Casey's thesis is now "interpretive by default, responsive when asked" rather than "retrospective only." Strava's allowed category, "coaching platforms focused on providing feedback to users," covers both interpretive reading of activities and responsive engagement with athlete questions, so the compliance argument does not weaken; it fits Strava's own language more accurately. Autonomous plan generation remains explicitly out of scope.
 
 ---
 
@@ -13,7 +13,7 @@ In November 2024 Strava updated their API agreement. The relevant clause (still 
 
 > "You may not use the Strava API Materials (including Strava Data), directly or indirectly, for any model training related to artificial intelligence, machine learning or similar applications."
 >
-> — [Strava API Agreement](https://www.strava.com/legal/api)
+> - [Strava API Agreement](https://www.strava.com/legal/api)
 
 Several apps were cut off at the time of the update. The prohibition applies to anyone accessing the Strava API directly *or* via an aggregator (Terra, Rook, etc.), because it's a term on the underlying data.
 
@@ -29,11 +29,11 @@ Three reasons, in descending order of strength.
 
 From Strava's official announcement of the API changes:
 
-> "We anticipate that these changes will affect only a small fraction (less than .1%) of the applications on the Strava platform — the overwhelming majority of existing use cases are still allowed, including coaching platforms focused on providing feedback to users and tools that help users understand their data and performance."
+> "We anticipate that these changes will affect only a small fraction (less than .1%) of the applications on the Strava platform; the overwhelming majority of existing use cases are still allowed, including coaching platforms focused on providing feedback to users and tools that help users understand their data and performance."
 >
-> — [Updates to Strava's API Agreement, Nov 2024](https://press.strava.com/articles/updates-to-stravas-api-agreement)
+> - [Updates to Strava's API Agreement, Nov 2024](https://press.strava.com/articles/updates-to-stravas-api-agreement)
 
-"Coaching platforms focused on providing feedback to users" is Coach Casey's positioning almost verbatim. Supplementary, feedback-to-athlete-on-own-data, sitting alongside the coach or the plan. Feedback in this sense includes both proactive interpretation (debriefs, weekly reviews) and responsive engagement with athlete questions — a real coaching platform that only read the past and never answered questions would be an unusual one. This is the language to use in the developer application.
+"Coaching platforms focused on providing feedback to users" is Coach Casey's positioning almost verbatim. Supplementary, feedback-to-athlete-on-own-data, sitting alongside the coach or the plan. Feedback in this sense includes both proactive interpretation (debriefs, weekly reviews) and responsive engagement with athlete questions; a real coaching platform that only read the past and never answered questions would be an unusual one. This is the language to use in the developer application.
 
 **2. Coach Casey doesn't train models on Strava data.**
 
@@ -43,7 +43,7 @@ If a future version ever wants to fine-tune a model on runner data, Strava-sourc
 
 **3. Peer apps operate in the same lane.**
 
-Runna (AI-generated training plans), TrainerRoad (AI-driven structured workouts), and others ingest Strava data and apply AI-style processing, and continue to operate with Strava integration post-update. Coach Casey is a narrower use case than several of these — interpretation and responsive feedback to the athlete, supplementary to their existing plan, with no autonomous plan generation.
+Runna (AI-generated training plans), TrainerRoad (AI-driven structured workouts), and others ingest Strava data and apply AI-style processing, and continue to operate with Strava integration post-update. Coach Casey is a narrower use case than several of these; interpretation and responsive feedback to the athlete, supplementary to their existing plan, with no autonomous plan generation.
 
 ---
 
@@ -53,7 +53,7 @@ The application is at `https://www.strava.com/settings/api`. The approval is lig
 
 **Describe Coach Casey using Strava's own framing:**
 
-> Coach Casey is a coaching platform that provides interpretation and feedback to marathon runners on their own training data. It is supplementary to the athlete's existing coach or training plan — it does not generate training plans or prescribe workouts autonomously. Activities ingested from Strava are used to deliver post-run debriefs, weekly reviews, and contextual responses to athlete questions, all delivered back to the same athlete whose data it is.
+> Coach Casey is a coaching platform that provides interpretation and feedback to marathon runners on their own training data. It is supplementary to the athlete's existing coach or training plan; it does not generate training plans or prescribe workouts autonomously. Activities ingested from Strava are used to deliver post-run debriefs, weekly reviews, and contextual responses to athlete questions, all delivered back to the same athlete whose data it is.
 
 **Be explicit that AI is used, and be explicit about how:**
 
@@ -101,11 +101,11 @@ If you want an explicit confirmation before building, the route is Strava's deve
 
 > Subject: API Agreement clarification for AI-powered coaching feedback platform
 >
-> Hi — I'm building Coach Casey, a coaching platform that provides interpretation and responsive feedback to marathon runners on their own Strava activities. We use Anthropic Claude at inference time to generate personalised feedback per athlete, including answering athlete questions about their training. We do not generate training plans autonomously, and we do not train or fine-tune models on Strava data. Feedback is delivered only to the athlete who owns the data.
+> Hi, I'm building Coach Casey, a coaching platform that provides interpretation and responsive feedback to marathon runners on their own Strava activities. We use Anthropic Claude at inference time to generate personalised feedback per athlete, including answering athlete questions about their training. We do not generate training plans autonomously, and we do not train or fine-tune models on Strava data. Feedback is delivered only to the athlete who owns the data.
 >
 > Per the November 2024 announcement, coaching platforms providing feedback to users remain allowed, and the AI/ML restriction applies to model training. I want to confirm this interpretation is correct before submitting our application. Happy to share more detail on the architecture.
 >
-> — Jason
+> - Jason
 
 You do not need to do this step to submit the application. It's an optional belt-and-braces move if you want written confirmation before investing in build.
 
@@ -115,7 +115,7 @@ You do not need to do this step to submit the application. It's an optional belt
 
 Trigger a compliance re-review if any of these happen:
 
-1. **Product scope expands into autonomous plan generation.** Writing training programmes from scratch moves Coach Casey out of the "feedback to user" safe zone. (Responsive engagement with athlete forward-looking questions does not trigger this — it's within the feedback category.)
+1. **Product scope expands into autonomous plan generation.** Writing training programmes from scratch moves Coach Casey out of the "feedback to user" safe zone. (Responsive engagement with athlete forward-looking questions does not trigger this; it's within the feedback category.)
 2. **Features are added that involve cross-athlete visibility.** Squad features, coach-to-multiple-athletes views, leaderboards, sharing.
 3. **Any fine-tuning or model training is considered,** even on non-Strava data, because the provenance question becomes live.
 4. **Strava updates their API agreement.** Terms change; they've tightened once already. Check annually.
@@ -127,13 +127,13 @@ Trigger a compliance re-review if any of these happen:
 
 Before submitting the Strava developer application:
 
-1. **Read the current API agreement in full** (`https://www.strava.com/legal/api`). It's short. Do not rely on summaries — including this one — for the final read.
+1. **Read the current API agreement in full** (`https://www.strava.com/legal/api`). It's short. Do not rely on summaries, including this one, for the final read.
 2. **Draft the developer application** using the language in the "What to put in the Strava developer application" section above.
-3. **Optional:** email Strava developer support with the template above to get written confirmation before submitting. Adds 3–10 days to the timeline.
+3. **Optional:** email Strava developer support with the template above to get written confirmation before submitting. Adds 3-10 days to the timeline.
 4. **Submit the application** and wait for approval.
 5. **Log the approval** (and any communication from Strava) in the project docs.
 
-Do not start building the Strava integration in earnest until the application is approved. OAuth credentials and webhook subscription require an approved app anyway — there's nothing to start without it.
+Do not start building the Strava integration in earnest until the application is approved. OAuth credentials and webhook subscription require an approved app anyway; there's nothing to start without it.
 
 ---
 

@@ -1,10 +1,10 @@
-# Coach Casey — RPE Capture: Feature Specification
+# Coach Casey - RPE Capture: Feature Specification
 
 **Owner:** Jason
 **Last updated:** 2026-04-27
 **Status:** Implementation spec. Ready to build against. Reasoning summarised here; fuller reasoning in `v1-scope.md` §2.1 and conversation history.
 
-> **Supersession note (2026-04-27):** Moment-level shape — order on the surface, push body, picker decay, skip-count bucketing, Q2 timing and priority, divergence affordance — is now owned by `post-run-debrief-moment.md`. That doc supersedes §5, parts of §6, §7, and §8 of this spec where they conflict. Per-section markers below point at the relevant moment-doc section. This spec remains authoritative for §3 (data model), §4 (scale and copy), §10 (edge cases), §11 (out of V1), and §13 (done-when), with the moment-doc additions layered on top.
+> **Supersession note (2026-04-27):** Moment-level shape (order on the surface, push body, picker decay, skip-count bucketing, Q2 timing and priority, divergence affordance) is now owned by `post-run-debrief-moment.md`. That doc supersedes §5, parts of §6, §7, and §8 of this spec where they conflict. Per-section markers below point at the relevant moment-doc section. This spec remains authoritative for §3 (data model), §4 (scale and copy), §10 (edge cases), §11 (out of V1), and §13 (done-when), with the moment-doc additions layered on top.
 
 Read alongside `post-run-debrief-moment.md` (moment-level source of truth), `v1-scope.md` (the post-run follow-up structure RPE plugs into), `engineering-foundation.md` (data model conventions), `build-standards.md` (accessibility, error handling baselines), and `interaction-principles.md` (timing, feedback patterns).
 
@@ -14,7 +14,7 @@ Read alongside `post-run-debrief-moment.md` (moment-level source of truth), `v1-
 
 Capture Rate of Perceived Exertion (RPE) on every synced activity, via a two-question post-run prompt:
 
-- **Question 1: RPE.** A 1–10 numeric pick with anchored descriptors. Universal — appears for every eligible activity unless the athlete is in a paused state.
+- **Question 1: RPE.** A 1–10 numeric pick with anchored descriptors. Universal: appears for every eligible activity unless the athlete is in a paused state.
 - **Question 2: Contextual follow-up.** Picked from a small set based on the run, the athlete's tenure, and (where present) the RPE answer. Replaces the existing single post-run follow-up slot specified in `v1-scope.md` §2.1.
 
 Both questions are skippable. RPE skip-tracking pauses prompts after 5 consecutive explicit skips and re-prompts after a cooldown.
@@ -25,13 +25,13 @@ RPE feeds future debriefs, weekly reviews, and chat as longitudinal context. It 
 
 ## 2. Why this matters (briefly)
 
-RPE-vs-pace divergence is genuinely diagnostic — high RPE on easy pace flags fatigue, low RPE on hard pace flags adaptation. Strava doesn't capture this; other platforms ask but adherence is poor because the data goes into a void. In Coach Casey, RPE has an immediate visible payoff (it shapes Question 2 today, and the next debrief and weekly review tomorrow), and accumulates as a per-athlete signal that strengthens the moat. Fuller reasoning in `strategy-foundation.md` §5.
+RPE-vs-pace divergence is genuinely diagnostic: high RPE on easy pace flags fatigue, low RPE on hard pace flags adaptation. Strava doesn't capture this; other platforms ask but adherence is poor because the data goes into a void. In Coach Casey, RPE has an immediate visible payoff (it shapes Question 2 today, and the next debrief and weekly review tomorrow), and accumulates as a per-athlete signal that strengthens the moat. Fuller reasoning in `strategy-foundation.md` §5.
 
 ---
 
 ## 3. Data model additions
 
-### 3.1 `activity_notes` — new columns
+### 3.1 `activity_notes`: new columns
 
 | Column | Type | Notes |
 |---|---|---|
@@ -46,9 +46,9 @@ RPE-vs-pace divergence is genuinely diagnostic — high RPE on easy pace flags f
 - `rpe_value BETWEEN 1 AND 10`
 
 **Indexes:**
-- `(athlete_id, rpe_prompted_at DESC)` — supports the consecutive-skip-count query (see §6).
+- `(athlete_id, rpe_prompted_at DESC)`: supports the consecutive-skip-count query (see §6).
 
-### 3.2 `athletes` — new columns
+### 3.2 `athletes`: new columns
 
 | Column | Type | Notes |
 |---|---|---|
@@ -64,7 +64,7 @@ Standard per-athlete RLS, same pattern as the rest of `activity_notes`. No new p
 
 - **Scale:** 1–10 numeric.
 - **Descriptors:** anchored at positions 1, 3, 5, 7, and 10. Visible alongside the picker on first use; subsequent uses can show on tap-and-hold.
-- **V1 build placeholder copy** (will be replaced at launch-prep by the content workstream — do not treat as final):
+- **V1 build placeholder copy** (will be replaced at launch-prep by the content workstream; do not treat as final):
   - 1: *very easy*
   - 3: *steady*
   - 5: *somewhat hard*
@@ -72,24 +72,24 @@ Standard per-athlete RLS, same pattern as the rest of `activity_notes`. No new p
   - 10: *max effort*
 - Picker rendered as a horizontal numeric strip on mobile (1–10), large enough to be tappable. Selected number is highlighted in plum accent. Tabular numerals (per `visual-identity.md` §1).
 
-Final descriptor copy is a launch-prep open item — see `open-questions-log.md`.
+Final descriptor copy is a launch-prep open item; see `open-questions-log.md`.
 
 ---
 
 ## 5. Where the RPE prompt appears
 
-> **Superseded — see `post-run-debrief-moment.md` §3.2 and §10 decision 1.** Picker now sits **below** the debrief prose, not above. The eligibility rules and `rpe_prompted_at` semantics in this section still apply. The placement and the order-of-attention have flipped.
+> **Superseded; see `post-run-debrief-moment.md` §3.2 and §10 decision 1.** Picker now sits **below** the debrief prose, not above. The eligibility rules and `rpe_prompted_at` semantics in this section still apply. The placement and the order-of-attention have flipped.
 
 - **Surface:** the debrief surface, at the top, above the debrief body.
 - **Trigger conditions** (all must be true):
-  - The activity is one Coach Casey would otherwise generate a debrief for (run, ride, swim — not walks, manual activities under the threshold)
-  - Activity duration ≥ 10 minutes (skip very short activities — see §10)
+  - The activity is one Coach Casey would otherwise generate a debrief for (run, ride, swim; not walks, manual activities under the threshold)
+  - Activity duration ≥ 10 minutes (skip very short activities; see §10)
   - `activity_notes.rpe_prompted_at` is `NULL` for this activity
   - `athlete.rpe_prompts_paused_until` is `NULL` or in the past
-- **On display:** set `rpe_prompted_at = NOW()` (idempotent — only the first display sets it).
+- **On display:** set `rpe_prompted_at = NOW()` (idempotent; only the first display sets it).
 - **On answer:** set `rpe_value`, `rpe_answered_at = NOW()`. Reveal Question 2 (see §7).
-- **On skip:** set `rpe_skipped_at = NOW()`. Reveal Question 2 — skipping RPE does not skip the secondary follow-up.
-- **Optimistic UI** per `interaction-principles.md` §3.4 — local state updates immediately on tap, server reconciles in the background.
+- **On skip:** set `rpe_skipped_at = NOW()`. Reveal Question 2; skipping RPE does not skip the secondary follow-up.
+- **Optimistic UI** per `interaction-principles.md` §3.4: local state updates immediately on tap, server reconciles in the background.
 
 The debrief body renders below the RPE prompt regardless of whether RPE has been answered. The athlete can read the debrief without engaging the prompt; the prompt remains visible and tappable.
 
@@ -97,36 +97,36 @@ The debrief body renders below the RPE prompt regardless of whether RPE has been
 
 ## 6. Interaction with debrief generation
 
-> **Partially superseded — see `post-run-debrief-moment.md` §10 decision 4.** The debrief *body* still does not consume today's RPE (the carve-out below stands — sync-time generation, stale-debrief avoidance). What changed: today's RPE *does* now inform today's **Q2** (the divergence-aware branch), generated lazily after RPE submission. See `post-run-debrief-moment.md` §3.3 and §5.2. Same-activity RPE-aware *debrief body* remains a launch-prep open item.
+> **Partially superseded; see `post-run-debrief-moment.md` §10 decision 4.** The debrief *body* still does not consume today's RPE (the carve-out below stands: sync-time generation, stale-debrief avoidance). What changed: today's RPE *does* now inform today's **Q2** (the divergence-aware branch), generated lazily after RPE submission. See `post-run-debrief-moment.md` §3.3 and §5.2. Same-activity RPE-aware *debrief body* remains a launch-prep open item.
 
 **The current activity's debrief does not consume the current activity's RPE.** Reasoning: debriefs generate on Strava sync (typically before the athlete opens the app); waiting for RPE before generating introduces complex timing logic and stale-debrief risk. Subsequent debriefs, weekly reviews, and chat use accumulated RPE as longitudinal context. Same-activity RPE-awareness is a V1.1 candidate.
 
 What this means in practice:
 - Today's debrief does not reference today's RPE.
-- Today's RPE shows up in tomorrow's RPE-aware analysis ("yesterday's easy was a 7 — keeping today gentler").
+- Today's RPE shows up in tomorrow's RPE-aware analysis ("yesterday's easy was a 7; keeping today gentler").
 - Weekly review consumes the full week's RPE as input to its interpretation.
-- Question 2 (the follow-up) is RPE-aware in the same session — see §7.
+- Question 2 (the follow-up) is RPE-aware in the same session; see §7.
 
 If the launch-prep content review concludes the athlete will feel cheated by an RPE-blind same-day debrief, two-stage generation becomes a launch-prep design item. Not building it day-1.
 
 ---
 
-## 7. Question 2 — contextual follow-up
+## 7. Question 2: contextual follow-up
 
-> **Superseded — see `post-run-debrief-moment.md` §5 and §3.3.** Q2 timing changed: a conversational Q2 is generated at sync time and shown by default; the divergence-aware branch generates *lazily* on RPE answer and **replaces the conversational Q2 in place** when divergence fires. The priority order below is preserved logically, but the picker now runs after RPE submission rather than at sync. The divergence-aware Q2 also acquires affordance chips (currently one: *Chat about this run*) and a permitted light forward-implicating line — see moment-doc §5.2 and §10 decisions 9 and 10. Cross-training does **not** get a divergence-aware Q2 in V1 — see moment-doc §7.
+> **Superseded; see `post-run-debrief-moment.md` §5 and §3.3.** Q2 timing changed: a conversational Q2 is generated at sync time and shown by default; the divergence-aware branch generates *lazily* on RPE answer and **replaces the conversational Q2 in place** when divergence fires. The priority order below is preserved logically, but the picker now runs after RPE submission rather than at sync. The divergence-aware Q2 also acquires affordance chips (currently one: *Chat about this run*) and a permitted light forward-implicating line; see moment-doc §5.2 and §10 decisions 9 and 10. Cross-training does **not** get a divergence-aware Q2 in V1; see moment-doc §7.
 
 Question 2 replaces the existing single-follow-up slot from `v1-scope.md` §2.1. The picker chooses one of three question types, in this priority order:
 
-1. **Phase 2 structured context question** — used in weeks 1–2 of athlete tenure, while the structured context backlog (the ranked list from `v1-scope.md` §6) has unasked questions.
-2. **RPE-branched follow-up** — used when RPE was answered (not skipped) and shows divergence from expected effort for the activity type.
-3. **Conversational follow-up** — fallback. Generated per-run based on what's notable about the activity (existing `v1-scope.md` §2.1 behaviour).
+1. **Phase 2 structured context question**: used in weeks 1–2 of athlete tenure, while the structured context backlog (the ranked list from `v1-scope.md` §6) has unasked questions.
+2. **RPE-branched follow-up**: used when RPE was answered (not skipped) and shows divergence from expected effort for the activity type.
+3. **Conversational follow-up**: fallback. Generated per-run based on what's notable about the activity (existing `v1-scope.md` §2.1 behaviour).
 
 ### 7.1 RPE-branched follow-up logic (V1 day-1)
 
 Keep the V1 logic deliberately simple. The picker sophistication is V1.1 polish.
 
-- **High RPE on easy intent:** `rpe_value >= 7` AND the activity matches an easy/recovery profile (see below) → fire follow-up: *"Felt harder than I'd have expected — what was going on?"*
-- **Low RPE on hard intent:** `rpe_value <= 4` AND the activity matches a hard/workout profile → fire follow-up: *"Felt smoother than I'd have expected — what made the difference?"*
+- **High RPE on easy intent:** `rpe_value >= 7` AND the activity matches an easy/recovery profile (see below) → fire follow-up: *"Felt harder than I'd have expected; what was going on?"*
+- **Low RPE on hard intent:** `rpe_value <= 4` AND the activity matches a hard/workout profile → fire follow-up: *"Felt smoother than I'd have expected; what made the difference?"*
 - **No divergence:** RPE within an unremarkable band → fall through to conversational follow-up.
 
 **Easy intent detection** (V1, simple heuristic):
@@ -157,7 +157,7 @@ One Question 2 per run. Skippable. Non-repeating per run. Same rules as the exis
 
 ## 8. Skip mechanics
 
-> **Superseded — see `post-run-debrief-moment.md` §6 and §10 decision 6.** Skip count is now bucketed into **two buckets — run and cross-training**, not a single global counter. Five active skips in a bucket pauses RPE prompts for that bucket only, for 21 days; the opposing bucket continues firing. The active-skip vs non-engagement distinction in §8.1 below still applies. The §8.3 query gains a `WHERE` clause scoped per bucket. The data model implication (one column scoped by bucket vs. two columns vs. separate table) is an open engineering call — see moment-doc §11.
+> **Superseded; see `post-run-debrief-moment.md` §6 and §10 decision 6.** Skip count is now bucketed into **two buckets: run and cross-training**, not a single global counter. Five active skips in a bucket pauses RPE prompts for that bucket only, for 21 days; the opposing bucket continues firing. The active-skip vs non-engagement distinction in §8.1 below still applies. The §8.3 query gains a `WHERE` clause scoped per bucket. The data model implication (one column scoped by bucket vs. two columns vs. separate table) is an open engineering call; see moment-doc §11.
 
 ### 8.1 Definitions
 
@@ -165,12 +165,12 @@ One Question 2 per run. Skippable. Non-repeating per run. Same rules as the exis
 - **Non-engagement** = `rpe_prompted_at IS NOT NULL` AND `rpe_skipped_at IS NULL` AND `rpe_value IS NULL`. Athlete saw the prompt but neither answered nor explicitly skipped (e.g. closed the app, never returned).
 - **Answer** = `rpe_value IS NOT NULL`.
 
-**Only active skips count toward the threshold.** Non-engagement does not. Reasoning: a user who never opens the debrief shouldn't have RPE silently disabled. Revisit at launch-prep — see open questions.
+**Only active skips count toward the threshold.** Non-engagement does not. Reasoning: a user who never opens the debrief shouldn't have RPE silently disabled. Revisit at launch-prep; see open questions.
 
 ### 8.2 Pause threshold
 
-- When the athlete has 5 consecutive active skips (counted from most recent prompted activity backwards, stopping at the first non-skip — answer, non-engagement, or no prompt), set `athletes.rpe_prompts_paused_until = NOW() + INTERVAL '21 days'`.
-- Pause runs as part of the same code path that decides whether to show the prompt — checked on every potential prompt display.
+- When the athlete has 5 consecutive active skips (counted from most recent prompted activity backwards, stopping at the first non-skip: answer, non-engagement, or no prompt), set `athletes.rpe_prompts_paused_until = NOW() + INTERVAL '21 days'`.
+- Pause runs as part of the same code path that decides whether to show the prompt; checked on every potential prompt display.
 
 ### 8.3 SQL for the consecutive-skip count
 
@@ -213,11 +213,11 @@ Trigger evaluation: after every RPE skip is recorded. If count >= 5, apply pause
 
 ### 8.4 Re-prompt after pause
 
-- After `rpe_prompts_paused_until` passes, the next eligible activity shows the RPE prompt with a slightly different framing (acknowledging the gap). Exact copy is launch-prep — placeholder for V1 build: *"OK to ask again? You can keep skipping if it's not useful."*
+- After `rpe_prompts_paused_until` passes, the next eligible activity shows the RPE prompt with a slightly different framing (acknowledging the gap). Exact copy is launch-prep; placeholder for V1 build: *"OK to ask again? You can keep skipping if it's not useful."*
 - If the athlete answers → resume normally.
 - If the athlete skips this re-prompt → it counts as one skip toward a fresh 5-skip threshold. Pause recurs only after another 5 consecutive active skips.
 
-This may be too lenient — the athlete might skip another 5 before pausing again. An alternative shorter post-pause threshold (e.g. 2 skips → pause again, longer) is launch-prep tunable.
+This may be too lenient: the athlete might skip another 5 before pausing again. An alternative shorter post-pause threshold (e.g. 2 skips → pause again, longer) is launch-prep tunable.
 
 ---
 
@@ -227,17 +227,17 @@ This may be too lenient — the athlete might skip another 5 before pausing agai
 
 - The debrief prompt template (`prompts/post-run-debrief.md`) accepts RPE history as input context, not the current activity's RPE (per §6).
 - Prompt receives: trailing 14–28 days of `(activity, rpe_value, planned_intent)` triples for divergence pattern recognition.
-- Prompt update is part of the prompt engineering workstream — see `v1-scope.md` §4.
+- Prompt update is part of the prompt engineering workstream; see `v1-scope.md` §4.
 
 ### 9.2 Weekly review prompt
 
 - The weekly review prompt receives the full week's `(activity, rpe_value, planned_intent)` set.
-- RPE-vs-pace divergence trends are a primary input to the week's interpretation. *"You ran easy four times this week, RPE averaged 5 — that's higher than your usual easy band of 3-4. Worth watching."*
+- RPE-vs-pace divergence trends are a primary input to the week's interpretation. *"You ran easy four times this week, RPE averaged 5; that's higher than your usual easy band of 3-4. Worth watching."*
 
 ### 9.3 Chat
 
 - Reactive chat has access to the athlete's full RPE history via the memory store.
-- No special chat behaviour needed at V1 — the prompt has the data and uses it as it would any other longitudinal signal.
+- No special chat behaviour needed at V1: the prompt has the data and uses it as it would any other longitudinal signal.
 
 ### 9.4 Memory items
 
@@ -248,7 +248,7 @@ This may be too lenient — the athlete might skip another 5 before pausing agai
 
 ## 10. Edge cases
 
-> **Picker decay added — see `post-run-debrief-moment.md` §3.5 and §10 decision 3.** Picker hides 4h after first display if not engaged. Counts as non-engagement, not active skip. The cross-training bullet below is affirmed and extended in moment-doc §7 (RPE fires same shape as runs, no divergence Q2 in V1, no affordance chips in V1).
+> **Picker decay added; see `post-run-debrief-moment.md` §3.5 and §10 decision 3.** Picker hides 4h after first display if not engaged. Counts as non-engagement, not active skip. The cross-training bullet below is affirmed and extended in moment-doc §7 (RPE fires same shape as runs, no divergence Q2 in V1, no affordance chips in V1).
 
 - **Non-run activities (cycling, swimming, cross-training):** show RPE prompt. RPE is valid for any aerobic activity.
 - **Very short activities (<10 min):** suppress the RPE prompt entirely. No prompt, no `rpe_prompted_at` set.
@@ -266,7 +266,7 @@ This may be too lenient — the athlete might skip another 5 before pausing agai
 
 - RPE editing after submission
 - Custom RPE scales (per-athlete preference, e.g. 1–7)
-- A standalone RPE history or trends UI (the data is consumed by Coach Casey, not displayed as a tracker — see `design-principles.md` §3 *moments over dashboards*)
+- A standalone RPE history or trends UI (the data is consumed by Coach Casey, not displayed as a tracker; see `design-principles.md` §3 *moments over dashboards*)
 - Sub-activity RPE (per rep, per lap, perceived cardio vs muscular)
 - Same-activity RPE-aware debriefs (revisit at launch-prep if the gap feels jarring in dogfood)
 - Smart Question 2 picker beyond the simple priority order in §7
@@ -278,7 +278,7 @@ This may be too lenient — the athlete might skip another 5 before pausing agai
 These get resolved before V1 ships, not at day-1 build time. Tracked in `open-questions-log.md`:
 
 - **Final scale descriptor copy** (content workstream)
-- **Re-prompt copy and post-pause threshold tuning** (currently 21-day pause, 5-skip threshold post-pause — both placeholder)
+- **Re-prompt copy and post-pause threshold tuning** (currently 21-day pause, 5-skip threshold post-pause; both placeholder)
 - **Whether non-engagement should count toward skips** (current decision: no)
 - **RPE baseline derivation cadence and `memory_item` shape** (engineering + content)
 - **Picker logic refinement** (current logic in §7 is deliberately simple)

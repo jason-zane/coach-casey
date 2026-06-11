@@ -1,4 +1,4 @@
-# Coach Casey — Marketing Site Rewrite
+# Coach Casey: Marketing Site Rewrite
 
 **Owner:** Jason
 **Version:** 1.0
@@ -6,9 +6,9 @@
 **Status:** Full rewrite of coachcasey.app. Sections reordered, two new sections added, all copy updated for thesis refinement and voice discipline. Design notes included. Pass this to Claude Code for implementation.
 
 **Cross-refs:**
-- `strategy-foundation.md` — thesis, moat, ICP, pricing argument
-- `voice-guidelines.md` — register, anti-patterns, worked examples
-- `v1-scope.md` — product surfaces that exist in V1
+- `strategy-foundation.md`: thesis, moat, ICP, pricing argument
+- `voice-guidelines.md`: register, anti-patterns, worked examples
+- `v1-scope.md`: product surfaces that exist in V1
 
 ---
 
@@ -34,16 +34,16 @@ Same basic flow, two new sections added, one section reordered.
 
 1. **Hero** (rewritten)
 2. **The debrief** (anchor example, kept, em-dashes removed, header tweaked)
-3. **More than the debrief** (new — shows weekly reviews and chat exist)
-4. **The moat** (new — gets sharper the longer you use it)
-5. **Who it's for** (rewritten — all four ICP segments named)
-6. **How it works** (tweaked — three steps, slightly broadened)
-7. **Pricing** (rewritten — annual argument now carries the moat)
-8. **FAQ** (edited — ICP invitation, responsive framing, data question kept)
-9. **Footer CTA** (rewritten — warmer, no colloquialism drift)
-10. **Founder line** (new — small, in footer)
+3. **More than the debrief** (new: shows weekly reviews and chat exist)
+4. **The moat** (new: gets sharper the longer you use it)
+5. **Who it's for** (rewritten: all four ICP segments named)
+6. **How it works** (tweaked: three steps, slightly broadened)
+7. **Pricing** (rewritten: annual argument now carries the moat)
+8. **FAQ** (edited: ICP invitation, responsive framing, data question kept)
+9. **Footer CTA** (rewritten: warmer, no colloquialism drift)
+10. **Founder line** (new: small, in footer)
 
-**Rationale for the new order:** the user needs four questions answered before they'll buy. (1) What is this? (2) Show me what it actually does. (3) Why does it matter / how is it different? (4) Am I the right kind of runner? The current site answers (1) and (2) well, skips (3) entirely, and implies (4). The new structure answers all four in order — hero and debrief handle (1) and (2); "more than the debrief" widens (2); the moat section handles (3); "who it's for" handles (4). Then pricing, FAQ, close.
+**Rationale for the new order:** the user needs four questions answered before they'll buy. (1) What is this? (2) Show me what it actually does. (3) Why does it matter / how is it different? (4) Am I the right kind of runner? The current site answers (1) and (2) well, skips (3) entirely, and implies (4). The new structure answers all four in order: hero and debrief handle (1) and (2); "more than the debrief" widens (2); the moat section handles (3); "who it's for" handles (4). Then pricing, FAQ, close.
 
 ---
 
@@ -76,12 +76,12 @@ The subheadline does three jobs the current one doesn't. (1) Names all four ICP 
 **Design notes:**
 
 - Keep the typographic treatment (large serif or editorial sans) currently used for the hero.
-- Line break before "Coach Casey knows the runner" if the layout allows — the parallel lands harder with visual symmetry.
+- Line break before "Coach Casey knows the runner" if the layout allows: the parallel lands harder with visual symmetry.
 - Subheadline should be visibly smaller but still readable at a scroll's distance.
 
 ---
 
-### Section 2 — The debrief (anchor example)
+### Section 2: The debrief (anchor example)
 
 **Section header:**
 
@@ -97,7 +97,7 @@ The subheadline does three jobs the current one doesn't. (1) Names all four ICP 
 
 (Keep. This is already voice-perfect.)
 
-**The debrief card — copy updated to remove em-dashes:**
+**The debrief card: copy updated to remove em-dashes**
 
 Metadata block (unchanged structure):
 
@@ -118,20 +118,20 @@ Debrief body (em-dashes removed, otherwise kept):
 >
 > Two things. You mentioned the calf on Tuesday. Easy runs are where you bank that signal, and 4:58 is harder to justify if the calf's still talking. Not my call, but worth sitting with before tomorrow.
 >
-> — Coach Casey
+> Coach Casey
 
 **Rationale:**
 
-This section is already doing most of its job. The debrief body is the best piece of voice on the site and it stays. The only changes are (1) em-dash removal and (2) a slightly cleaner section header. The em-dash swap works — the new sentence breaks actually read better than the em-dash version did.
+This section is already doing most of its job. The debrief body is the best piece of voice on the site and it stays. The only changes are (1) em-dash removal and (2) a slightly cleaner section header. The em-dash swap works; the new sentence breaks actually read better than the em-dash version did.
 
 **Design notes:**
 
-- Keep the card treatment. The metadata block with pace/HR/distance/week is excellent — makes the debrief feel anchored to real data, reinforces specificity as a voice principle.
-- "— Coach Casey" signature is fine.
+- Keep the card treatment. The metadata block with pace/HR/distance/week is excellent; it makes the debrief feel anchored to real data, reinforces specificity as a voice principle.
+- "Coach Casey" signature is kept as-is in product.
 
 ---
 
-### Section 3 — More than the debrief (NEW)
+### Section 3: More than the debrief (NEW)
 
 **Section header:**
 
@@ -151,7 +151,7 @@ This section is already doing most of its job. The debrief body is the best piec
 
 This is the missing breadth section. It does three things: (1) names weekly reviews as a surface without featuring them as heavily as debriefs, (2) names responsive chat as a surface and gives a specific example of what a forward-looking question looks like, (3) shows the life-context integration in passing ("what you said about the calf, the work trip, the sleep"), previewing the moat.
 
-The chat example is deliberate. It shows responsive prescription in action — an athlete asking a forward-looking question — which is the V1.5 thesis refinement that the current site can't reflect because it was written before. The copy is careful to frame it as "you can just ask," not "Coach Casey tells you what to do." That preserves the thesis boundary.
+The chat example is deliberate. It shows responsive prescription in action: an athlete asking a forward-looking question. This is the V1.5 thesis refinement that the current site can't reflect because it was written before. The copy is careful to frame it as "you can just ask," not "Coach Casey tells you what to do." That preserves the thesis boundary.
 
 **Design notes:**
 
@@ -161,7 +161,7 @@ The chat example is deliberate. It shows responsive prescription in action — a
 
 ---
 
-### Section 4 — The moat (NEW)
+### Section 4: The moat (NEW)
 
 **Section header:**
 
@@ -181,7 +181,7 @@ The chat example is deliberate. It shows responsive prescription in action — a
 
 This is the most important new section on the page. The strategy doc explicitly calls this a copy requirement, not a flourish. Without it, the annual pricing argument collapses and the differentiation vs Strava has no spine.
 
-The approach is show-don't-tell. Not "our AI personalises over time" but specific observable behaviour — "remembers the calf from February," "knows you had a kid six months ago." The concrete examples do more work than any abstract claim about memory or personalisation.
+The approach is show-don't-tell. Not "our AI personalises over time" but specific observable behaviour: "remembers the calf from February," "knows you had a kid six months ago." The concrete examples do more work than any abstract claim about memory or personalisation.
 
 The last paragraph does the Strava differentiation implicitly without naming Strava. "None of that's in your Strava data" is the differentiation sentence. Doesn't need to name the competitor to land.
 
@@ -191,13 +191,13 @@ Careful note: the copy deliberately doesn't frame day 1 as "wait for it to be go
 
 - This section wants its own visual treatment. Possibly:
   - A simple left-to-right progression showing Week 1 / Month 3 / Month 12 with a short descriptive line under each
-  - Or a stylised "memory card" showing accumulated context (X runs read, Y notes remembered, Z races logged) — the start of the memory-as-progress UI from strategy doc §9
+  - Or a stylised "memory card" showing accumulated context (X runs read, Y notes remembered, Z races logged): the start of the memory-as-progress UI from strategy doc §9
 - If going visual, keep the body copy above as well. Don't replace text with a graphic.
 - Consider this section's visual weight roughly equal to the debrief section. It's the second major pillar of the site.
 
 ---
 
-### Section 5 — Who it's for
+### Section 5: Who it's for
 
 **Section header:**
 
@@ -215,9 +215,9 @@ Careful note: the copy deliberately doesn't frame day 1 as "wait for it to be go
 
 **Rationale:**
 
-Three changes from the current site. (1) All four ICP segments are now named — book, coach, app, group — rather than implied. (2) "Reads what just happened" softened to "reads what's happening, and answers when you ask," which accommodates both the retrospective default and the responsive posture. (3) "Replace a coach who already watches every run" is clearer than the current phrasing and more explicit about the anti-ICP.
+Three changes from the current site. (1) All four ICP segments are now named: book, coach, app, group. Rather than implied. (2) "Reads what just happened" softened to "reads what's happening, and answers when you ask," which accommodates both the retrospective default and the responsive posture. (3) "Replace a coach who already watches every run" is clearer than the current phrasing and more explicit about the anti-ICP.
 
-The "Pfitz, Hansons, or Daniels" specificity is deliberate — it's a recognition-bait moment. If you're running any of those plans, you'll notice. If you're running any other book plan, you'll feel invited by association. The brand names do more work than "book plan" would.
+The "Pfitz, Hansons, or Daniels" specificity is deliberate: it's a recognition-bait moment. If you're running any of those plans, you'll notice. If you're running any other book plan, you'll feel invited by association. The brand names do more work than "book plan" would.
 
 **Design notes:**
 
@@ -226,7 +226,7 @@ The "Pfitz, Hansons, or Daniels" specificity is deliberate — it's a recognitio
 
 ---
 
-### Section 6 — How it works
+### Section 6: How it works
 
 **Section header:**
 
@@ -236,21 +236,21 @@ The "Pfitz, Hansons, or Daniels" specificity is deliberate — it's a recognitio
 
 (Keep current header. "Then it's just running" is working.)
 
-**Step 1 — unchanged:**
+**Step 1: unchanged**
 
 > **Connect Strava.**
 >
 > New activities sync automatically. Coach Casey starts reading from your first run.
 
-**Step 2 — lightly edited:**
+**Step 2: lightly edited**
 
 > **Tell it what you're training for.**
 >
 > Upload your plan, paste a block, or just describe the race and how you're getting there. The more Coach Casey knows, the sharper the reads.
 
-(Current copy says "upload a plan, paste a block, or describe the race." New copy adds "your" and "just," both small warmth moves. "Just describe the race and how you're getting there" is a slight broadening — leaves the door open for runners who don't have a formal plan to upload.)
+(Current copy says "upload a plan, paste a block, or describe the race." New copy adds "your" and "just," both small warmth moves. "Just describe the race and how you're getting there" is a slight broadening: it leaves the door open for runners who don't have a formal plan to upload.)
 
-**Step 3 — rewritten to reflect scope:**
+**Step 3: rewritten to reflect scope**
 
 > **Get your debriefs. Get your weekly reviews. Ask the questions.**
 >
@@ -260,7 +260,7 @@ The "Pfitz, Hansons, or Daniels" specificity is deliberate — it's a recognitio
 
 **Rationale:**
 
-Steps 1 and 2 are fine with small tweaks. Step 3 is where the scope-narrowness problem was worst — reducing the product to "get a debrief" in the how-it-works section trains the reader to expect one-surface product. Rewriting it to name all three surfaces (debrief / weekly review / chat) aligns the mental model with V1 scope.
+Steps 1 and 2 are fine with small tweaks. Step 3 is where the scope-narrowness problem was worst: reducing the product to "get a debrief" in the how-it-works section trains the reader to expect one-surface product. Rewriting it to name all three surfaces (debrief / weekly review / chat) aligns the mental model with V1 scope.
 
 **Design notes:**
 
@@ -269,7 +269,7 @@ Steps 1 and 2 are fine with small tweaks. Step 3 is where the scope-narrowness p
 
 ---
 
-### Section 7 — Pricing
+### Section 7: Pricing
 
 **Section header:**
 
@@ -309,17 +309,17 @@ Steps 1 and 2 are fine with small tweaks. Step 3 is where the scope-narrowness p
 
 **Rationale:**
 
-Three changes. (1) "Fair for what it does" replaced with "Fair for serious runners" — warmer, anchors to the ICP, avoids the generic "fair" framing. (2) The offending subheader ("priced for people who are serious enough to pay for it and sensible enough to notice when they aren't using it") is gone. Replaced with a line that names the coaching-tier anchor directly, which is the pricing strategy's actual argument per strategy doc §7. (3) A new line below the cards makes the annual argument explicit. This is the moat doing commercial work — "priced to keep you through the window where Coach Casey gets sharpest" says why annual exists without being sales-y.
+Three changes. (1) "Fair for what it does" replaced with "Fair for serious runners": warmer, anchors to the ICP, avoids the generic "fair" framing. (2) The offending subheader ("priced for people who are serious enough to pay for it and sensible enough to notice when they aren't using it") is gone. Replaced with a line that names the coaching-tier anchor directly, which is the pricing strategy's actual argument per strategy doc §7. (3) A new line below the cards makes the annual argument explicit. This is the moat doing commercial work: "priced to keep you through the window where Coach Casey gets sharpest" says why annual exists without being sales-y.
 
 **Design notes:**
 
 - Two-card layout (monthly / annual) is right. Don't change the shape.
 - The new "Annual is priced to keep you..." line should sit below the cards, not inside either card. It's site-wide framing, not a card feature.
-- Consider making the annual card visually slightly emphasised (subtle — a border treatment, a "recommended" tag, not a loud difference).
+- Consider making the annual card visually slightly emphasised (subtle: a border treatment, a "recommended" tag, not a loud difference).
 
 ---
 
-### Section 8 — FAQ
+### Section 8: FAQ
 
 **Section header:**
 
@@ -329,56 +329,56 @@ Three changes. (1) "Fair for what it does" replaced with "Fair for serious runne
 
 (Keep. "Fair things to ask" is in voice.)
 
-**Q1 — edited:**
+**Q1: edited**
 
 > **Does it replace my coach?**
 >
 > No. Coach Casey reads your runs, remembers the pattern, and answers your questions. Your coach decides the programme and the big calls. If anything, the debriefs give your coach a sharper starting point.
 
-**Q2 — rewritten:**
+**Q2: rewritten**
 
 > **What if I don't have a coach? Or I'm following a book plan, an app plan, or a group plan?**
 >
-> Coach Casey works with all of those. It needs a plan of some sort to read against, but the plan can come from anywhere. Book plan, Runna, TrainingPeaks, your coach, a running group block — it's all good. You can even just describe what you're training for in a few sentences, and Coach Casey will work with that until you've got something more structured.
+> Coach Casey works with all of those. It needs a plan of some sort to read against, but the plan can come from anywhere. Book plan, Runna, TrainingPeaks, your coach, a running group block: it's all good. You can even just describe what you're training for in a few sentences, and Coach Casey will work with that until you've got something more structured.
 
-**Q3 — edited:**
+**Q3: edited**
 
 > **How is this different from Strava or Runna?**
 >
-> Strava records the run. Runna writes the plan. Coach Casey does neither. It reads your runs, weighs them against your plan, your history, and the life context you've given it, and answers your questions about all of it. The longer you use it, the sharper it gets — because it actually remembers.
+> Strava records the run. Runna writes the plan. Coach Casey does neither. It reads your runs, weighs them against your plan, your history, and the life context you've given it, and answers your questions about all of it. The longer you use it, the sharper it gets, because it actually remembers.
 
-**Q4 — kept mostly as-is:**
+**Q4: kept mostly as-is**
 
 > **Where does my data go?**
 >
 > Strava data comes in read-only through their API. Your runs, plan, and chat history are stored on Supabase, in Tokyo. Coach Casey uses large language models to write debriefs and respond to you; your data is never used to train them.
 
-**Q5 — edited:**
+**Q5: edited**
 
 > **What does the trial include?**
 >
 > 14 days, no card required, everything enabled. Connect Strava, upload a plan if you've got one, get debriefs, weekly reviews, and open chat. If it isn't clicking by day 10, it probably isn't for you.
 
-**Q6 — unchanged:**
+**Q6: unchanged**
 
 > **Can I cancel anytime?**
 >
 > Yes, from your account page. No claw-backs on the annual plan. Unused months refund automatically, pro-rata.
 
-(Em-dash removed in Q6: original read "No claw-backs on the annual plan — unused months refund automatically" which has an em-dash.)
+(Em-dash removed in Q6: original read "No claw-backs on the annual plan; unused months refund automatically" which has an em-dash.)
 
 **Rationale:**
 
-Three real changes. (1) Q2 is rewritten from "what if I don't have a plan" to "what if I don't have a coach / I'm following a book, app, or group plan" — directly invites the three non-coached ICP segments that the strategy doc flagged as under-represented. (2) Q3 updated to reflect the responsive posture ("answers your questions about all of it") and makes the moat argument explicitly ("the longer you use it, the sharper it gets"). (3) Q5 updated so "everything enabled" is a real claim — debriefs, weekly reviews, and chat all named, matching actual V1 scope.
+Three real changes. (1) Q2 is rewritten from "what if I don't have a plan" to "what if I don't have a coach / I'm following a book, app, or group plan": directly invites the three non-coached ICP segments that the strategy doc flagged as under-represented. (2) Q3 updated to reflect the responsive posture ("answers your questions about all of it") and makes the moat argument explicitly ("the longer you use it, the sharper it gets"). (3) Q5 updated so "everything enabled" is a real claim: debriefs, weekly reviews, and chat all named, matching actual V1 scope.
 
 **Design notes:**
 
 - Keep the current expanding-FAQ or list-style treatment. Whatever's already there works.
-- Order matters slightly — Q2 is a lot more prominent now (it's essentially the ICP invitation for the non-coached segments) so it lives high in the list.
+- Order matters slightly: Q2 is a lot more prominent now (it's essentially the ICP invitation for the non-coached segments), so it lives high in the list.
 
 ---
 
-### Section 9 — Footer CTA
+### Section 9: Footer CTA
 
 **Section header (rewritten):**
 
@@ -396,16 +396,16 @@ Three real changes. (1) Q2 is rewritten from "what if I don't have a plan" to "w
 
 **Rationale:**
 
-"Fourteen days on the house" is warm but out of register against the rest of the site. "Fourteen days, no card" says the same generosity in plainer language. Same content (trial length, no card required, low-friction), cleaner voice. The body line beneath ("run the runs you were going to run anyway") is already working — it's one of the best lines on the site.
+"Fourteen days on the house" is warm but out of register against the rest of the site. "Fourteen days, no card" says the same generosity in plainer language. Same content (trial length, no card required, low-friction), cleaner voice. The body line beneath ("run the runs you were going to run anyway") is already working; it's one of the best lines on the site.
 
 **Design notes:**
 
 - Keep the card-style footer CTA treatment.
-- Subtle note: if there's a design-system opportunity, pairing this section with the hero section visually (same headline treatment) would create a bookend effect — the page opens and closes on the same tonal note.
+- Subtle note: if there's a design-system opportunity, pairing this section with the hero section visually (same headline treatment) would create a bookend effect: the page opens and closes on the same tonal note.
 
 ---
 
-### Section 10 — Founder line (NEW)
+### Section 10: Founder line (NEW)
 
 **Placement:** small, in or just above the existing footer. Not a section of its own; a trust signal.
 
@@ -417,7 +417,7 @@ Three real changes. (1) Q2 is rewritten from "what if I don't have a plan" to "w
 
 The brand architecture decision in strategy doc §2 says Coach Casey is a standalone product brand, with The Marathon Clinic as a separate content/philosophy property. Attribution to Jason and the clinic is the footer move. Reinforces credibility (especially in AU/NZ), provides a link out, doesn't confuse the Coach Casey brand identity.
 
-(Replace "Jason Gauci" with your preferred attribution — first name only, full name, etc. Style choice.)
+(Replace "Jason Gauci" with your preferred attribution: first name only, full name, etc. Style choice.)
 
 **Design notes:**
 
@@ -444,7 +444,7 @@ Section 3 (More than the debrief) could be designed with a small chat UI showing
 
 ### 4.3 The "four ICPs" visual
 
-Section 5 (Who it's for) could take a small four-icon row — book, coach, app, running group — to make the ICP breadth visible at a glance. Optional. Copy carries it without.
+Section 5 (Who it's for) could take a small four-icon row: book, coach, app, running group. This makes the ICP breadth visible at a glance. Optional. Copy carries it without.
 
 ### 4.4 Em-dash audit sitewide
 
@@ -452,7 +452,7 @@ The rewrite removes em-dashes from the rewritten sections. Anywhere else on the 
 
 ### 4.5 Voice registers by surface
 
-From `voice-guidelines.md` §4: the site is in marketing register; the debrief example within it is in in-product register. This is good. But some of the CTAs and button labels should stay in marketing register ("Start 14-day free trial" — marketing; "Start free trial" — marketing), while any in-product text that eventually appears on the site (e.g. future interactive demo) should switch to in-product register. Worth establishing this distinction in the Design System when it's built.
+From `voice-guidelines.md` §4: the site is in marketing register; the debrief example within it is in in-product register. This is good. But some of the CTAs and button labels should stay in marketing register ("Start 14-day free trial" for marketing; "Start free trial" for marketing), while any in-product text that eventually appears on the site (e.g. future interactive demo) should switch to in-product register. Worth establishing this distinction in the Design System when it's built.
 
 ### 4.6 What's deliberately absent
 
@@ -482,7 +482,7 @@ Steps 1–9 are ~2 hours of copy and light-layout work. Steps 10–11 are the de
 
 ## 6. Open decisions for Jason
 
-Small calls that I haven't made for you — lock these before handoff.
+Small calls that I haven't made for you; lock these before handoff.
 
 1. **Primary vs alternate hero line.** I went with "Plans know the route. Coach Casey knows the runner." Alternate "Plans give you structure. Coach Casey gives you the read." is viable if the first doesn't land after a day of sitting with it. Both are thesis-consistent.
 2. **Founder attribution form.** First name, full name, or just "Built by the founder of The Marathon Clinic." Your call.
