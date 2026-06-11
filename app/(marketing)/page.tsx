@@ -476,7 +476,7 @@ function Faq() {
     },
     {
       q: "Where does my data go?",
-      a: "Strava data comes in through their API, and nothing is written back unless you switch on Strava verdicts. Your runs, plan, and chat history are stored on Supabase, in Tokyo. Coach Casey uses large language models to write debriefs and respond to you; your data is never used to train them.",
+      a: "Strava data comes in through their API. The only thing written back is the verdict line, one sentence under each debriefed run's description, which you can turn off in settings with one tap. Your runs, plan, and chat history are stored on Supabase, in Tokyo. Coach Casey uses large language models to write debriefs and respond to you; your data is never used to train them.",
     },
     {
       q: "Can I cancel anytime?",

@@ -60,11 +60,11 @@ export async function StravaSection({ athleteId }: { athleteId: string }) {
                 </span>
               </Field>
               <p className="text-[13px] leading-[1.55] text-ink-muted">
-                After each debrief, Casey can add a one-line verdict to the
+                After each debrief, Casey adds a one-line verdict to the
                 bottom of that run&apos;s description on Strava, signed
-                &ldquo;coached by Coach Casey&rdquo;. Anything you write there
-                stays; the line sits below it. Anyone who can see the run on
-                Strava will see the line.
+                &ldquo;coached by Coach Casey&rdquo;. On unless you turn it
+                off. Anything you write there stays; the line sits below it.
+                Anyone who can see the run on Strava will see the line.
               </p>
               {hasWriteScope ? (
                 <div className="pt-1">

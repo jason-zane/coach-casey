@@ -198,14 +198,14 @@ export async function generateDebriefForActivity(
 
   // Best-effort Strava description writeback: Casey's one-line verdict
   // plus the fixed signature, appended below anything the athlete wrote.
-  // Strictly opt-in (preferences.strava_blurb_enabled, default off) and
-  // additionally gated on the connection holding `activity:write`,
-  // athletes who connected before that scope existed keep read-only
-  // behaviour until they reconnect from Settings. Generation happens
-  // here (not in `generateDebrief`) so disabled athletes never pay the
-  // extra LLM call, and the whole block is wrapped so no Strava or LLM
-  // failure can surface as a debrief failure. The debrief is the value;
-  // this line is decoration.
+  // On by default (preferences.strava_blurb_enabled, one-tap off in
+  // Settings) and additionally gated on the connection holding
+  // `activity:write`, athletes who connected before that scope existed
+  // keep read-only behaviour until they reconnect from Settings.
+  // Generation happens here (not in `generateDebrief`) so opted-out
+  // athletes never pay the extra LLM call, and the whole block is wrapped
+  // so no Strava or LLM failure can surface as a debrief failure. The
+  // debrief is the value; this line is decoration.
   try {
     if (ctx.activity.strava_id != null) {
       const [{ data: blurbPrefs }, { data: conn }] = await Promise.all([
@@ -222,7 +222,7 @@ export async function generateDebriefForActivity(
       ]);
       const blurbOn =
         (blurbPrefs as { strava_blurb_enabled?: boolean } | null)
-          ?.strava_blurb_enabled ?? false;
+          ?.strava_blurb_enabled ?? true;
       const connRow = conn as { scope: string | null; is_mock: boolean | null } | null;
       const connWritable =
         connRow != null &&
