@@ -182,11 +182,16 @@ async function handleEvent(event: StravaWebhookEvent): Promise<void> {
 
   if (event.object_type !== "activity") return;
 
-  const { data: conn } = await admin
+  // strava_athlete_id is unique (partial index), so maybeSingle() can no
+  // longer error on duplicate rows. Any error left is a real failure;
+  // throw so the after() catch logs it instead of dropping the event with
+  // no trace.
+  const { data: conn, error: connError } = await admin
     .from("strava_connections")
     .select("athlete_id")
     .eq("strava_athlete_id", event.owner_id)
     .maybeSingle();
+  if (connError) throw connError;
 
   const athleteId = (conn as { athlete_id: string } | null)?.athlete_id;
   if (!athleteId) {
