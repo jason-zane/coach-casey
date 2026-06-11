@@ -4,10 +4,10 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Privacy Policy | Coach Casey",
   description:
-    "How Coach Casey collects, stores, and uses your data. Strava data is read-only and never used to train models.",
+    "How Coach Casey collects, stores, and uses your data. Strava data is never used to train models.",
 };
 
-const LAST_UPDATED = "27 April 2026";
+const LAST_UPDATED = "12 June 2026";
 
 export default function PrivacyPage() {
   return (
@@ -108,10 +108,14 @@ export default function PrivacyPage() {
               </li>
             </ul>
             <p>
-              <strong>Strava access is read-only.</strong> Coach Casey does
-              not write anything back to Strava. Debriefs, follow-up
-              questions, notes, and training context stay inside Coach Casey,
-              and you can disconnect Strava entirely from your settings page.
+              <strong>Strava writes are opt-in and minimal.</strong> By
+              default Coach Casey writes nothing back to Strava. Debriefs,
+              follow-up questions, notes, and training context stay inside
+              Coach Casey. If you turn on Strava verdicts in settings, Casey
+              appends a single coaching line and signature to the bottom of
+              your own activity descriptions; anything you wrote there is
+              kept, never replaced. You can turn the feature off, and
+              disconnect Strava entirely, from your settings page.
             </p>
 
             <h3>Information collected automatically</h3>

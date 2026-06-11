@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     "The terms under which Coach Casey is provided. Plain language, no surprises.",
 };
 
-const LAST_UPDATED = "27 April 2026";
+const LAST_UPDATED = "12 June 2026";
 
 export default function TermsPage() {
   return (
@@ -109,9 +109,10 @@ export default function TermsPage() {
           <Section title="Strava integration">
             <p>
               To use the core of Coach Casey you connect your Strava account.
-              The integration is read-only: we receive runs and profile
-              data, we never write to your Strava account. You can revoke
-              access at any time from{" "}
+              We receive runs and profile data. We write to your Strava
+              account only if you switch on Strava verdicts in settings, and
+              then only to append a one-line note to the descriptions of your
+              own activities. You can revoke access at any time from{" "}
               <strong>Settings &rsaquo; Strava connection</strong> inside
               Coach Casey or from{" "}
               <a

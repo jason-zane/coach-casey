@@ -76,6 +76,26 @@ export function mockDebrief(ctx: DebriefContext): MockDebriefOutput {
 }
 
 // ---------------------------------------------------------------------------
+// Strava blurb (public one-line verdict)
+
+/**
+ * Deterministic verdict for the Strava description writeback. Must obey
+ * the eavesdropping voice rules (no hype, no exclamations, no emoji,
+ * second person) and stay under the 140-char prompt target; the
+ * voice-check eval covers these strings via `scripts/eval-voice.mts`.
+ */
+export function mockStravaBlurb(ctx: DebriefContext): string {
+  const a = ctx.activity;
+  if (a.hasWorkoutShape) {
+    return "Three reps, three of the same pace. That's not luck, that's pacing.";
+  }
+  if (ctx.arcWeeks.length > 0) {
+    return "Held the line on an easy day. The unsexy move that makes Sunday's long run possible.";
+  }
+  return "An easy run that stayed easy. Underrated.";
+}
+
+// ---------------------------------------------------------------------------
 // RPE-branched follow-up
 
 export function mockRpeBranchedFollowUp(branch: RpeBranch, rpeValue: number): string {

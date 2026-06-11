@@ -26,6 +26,7 @@ export const MODELS = {
   debriefBody: HAIKU,
   debriefConversationalFollowUp: HAIKU,
   debriefStructuredFollowUp: HAIKU,
+  stravaBlurb: HAIKU,
   crossTrainingAck: HAIKU,
   followupRpeBranched: HAIKU,
   raceWeekBriefing: HAIKU,
