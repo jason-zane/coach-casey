@@ -476,7 +476,7 @@ function Faq() {
     },
     {
       q: "Where does my data go?",
-      a: "Strava data comes in read-only through their API. Your runs, plan, and chat history are stored on Supabase, in Sydney. Coach Casey uses large language models to write debriefs and respond to you; your data is never used to train them.",
+      a: "Strava data comes in read-only through their API. Your runs, plan, and chat history are stored on Supabase, in Tokyo. Coach Casey uses large language models to write debriefs and respond to you; your data is never used to train them.",
     },
     {
       q: "Can I cancel anytime?",

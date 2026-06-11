@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     "How Coach Casey collects, stores, and uses your data. Strava data is read-only and never used to train models.",
 };
 
-const LAST_UPDATED = "27 April 2026";
+const LAST_UPDATED = "12 June 2026";
 
 export default function PrivacyPage() {
   return (
@@ -203,7 +203,7 @@ export default function PrivacyPage() {
               >
                 Supabase
               </a>
-              , in the <strong>Sydney (ap-southeast-2)</strong> region. The
+              , in the <strong>Tokyo (ap-northeast-1)</strong> region. The
               database is encrypted at rest. Connections are encrypted in
               transit (TLS).
             </p>
@@ -217,10 +217,10 @@ export default function PrivacyPage() {
               >
                 Vercel
               </a>
-              . Some serverless functions may execute in regions outside
-              Australia for latency reasons; the canonical store of your data
-              remains in Sydney. AI model calls are routed to Anthropic,
-              which may process the request in the United States.
+              . Some serverless functions may execute in other regions,
+              including Australia, for latency reasons; the canonical store
+              of your data remains in Tokyo. AI model calls are routed to
+              Anthropic, which may process the request in the United States.
             </p>
             <p>
               By using Coach Casey you consent to these international
@@ -267,7 +267,7 @@ export default function PrivacyPage() {
             <ul>
               <li>
                 <strong>Supabase</strong>, database and authentication.
-                Data stored in Sydney.
+                Data stored in Tokyo.
               </li>
               <li>
                 <strong>Vercel</strong>, application hosting and serverless
@@ -315,7 +315,7 @@ export default function PrivacyPage() {
               or use the controls inside Coach Casey&apos;s settings page.
             </p>
 
-            <h3>Australia &mdash; Privacy Act 1988 (Cth)</h3>
+            <h3>Australia: Privacy Act 1988 (Cth)</h3>
             <p>
               We handle personal information in accordance with the
               Australian Privacy Principles (APPs). You can request access
@@ -333,7 +333,7 @@ export default function PrivacyPage() {
               .
             </p>
 
-            <h3>New Zealand &mdash; Privacy Act 2020</h3>
+            <h3>New Zealand: Privacy Act 2020</h3>
             <p>
               You have the right to access and correct personal information
               we hold about you. If we cannot resolve a complaint, you can
@@ -350,7 +350,7 @@ export default function PrivacyPage() {
             </p>
 
             <h3>
-              United Kingdom and European Economic Area &mdash; UK GDPR / EU
+              United Kingdom and European Economic Area: UK GDPR / EU
               GDPR
             </h3>
             <p>
