@@ -102,7 +102,7 @@ export default async function AdminPage({
                   <tr key={a.id} className="border-t border-rule">
                     <Td>
                       <div className="text-ink">
-                        {a.displayName ?? "—"}
+                        {a.displayName ?? "–"}
                       </div>
                       <div className="text-ink-subtle">{a.email}</div>
                     </Td>
@@ -112,14 +112,14 @@ export default async function AdminPage({
                       {a.stravaConnected ? (
                         <span className="text-emerald-600">connected</span>
                       ) : (
-                        <span className="text-ink-subtle">—</span>
+                        <span className="text-ink-subtle">–</span>
                       )}
                     </Td>
                     <Td>{shortDate(a.lastActivityAt)}</Td>
                     <Td>{shortDate(a.lastCaseyMessageAt)}</Td>
                     <Td>
                       {a.lastWeeklyReviewWeekStart ?? (
-                        <span className="text-ink-subtle">—</span>
+                        <span className="text-ink-subtle">–</span>
                       )}
                     </Td>
                     <Td>
@@ -185,7 +185,7 @@ function Td({ children }: { children: React.ReactNode }) {
 }
 
 function shortDate(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "–";
   return new Date(iso).toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",

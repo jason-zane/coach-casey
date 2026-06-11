@@ -319,7 +319,7 @@ export default function PrivacyPage() {
               or use the controls inside Coach Casey&apos;s settings page.
             </p>
 
-            <h3>Australia &mdash; Privacy Act 1988 (Cth)</h3>
+            <h3>Australia: Privacy Act 1988 (Cth)</h3>
             <p>
               We handle personal information in accordance with the
               Australian Privacy Principles (APPs). You can request access
@@ -337,7 +337,7 @@ export default function PrivacyPage() {
               .
             </p>
 
-            <h3>New Zealand &mdash; Privacy Act 2020</h3>
+            <h3>New Zealand: Privacy Act 2020</h3>
             <p>
               You have the right to access and correct personal information
               we hold about you. If we cannot resolve a complaint, you can
@@ -354,8 +354,7 @@ export default function PrivacyPage() {
             </p>
 
             <h3>
-              United Kingdom and European Economic Area &mdash; UK GDPR / EU
-              GDPR
+              United Kingdom and European Economic Area: UK GDPR / EU GDPR
             </h3>
             <p>
               If you are in the UK or EEA, you have the right to: access your

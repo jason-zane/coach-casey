@@ -21,7 +21,7 @@
 
 /* The grid. Title rail left, body right. Stacks on mobile.
  * Vertical padding lives HERE (not on .cc-section) so the sticky rail's
- * containing block matches the visible section — the heading tracks for
+ * containing block matches the visible section; the heading tracks for
  * the full length of the section, not just the body's extent. */
 .cc-grid {
   display: grid;
