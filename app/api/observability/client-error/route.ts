@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { captureError } from "@/lib/observability/capture";
+import {
+  clientIpFromHeaders,
+  consumeIpRateLimit,
+} from "@/lib/observability/rate-limit-db";
 
 export const runtime = "nodejs";
 
@@ -24,6 +28,21 @@ export async function POST(req: Request) {
   const declaredBytes = Number(req.headers.get("content-length"));
   if (!Number.isFinite(declaredBytes) || declaredBytes > MAX_BODY_BYTES) {
     return NextResponse.json({ ok: false }, { status: 413 });
+  }
+
+  // This endpoint is anonymous, so the size guard alone still lets a caller
+  // spray many small valid bodies and insert unlimited error_events rows. Cap
+  // per-IP before doing any parsing or DB work. Best-effort: a limiter failure
+  // (or a missing IP header) fails open so real error reporting keeps working.
+  const rate = await consumeIpRateLimit(clientIpFromHeaders(req.headers));
+  if (!rate.ok) {
+    return NextResponse.json(
+      { ok: false },
+      {
+        status: 429,
+        headers: { "retry-after": String(rate.retryAfterSeconds) },
+      },
+    );
   }
 
   let body: ClientErrorBody;
