@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { verifyCronSecret } from "@/lib/auth/cron";
+import { recordCronRun } from "@/lib/observability/cron";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -21,20 +23,18 @@ export const maxDuration = 300;
  */
 
 const RETENTION_DAYS = 30;
+// Safety cap: never hard-delete more than this many accounts in a single run.
+// The daily cadence drains a legitimate backlog over a few days while bounding
+// the blast radius if deleted_at were ever set en masse by mistake.
+const MAX_PURGE_PER_RUN = 50;
 
 export async function GET(request: Request) {
-  const expected = process.env.CRON_SECRET;
-  if (expected) {
-    const got = request.headers.get("authorization");
-    if (got !== `Bearer ${expected}`) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-  } else if (process.env.NODE_ENV === "production") {
-    return NextResponse.json(
-      { error: "CRON_SECRET not configured" },
-      { status: 500 },
-    );
-  }
+  const denied = verifyCronSecret(request);
+  if (denied) return denied;
+  return recordCronRun("account-purge", () => handleAccountPurge());
+}
+
+async function handleAccountPurge(): Promise<NextResponse> {
 
   const admin = createAdminClient();
   const cutoff = new Date(
@@ -44,7 +44,9 @@ export async function GET(request: Request) {
   const { data: rows, error } = await admin
     .from("athletes")
     .select("id, user_id, deleted_at")
-    .lt("deleted_at", cutoff);
+    .lt("deleted_at", cutoff)
+    .order("deleted_at", { ascending: true })
+    .limit(MAX_PURGE_PER_RUN);
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -74,10 +76,18 @@ export async function GET(request: Request) {
     }
   }
 
+  const cappedAtLimit = candidates.length === MAX_PURGE_PER_RUN;
+  if (cappedAtLimit) {
+    console.warn(
+      `[account-purge] hit MAX_PURGE_PER_RUN=${MAX_PURGE_PER_RUN}; more accounts remain and will continue on the next run`,
+    );
+  }
+
   return NextResponse.json({
     candidates: candidates.length,
     purged,
     failures,
+    cappedAtLimit,
     cutoff,
   });
 }

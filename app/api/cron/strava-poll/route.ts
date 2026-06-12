@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { verifyCronSecret } from "@/lib/auth/cron";
+import { recordCronRun } from "@/lib/observability/cron";
 import { generateDebriefForActivity } from "@/lib/server/debrief-pipeline";
 import { generateCrossTrainingAckForActivity } from "@/lib/server/cross-training-pipeline";
 import { classifyActivityType } from "@/lib/strava/activity-types";
@@ -37,20 +39,12 @@ type MessageMetaRow = {
 };
 
 export async function GET(request: Request) {
-  const expected = process.env.CRON_SECRET;
-  if (expected) {
-    const got = request.headers.get("authorization");
-    if (got !== `Bearer ${expected}`) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-  } else if (process.env.NODE_ENV === "production") {
-    // Fail closed in production if no secret is configured, better to
-    // surface "not configured" than to expose a trigger.
-    return NextResponse.json(
-      { error: "CRON_SECRET not configured" },
-      { status: 500 },
-    );
-  }
+  const denied = verifyCronSecret(request);
+  if (denied) return denied;
+  return recordCronRun("strava-poll", () => handleStravaPoll());
+}
+
+async function handleStravaPoll(): Promise<NextResponse> {
 
   const admin = createAdminClient();
   const since = new Date(Date.now() - LOOKBACK_HOURS * 60 * 60 * 1000);

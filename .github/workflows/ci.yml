@@ -32,6 +32,8 @@ jobs:
 
       - run: pnpm typecheck
 
+      - run: pnpm test
+
   python:
     name: Python lint & typecheck
     runs-on: ubuntu-latest

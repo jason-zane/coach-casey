@@ -11,22 +11,17 @@ import {
   MAX_CHAT_BODY_CHARS,
   MAX_CHAT_REQUEST_BYTES,
   PayloadTooLargeError,
-  checkChatRateLimit as checkChatRateLimitForBucket,
   cleanMemoryContent,
   cleanMemoryTag,
   cleanMemoryTags,
   isDeclaredPayloadTooLarge,
-  type ChatRateBucket,
 } from "@/lib/chat/security";
+import { consumeChatRateLimit } from "@/lib/chat/rate-limit-db";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 type ChatRequest = { body?: string };
-
-const chatRateState = globalThis as typeof globalThis & {
-  __coachCaseyChatRate?: Map<string, ChatRateBucket>;
-};
 
 export async function POST(req: NextRequest) {
   if (isDeclaredPayloadTooLarge(req.headers.get("content-length"))) {
@@ -74,7 +69,7 @@ export async function POST(req: NextRequest) {
   }
 
   const athleteId = athlete.id as string;
-  const rate = checkChatRateLimit(athleteId);
+  const rate = await consumeChatRateLimit(athleteId);
   if (!rate.ok) {
     return jsonError("rate limit exceeded", 429, {
       "retry-after": String(rate.retryAfterSeconds),
@@ -195,14 +190,6 @@ async function readLimitedText(
     offset += chunk.byteLength;
   }
   return new TextDecoder().decode(body);
-}
-
-function checkChatRateLimit(
-  athleteId: string,
-): { ok: true } | { ok: false; retryAfterSeconds: number } {
-  const buckets = chatRateState.__coachCaseyChatRate ?? new Map();
-  chatRateState.__coachCaseyChatRate = buckets;
-  return checkChatRateLimitForBucket(athleteId, buckets);
 }
 
 async function executeToolEffects(

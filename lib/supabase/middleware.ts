@@ -57,9 +57,26 @@ export async function updateSession(request: NextRequest) {
   // layout stay sync and lets /app statically prerender for SW caching.
   const { data: athlete } = await supabase
     .from("athletes")
-    .select("onboarding_current_step, onboarding_completed_at, date_of_birth")
+    .select(
+      "onboarding_current_step, onboarding_completed_at, date_of_birth, deleted_at",
+    )
     .eq("user_id", user.id)
     .maybeSingle();
+
+  // Soft-deleted accounts lose access immediately. requireAthlete enforces
+  // this on server actions; mirroring it here means a still-valid session
+  // cannot keep loading protected pages during the 30-day purge window.
+  if (athlete?.deleted_at) {
+    await supabase.auth.signOut();
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    url.search = "deleted=1";
+    const redirectResponse = NextResponse.redirect(url);
+    for (const cookie of supabaseResponse.cookies.getAll()) {
+      redirectResponse.cookies.set(cookie);
+    }
+    return redirectResponse;
+  }
 
   const onboardingComplete = Boolean(athlete?.onboarding_completed_at);
   const currentStep = athlete?.onboarding_current_step ?? "strava";
