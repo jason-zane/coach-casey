@@ -62,10 +62,22 @@ export async function recordCronRun(
     try {
       const body = await res.clone().json();
       stats = body;
+      // Cron handlers report per-item failures in several shapes: an `errors`
+      // array (proactive-surfaces, strava-poll, weekly-review), a `failures`
+      // array (account-purge), or a positive `failed` count over `results`
+      // (history-backfill, deep-backfill). Treat any of them as a failed run so
+      // a partial failure on an HTTP 200 is not recorded as healthy.
+      const b = body as {
+        ok?: boolean;
+        errors?: unknown[];
+        failures?: unknown[];
+        failed?: number;
+      };
       const hasItemErrors =
-        Array.isArray((body as { errors?: unknown[] }).errors) &&
-        (body as { errors: unknown[] }).errors.length > 0;
-      if ((body as { ok?: boolean }).ok === false || hasItemErrors) ok = false;
+        (Array.isArray(b.errors) && b.errors.length > 0) ||
+        (Array.isArray(b.failures) && b.failures.length > 0) ||
+        (typeof b.failed === "number" && b.failed > 0);
+      if (b.ok === false || hasItemErrors) ok = false;
     } catch {
       // non-JSON body; fall back to status-based ok
     }

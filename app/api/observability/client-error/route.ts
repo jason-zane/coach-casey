@@ -4,6 +4,11 @@ import { captureError } from "@/lib/observability/capture";
 
 export const runtime = "nodejs";
 
+// Anonymous endpoint: reject anything larger than a generous client-error
+// payload before allocating or parsing it, so it cannot be used to force large
+// allocations. The legitimate reporter sends a few KB at most.
+const MAX_BODY_BYTES = 64 * 1024;
+
 type ClientErrorBody = {
   message?: string;
   digest?: string | null;
@@ -16,6 +21,11 @@ type ClientErrorBody = {
  * field sizes so it cannot be used to bloat error_events. Best-effort.
  */
 export async function POST(req: Request) {
+  const declaredBytes = Number(req.headers.get("content-length"));
+  if (!Number.isFinite(declaredBytes) || declaredBytes > MAX_BODY_BYTES) {
+    return NextResponse.json({ ok: false }, { status: 413 });
+  }
+
   let body: ClientErrorBody;
   try {
     body = (await req.json()) as ClientErrorBody;
@@ -52,7 +62,7 @@ export async function POST(req: Request) {
   await captureError(err, {
     source: "client",
     route: typeof body.path === "string" ? body.path.slice(0, 512) : null,
-    digest: typeof body.digest === "string" ? body.digest : null,
+    digest: typeof body.digest === "string" ? body.digest.slice(0, 512) : null,
     athleteId,
   });
 
