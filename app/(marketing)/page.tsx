@@ -435,7 +435,7 @@ function Artifact() {
           After the run, <em>a read.</em>
         </>
       }
-      stand="Not a summary. Not a scoreboard. What actually happened, from a coach who's been paying attention. This one landed seven minutes after the watch synced."
+      stand="What the run actually meant, not just the numbers on the watch. From a coach who's been paying attention, seven minutes after it synced."
     >
       <div className="rd-artifact-zone" data-reveal>
         <article className="rd-sheet rd-rise">
@@ -744,7 +744,7 @@ function Fit() {
           Honestly, <em>who it&rsquo;s for.</em>
         </>
       }
-      stand="Coach Casey sits alongside the plan you've already got. It reads your training. It doesn't write it. That's for some runners, and not for others."
+      stand="Coach Casey sits alongside the plan you've already got and reads every run against it. It doesn't write you a new plan. That fits some runners and not others. The honest split, below."
     >
       <div className="rd-fit">
         <div data-reveal>
@@ -807,7 +807,7 @@ function Fit() {
               <Cross delay="0.55s" />
               <span>
                 You want the plan written for you
-                <small>Casey reads plans. it doesn&rsquo;t write them</small>
+                <small>plenty of tools do that. this isn&rsquo;t one</small>
               </span>
             </li>
             <li className="rd-rise" style={delayStyle("0.24s")}>
