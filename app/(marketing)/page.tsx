@@ -12,7 +12,7 @@ import { KmMeter, KmRail, RevealFx, ThreadFx } from "./fx";
  * ════════════════════════════════════════════════════════════════════════ */
 
 const DESCRIPTION =
-  "Connect Strava, keep your marathon plan. Coach Casey reads every run, remembers your season, and writes back like a coach who's paying attention. 14 days free.";
+  "Connect Strava, keep your marathon plan. Coach Casey reads every run, remembers your season, and writes back like a coach who's paying attention.";
 
 export const metadata: Metadata = {
   title: {
@@ -34,8 +34,14 @@ export const metadata: Metadata = {
   },
 };
 
-/* Structured data: the site, the application (with both offers), and the
- * FAQ. Single graph, one script tag. */
+/* Pricing/payment is hidden during early access. Flip this to re-show the
+ * pricing section (the <Pricing /> component is left intact below) and to
+ * restore the price offers in the structured data. */
+const SHOW_PRICING = false;
+
+/* Structured data: the site, the application, and the FAQ. Single graph,
+ * one script tag. Price offers are only emitted when pricing is shown, so the
+ * structured data never advertises a price the page doesn't. */
 function structuredData() {
   return {
     "@context": "https://schema.org",
@@ -58,20 +64,24 @@ function structuredData() {
           "@type": "Person",
           name: "Jason Hunt",
         },
-        offers: [
-          {
-            "@type": "Offer",
-            name: "Annual",
-            price: "199",
-            priceCurrency: "AUD",
-          },
-          {
-            "@type": "Offer",
-            name: "Monthly",
-            price: "24",
-            priceCurrency: "AUD",
-          },
-        ],
+        ...(SHOW_PRICING
+          ? {
+              offers: [
+                {
+                  "@type": "Offer",
+                  name: "Annual",
+                  price: "199",
+                  priceCurrency: "AUD",
+                },
+                {
+                  "@type": "Offer",
+                  name: "Monthly",
+                  price: "24",
+                  priceCurrency: "AUD",
+                },
+              ],
+            }
+          : {}),
       },
       {
         "@type": "FAQPage",
@@ -104,7 +114,9 @@ export default function Home() {
         <Compounds />
         <HowItWorks />
         <Fit />
-        <Pricing />
+        {/* Pricing/payment hidden during early access (SHOW_PRICING). The
+            component below is kept intact so it can be switched back on. */}
+        {SHOW_PRICING && <Pricing />}
         <Faq />
         <Colophon />
         <FinalCta />
@@ -245,13 +257,12 @@ function Header() {
           <KmMeter />
           <nav className="rd-nav" aria-label="primary">
             <a href="#how">How it works</a>
-            <a href="#pricing">Pricing</a>
             <a href="#faq">FAQ</a>
             <a href="/signin" className="rd-nav-keep">
               Sign in
             </a>
             <Link className="rd-btn rd-btn-sm rd-nav-keep" href="/signup">
-              Start free trial
+              Request access
             </Link>
           </nav>
         </div>
@@ -908,8 +919,8 @@ const FAQ_ITEMS: { q: string; a: string; defaultOpen?: boolean }[] = [
     a: "Strava data comes in through their API. The only thing written back is the verdict line, one sentence under each debriefed run's description, which you can turn off in settings with one tap. Your runs, plan, and chat history are stored on Supabase, in Tokyo. Coach Casey uses large language models to write debriefs and respond to you; your data is never used to train them.",
   },
   {
-    q: "Can I cancel anytime?",
-    a: "14 days, no card required, everything enabled. Cancel monthly any time. Annual is a year commitment, but if you cancel before it's up, unused months refund pro-rata, automatically. No claw-backs, no retention emails.",
+    q: "How do I get access?",
+    a: "Coach Casey is invite-only while we're in early access with a small group of marathoners. Request access from the homepage with your name and email, and we'll send you a link to sign up.",
   },
 ];
 
@@ -923,7 +934,7 @@ function Faq() {
           Asked, <em>answered.</em>
         </>
       }
-      stand="The questions that come up before a trial. Answered honestly."
+      stand="The questions that come up before signing up. Answered honestly."
     >
       <div className="rd-faq" data-reveal>
         {FAQ_ITEMS.map((it, i) => (
@@ -1026,8 +1037,8 @@ function FinalCta() {
           </em>
         </h2>
         <p className="rd-final-sub rd-rise" style={delayStyle("0.12s")}>
-          14 days free. No card required. If it isn&rsquo;t sharper than what
-          you&rsquo;ve got, leave. We won&rsquo;t make it weird.
+          We&rsquo;re letting in a handful of marathoners at a time. Leave your
+          details and we&rsquo;ll send you a link to get started.
         </p>
         <div className="rd-final-actions rd-rise" style={delayStyle("0.22s")}>
           <Link className="rd-btn" href="/signup">
