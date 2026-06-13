@@ -91,6 +91,51 @@ export async function signUpWithEmail(
   return { success: true };
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Early-access request. The public site has no open signup; visitors leave
+ * their details here and the founder emails them an invite link back. No
+ * account is created. Best-effort email; the requester always sees success
+ * once their details validate (we don't leak whether the alert sent).
+ *
+ * `company` is a honeypot: a hidden field real users never fill. If it has a
+ * value, treat as a bot and no-op (still report success).
+ */
+export async function requestAccess(
+  _prev: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  if (String(formData.get("company") ?? "").trim()) {
+    return { success: true };
+  }
+
+  const name = String(formData.get("name") ?? "").trim().slice(0, 120);
+  const email = String(formData.get("email") ?? "").trim().slice(0, 200);
+  const note = String(formData.get("note") ?? "").trim().slice(0, 1000);
+
+  if (!email || !EMAIL_RE.test(email)) {
+    return { error: "Enter a valid email so we can send your link." };
+  }
+
+  await notifyFounder({
+    subject: `Early-access request: ${name || email}`,
+    text: [
+      "Someone asked for early access to Coach Casey.",
+      "",
+      `Name:  ${name || "(not given)"}`,
+      `Email: ${email}`,
+      note ? `\nNote:\n${note}` : "",
+      "",
+      "Reply to this email to reach them, then send their invite link:",
+      "https://www.coachcasey.app/signup?code=YOUR_CODE",
+    ].join("\n"),
+    replyTo: email,
+  });
+
+  return { success: true };
+}
+
 export async function signInWithGoogle() {
   const supabase = await createClient();
   const origin = (await headers()).get("origin") ?? process.env.NEXT_PUBLIC_APP_URL;
