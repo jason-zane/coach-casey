@@ -2,9 +2,10 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | Coach Casey",
+  title: "Privacy Policy",
   description:
     "How Coach Casey collects, stores, and uses your data. Strava data is never used to train models.",
+  alternates: { canonical: "/privacy" },
 };
 
 const LAST_UPDATED = "12 June 2026";

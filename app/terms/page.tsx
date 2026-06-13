@@ -2,9 +2,10 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Terms of Service | Coach Casey",
+  title: "Terms of Service",
   description:
     "The terms under which Coach Casey is provided. Plain language, no surprises.",
+  alternates: { canonical: "/terms" },
 };
 
 const LAST_UPDATED = "12 June 2026";

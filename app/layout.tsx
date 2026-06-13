@@ -3,6 +3,7 @@ import { Geist, IBM_Plex_Mono, Newsreader } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegistrar } from "./_components/service-worker-registrar";
 import { APPLE_SPLASH_STARTUP_IMAGES } from "@/lib/pwa/splash-startup-images";
+import { SITE_URL } from "@/lib/site-url";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,9 +27,18 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Coach Casey: a reflective partner for marathoners",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Coach Casey | AI running coach for marathoners on Strava",
+    template: "%s | Coach Casey",
+  },
   description:
-    "Most running apps tell you what to do. Coach Casey doesn't. It sits alongside your existing plan and makes sense of what just happened, every run, every week.",
+    "Connect Strava, keep your marathon plan. Coach Casey reads every run, remembers your season, and writes back like a coach who's paying attention.",
+  applicationName: "Coach Casey",
+  openGraph: {
+    type: "website",
+    siteName: "Coach Casey",
+  },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
