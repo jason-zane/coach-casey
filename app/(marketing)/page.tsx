@@ -316,14 +316,14 @@ function Hero() {
           <div className="rd-hero-actions rd-rise" style={delayStyle("0.38s")}>
             <div className="rd-cta-row">
               <Link className="rd-btn" href="/signup">
-                Start 14-day free trial
+                Request early access
               </Link>
               <a className="rd-btn-ghost" href="#exhibit">
                 Read a debrief
               </a>
             </div>
             <span className="rd-cta-note">
-              No card. No new app on the run.
+              Invite-only while we&rsquo;re in early access.
             </span>
           </div>
         </div>
@@ -875,7 +875,7 @@ function Pricing() {
         </p>
         <div className="rd-cta-row rd-rise" style={{ marginTop: 36, ...delayStyle("0.5s") }}>
           <Link className="rd-btn" href="/signup">
-            Start 14-day free trial
+            Request early access
           </Link>
         </div>
       </div>
@@ -1031,10 +1031,10 @@ function FinalCta() {
         </p>
         <div className="rd-final-actions rd-rise" style={delayStyle("0.22s")}>
           <Link className="rd-btn" href="/signup">
-            Start free trial
+            Request early access
           </Link>
           <span className="rd-cta-note">
-            Connects to Strava in under a minute.
+            Invite-only for now. We&rsquo;ll send you a link.
           </span>
         </div>
       </div>

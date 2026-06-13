@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { isValidInviteCode } from "@/lib/auth/invite";
+import { notifyFounder } from "@/lib/notify";
 
 export type AuthState =
   | { error: string }
@@ -38,6 +40,16 @@ export async function signUpWithEmail(
 ): Promise<AuthState> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const code = String(formData.get("code") ?? "");
+
+  // Early-access gate. Re-checked here server-side (not just hidden in the UI)
+  // so the access code is genuinely required to create an account.
+  if (!isValidInviteCode(code)) {
+    return {
+      error:
+        "Coach Casey is invite-only right now. Use your invite link, or email hello@coachcasey.app to request access.",
+    };
+  }
 
   if (!email || !password) {
     return { error: "Email and password are required." };
@@ -60,6 +72,13 @@ export async function signUpWithEmail(
   if (error) {
     return { error: error.message };
   }
+
+  // Best-effort founder alert. Awaited (so it fires before the redirect throws)
+  // but never allowed to break signup.
+  await notifyFounder({
+    subject: "New Coach Casey signup",
+    text: `Someone just created a Coach Casey account.\n\nEmail: ${email}\nConfirmed immediately: ${data.session ? "yes" : "no (email confirmation pending)"}`,
+  });
 
   // If email confirmation is off (Supabase project setting), signUp returns a
   // session and the user is already logged in, go straight into onboarding.
