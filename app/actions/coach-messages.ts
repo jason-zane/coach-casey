@@ -8,6 +8,7 @@ import { getCurrentSession } from "@/lib/auth/current";
 import { recordAuditEvent } from "@/lib/audit/log";
 import { sendPushToAthlete } from "@/lib/push/send";
 import { pushAdmins } from "@/lib/admin/notify-admins";
+import { broadcastTargetIds } from "@/lib/coach-messages";
 
 const MAX_BODY = 4000;
 
@@ -48,6 +49,49 @@ export async function sendCoachMessage(formData: FormData) {
   });
 
   revalidatePath(`/app/admin/messages/${athleteId}`);
+  revalidatePath("/app/admin/messages");
+}
+
+/**
+ * Coach -> every (non-test) athlete. Inserts one message per athlete (so each
+ * lands in that athlete's own conversation and can be replied to individually)
+ * and pushes each. Admin only.
+ */
+export async function broadcastCoachMessage(formData: FormData) {
+  const gate = await requireAdmin();
+  if (!gate.ok) redirect(gate.redirect);
+
+  const body = String(formData.get("body") ?? "").trim().slice(0, MAX_BODY);
+  if (!body) return;
+
+  const ids = await broadcastTargetIds();
+  if (ids.length === 0) return;
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("coach_messages")
+    .insert(ids.map((id) => ({ athlete_id: id, sender: "coach", body })));
+  if (error) throw error;
+
+  await Promise.all(
+    ids.map((id) =>
+      sendPushToAthlete(id, {
+        title: "Message from Jason",
+        body,
+        tag: `coach-msg-${id}`,
+        url: "/app/messages",
+      }),
+    ),
+  );
+
+  await recordAuditEvent({
+    actorType: "admin",
+    actorId: gate.user.id,
+    actorEmail: gate.user.email ?? null,
+    action: "admin.broadcast_coach_message",
+    metadata: { count: ids.length },
+  });
+
   revalidatePath("/app/admin/messages");
 }
 

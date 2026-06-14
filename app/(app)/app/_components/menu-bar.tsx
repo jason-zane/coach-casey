@@ -1,7 +1,7 @@
 "use client";
 
 import Link, { useLinkStatus } from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * Debounced pending indicator for <Link>s that target dynamic routes.
@@ -88,6 +88,64 @@ function IconSearch() {
         strokeLinecap="round"
       />
     </svg>
+  );
+}
+
+function IconMessages() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
+      <path
+        d="M3.5 5.5c0-.8.7-1.5 1.5-1.5h10c.8 0 1.5.7 1.5 1.5v6c0 .8-.7 1.5-1.5 1.5H8l-3.5 3v-3H5c-.8 0-1.5-.7-1.5-1.5v-6Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/**
+ * Athlete entry point for the human (Jason) message channel. Self-contained:
+ * fetches its own unread count so it doesn't need to thread through the
+ * bootstrap payload. Renders mobile (44px tap target) or desktop (36px).
+ */
+function MessagesNavLink({ variant }: { variant: "mobile" | "desktop" }) {
+  const [unread, setUnread] = useState(0);
+  useEffect(() => {
+    let live = true;
+    fetch("/api/coach-messages/unread", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : { count: 0 }))
+      .then((d) => {
+        if (live) setUnread(typeof d.count === "number" ? d.count : 0);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const size =
+    variant === "mobile"
+      ? "h-11 w-11"
+      : "h-9 w-9 hover:text-ink rounded-sm";
+
+  return (
+    <Link
+      href="/app/messages"
+      aria-label={
+        unread > 0 ? `Messages from Jason, ${unread} unread` : "Messages from Jason"
+      }
+      title="Messages from Jason"
+      className={`relative grid place-items-center text-ink-muted ${size}`}
+    >
+      <IconMessages />
+      {unread > 0 && (
+        <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-accent px-1 font-mono text-[9px] leading-none text-accent-ink">
+          {unread > 9 ? "9+" : unread}
+        </span>
+      )}
+      <NavPendingDot />
+    </Link>
   );
 }
 
@@ -193,6 +251,7 @@ export function MenuBar({ onOpenCalendar, onOpenSearch }: Props) {
         <IconSearch />
         {hintCounts.search < HINT_MAX && <HintArrow direction="right" />}
       </button>
+      <MessagesNavLink variant="mobile" />
       <Link
         href="/app/athlete"
         aria-label="Athlete page"
@@ -226,6 +285,7 @@ export function DesktopControls({ onOpenCalendar, onOpenSearch }: Props) {
       >
         <IconSearch />
       </button>
+      <MessagesNavLink variant="desktop" />
       <Link
         href="/app/athlete"
         aria-label="Athlete page"
