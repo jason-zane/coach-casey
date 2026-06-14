@@ -3,9 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { isValidInviteCode } from "@/lib/auth/invite";
 import { notifyFounder } from "@/lib/notify";
+import { pushAdmins } from "@/lib/admin/notify-admins";
 
 export type AuthState =
   | { error: string }
@@ -118,20 +119,43 @@ export async function requestAccess(
     return { error: "Enter a valid email so we can send your link." };
   }
 
-  await notifyFounder({
-    subject: `Early-access request: ${name || email}`,
-    text: [
-      "Someone asked for early access to Coach Casey.",
-      "",
-      `Name:  ${name || "(not given)"}`,
-      `Email: ${email}`,
-      note ? `\nNote:\n${note}` : "",
-      "",
-      "Reply to this email to reach them, then send their invite link:",
-      "https://www.coachcasey.app/signup?code=YOUR_CODE",
-    ].join("\n"),
-    replyTo: email,
-  });
+  // Persist the request so it shows up in the admin surface. Best-effort:
+  // a DB hiccup must not stop the notifications or the user's confirmation.
+  try {
+    const admin = createAdminClient();
+    await admin.from("access_requests").insert({
+      name: name || null,
+      email,
+      note: note || null,
+    });
+  } catch (e) {
+    console.error("[access] failed to persist request (non-fatal)", e);
+  }
+
+  // Notify the founder: email (reliable) + push (instant on device).
+  const summary = name ? `${name} (${email})` : email;
+  await Promise.all([
+    notifyFounder({
+      subject: `Early-access request: ${name || email}`,
+      text: [
+        "Someone asked for early access to Coach Casey.",
+        "",
+        `Name:  ${name || "(not given)"}`,
+        `Email: ${email}`,
+        note ? `\nNote:\n${note}` : "",
+        "",
+        "Manage it in the admin surface:",
+        "https://www.coachcasey.app/app/admin/access",
+      ].join("\n"),
+      replyTo: email,
+    }),
+    pushAdmins({
+      title: "New early-access request",
+      body: summary,
+      tag: "access-request",
+      url: "/app/admin/access",
+    }),
+  ]);
 
   return { success: true };
 }

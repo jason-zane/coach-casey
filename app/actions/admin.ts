@@ -46,6 +46,50 @@ export async function toggleTestUser(formData: FormData) {
   revalidatePath("/app/admin");
 }
 
+const ACCESS_STATUSES = ["pending", "invited", "joined", "declined"] as const;
+
+/**
+ * Set the status of an early-access request from the admin surface:
+ * pending -> invited (you sent the link) -> joined (they signed up), or
+ * declined. Records who handled it and when; setting back to pending clears
+ * the handled fields.
+ */
+export async function setAccessRequestStatus(formData: FormData) {
+  const gate = await requireAdmin();
+  if (!gate.ok) redirect(gate.redirect);
+
+  const id = String(formData.get("id") ?? "").trim();
+  const status = String(formData.get("status") ?? "").trim();
+  if (
+    !id ||
+    !ACCESS_STATUSES.includes(status as (typeof ACCESS_STATUSES)[number])
+  ) {
+    throw new Error("setAccessRequestStatus: id and valid status required");
+  }
+
+  const handled = status !== "pending";
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("access_requests")
+    .update({
+      status,
+      handled_at: handled ? new Date().toISOString() : null,
+      handled_by: handled ? gate.user.id : null,
+    })
+    .eq("id", id);
+  if (error) throw error;
+
+  await recordAuditEvent({
+    actorType: "admin",
+    actorId: gate.user.id,
+    actorEmail: gate.user.email ?? null,
+    action: "admin.set_access_request_status",
+    metadata: { id, status },
+  });
+
+  revalidatePath("/app/admin/access");
+}
+
 /**
  * Manually trigger a weekly review for an athlete, bypassing the
  * cron's local-time gate (Sunday evening by default). Used to seed
