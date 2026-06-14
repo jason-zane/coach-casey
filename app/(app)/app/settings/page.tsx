@@ -6,6 +6,7 @@ import { getCurrentSession } from "@/lib/auth/current";
 import { signOut } from "@/app/actions/auth";
 import { requestAccountDeletion } from "@/app/actions/account";
 import { isAdminEmail } from "@/lib/admin/auth";
+import { countUnreadForAthlete } from "@/lib/coach-messages";
 import { SkeletonBar } from "../_components/skeleton";
 import { Section } from "./_sections/section-shell";
 import { StravaSection } from "./_sections/strava-section";
@@ -32,6 +33,7 @@ export default async function SettingsPage() {
 
   const athleteId = athlete.id;
   const isAdmin = isAdminEmail(user.email ?? null);
+  const coachUnread = await countUnreadForAthlete(athleteId);
 
   return (
     <div className="min-h-svh bg-paper text-ink overflow-x-hidden">
@@ -54,6 +56,26 @@ export default async function SettingsPage() {
             Account, data, and connections.
           </p>
         </header>
+
+        <Section title="Messages from Jason">
+          <p className="text-[13px] leading-[1.55] text-ink-muted">
+            A direct line to Jason, the human who built Coach Casey, not Casey
+            itself. Send him anything, or reply to what he sends you.
+          </p>
+          <div className="pt-2">
+            <Link
+              href="/app/messages"
+              className="inline-flex items-center gap-2 h-9 px-3 rounded-[6px] border border-rule text-ink text-[13px] font-medium hover:bg-rule/40 transition-colors duration-150"
+            >
+              <span>Open messages</span>
+              {coachUnread > 0 && (
+                <span className="grid h-[18px] min-w-[18px] place-items-center rounded-full bg-accent px-1 font-mono text-[10px] leading-none text-accent-ink">
+                  {coachUnread > 9 ? "9+" : coachUnread}
+                </span>
+              )}
+            </Link>
+          </div>
+        </Section>
 
         <Suspense
           fallback={<SectionSkeleton title="Strava" rows={2} />}
