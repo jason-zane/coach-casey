@@ -60,6 +60,13 @@ export default async function AdminPage({
               <span aria-hidden>›</span>
             </Link>
             <Link
+              href="/app/admin/messages"
+              className="inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-subtle hover:text-ink-muted transition-colors duration-150"
+            >
+              <span>Messages</span>
+              <span aria-hidden>›</span>
+            </Link>
+            <Link
               href="/app/admin/observability"
               className="inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-subtle hover:text-ink-muted transition-colors duration-150"
             >
@@ -148,6 +155,12 @@ export default async function AdminPage({
                       <div className="flex flex-col gap-1">
                         <GenerateWeeklyReviewButton athleteId={a.id} />
                         <RegenerateDebriefButton athleteId={a.id} />
+                        <Link
+                          href={`/app/admin/messages/${a.id}`}
+                          className="rounded-md border border-rule px-2 py-1 text-center font-mono text-[11px] uppercase tracking-[0.14em] text-ink-subtle transition-colors duration-150 hover:border-rule-strong hover:text-ink"
+                        >
+                          message
+                        </Link>
                       </div>
                     </Td>
                   </tr>
