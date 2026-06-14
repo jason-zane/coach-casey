@@ -51,13 +51,22 @@ export default async function AdminPage({
             Cohort overview. Toggle test-user flag, retroactively trigger
             weekly reviews. Use sparingly.
           </p>
-          <Link
-            href="/app/admin/observability"
-            className="inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-subtle hover:text-ink-muted transition-colors duration-150"
-          >
-            <span>Observability</span>
-            <span aria-hidden>›</span>
-          </Link>
+          <div className="flex flex-wrap gap-x-5 gap-y-1">
+            <Link
+              href="/app/admin/access"
+              className="inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-subtle hover:text-ink-muted transition-colors duration-150"
+            >
+              <span>Early access</span>
+              <span aria-hidden>›</span>
+            </Link>
+            <Link
+              href="/app/admin/observability"
+              className="inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-subtle hover:text-ink-muted transition-colors duration-150"
+            >
+              <span>Observability</span>
+              <span aria-hidden>›</span>
+            </Link>
+          </div>
         </header>
 
         {regenError && (
