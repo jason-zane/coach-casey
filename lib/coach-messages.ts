@@ -143,6 +143,55 @@ export async function listConversations(): Promise<Conversation[]> {
   }
 }
 
+/** Coach messages the athlete hasn't read yet (for the in-app badge). */
+export async function countUnreadForAthlete(
+  athleteId: string,
+): Promise<number> {
+  try {
+    const admin = createAdminClient();
+    const { count } = await admin
+      .from("coach_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("athlete_id", athleteId)
+      .eq("sender", "coach")
+      .is("read_at", null);
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** Athlete replies the coach hasn't read yet, across everyone (admin badge). */
+export async function countAdminUnread(): Promise<number> {
+  try {
+    const admin = createAdminClient();
+    const { count } = await admin
+      .from("coach_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("sender", "athlete")
+      .is("read_at", null);
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** Real (non-test) athletes a broadcast would reach. */
+export async function broadcastTargetIds(): Promise<string[]> {
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("athletes")
+      .select("id, is_test_user")
+      .is("deleted_at", null);
+    return ((data ?? []) as { id: string; is_test_user: boolean | null }[])
+      .filter((a) => !a.is_test_user)
+      .map((a) => a.id);
+  } catch {
+    return [];
+  }
+}
+
 /** Name + email for one athlete, for the admin conversation header. */
 export async function getAthleteBrief(
   athleteId: string,

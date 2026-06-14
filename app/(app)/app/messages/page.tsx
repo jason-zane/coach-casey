@@ -28,10 +28,10 @@ export default async function MessagesPage() {
         <header className="space-y-2 pb-6">
           <Link
             href="/app"
-            className="inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-subtle hover:text-ink-muted transition-colors duration-150"
+            className="inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.14em] text-accent hover:opacity-80 transition-opacity duration-150"
           >
             <span aria-hidden>‹</span>
-            <span>Back to thread</span>
+            <span>Back to Casey</span>
           </Link>
           <h1
             className="text-[24px] leading-tight font-medium text-ink"
@@ -40,8 +40,15 @@ export default async function MessagesPage() {
             Messages with Jason
           </h1>
           <p className="text-[13px] leading-[1.55] text-ink-muted">
-            This is a direct line to Jason, the human who built Coach Casey, not
-            Casey itself. He reads every reply.
+            You&rsquo;re talking to Jason here, the human who built Coach Casey,
+            not Casey itself. He reads every reply. To chat with Casey instead,{" "}
+            <Link
+              href="/app"
+              className="text-accent underline underline-offset-2"
+            >
+              go back to your thread
+            </Link>
+            .
           </p>
         </header>
 
@@ -49,11 +56,14 @@ export default async function MessagesPage() {
           <CoachThread messages={messages} viewer="athlete" otherLabel="Jason" />
         </div>
 
-        <div className="sticky bottom-0 bg-paper pt-4">
-          <CoachComposer
-            action={replyToCoach}
-            placeholder="Reply to Jason…"
-          />
+        <div className="sticky bottom-0 bg-paper pt-4 space-y-2">
+          <CoachComposer action={replyToCoach} placeholder="Reply to Jason…" />
+          <p className="text-center font-mono text-[10px] uppercase tracking-[0.12em] text-ink-subtle">
+            Replies go to Jason ·{" "}
+            <Link href="/app" className="text-accent hover:underline">
+              talk to Casey
+            </Link>
+          </p>
         </div>
       </div>
     </div>

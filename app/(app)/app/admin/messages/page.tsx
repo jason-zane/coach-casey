@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/admin/auth";
-import { listConversations } from "@/lib/coach-messages";
+import { listConversations, broadcastTargetIds } from "@/lib/coach-messages";
+import { broadcastCoachMessage } from "@/app/actions/coach-messages";
+import { CoachComposer } from "@/app/(app)/app/_components/coach-composer";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +18,7 @@ export default async function AdminMessagesPage() {
 
   const conversations = await listConversations();
   const unreadTotal = conversations.reduce((n, c) => n + c.unread, 0);
+  const broadcastCount = (await broadcastTargetIds()).length;
 
   return (
     <div className="min-h-svh bg-paper text-ink">
@@ -46,6 +49,25 @@ export default async function AdminMessagesPage() {
             .
           </p>
         </header>
+
+        <section className="space-y-3 rounded-md border border-rule bg-surface p-4">
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-muted">
+              Message everyone
+            </h2>
+            <span className="font-mono text-[11px] text-ink-subtle">
+              {broadcastCount} athlete{broadcastCount === 1 ? "" : "s"}
+            </span>
+          </div>
+          <p className="font-sans text-[12px] leading-[1.5] text-ink-muted">
+            Sends to all non-test athletes at once, each in their own thread, so
+            replies come back individually. Pushes everyone.
+          </p>
+          <CoachComposer
+            action={broadcastCoachMessage}
+            placeholder="Announcement to all athletes (sends as you, Jason)…"
+          />
+        </section>
 
         <section className="space-y-2">
           {conversations.map((c) => (

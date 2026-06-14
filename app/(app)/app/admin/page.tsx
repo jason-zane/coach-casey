@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/admin/auth";
 import { loadAdminPageData } from "@/lib/admin/page-data";
+import { countAdminUnread } from "@/lib/coach-messages";
 import { TestUserToggle } from "./_test-user-toggle";
 import { GenerateWeeklyReviewButton } from "./_generate-weekly-review-button";
 import { RegenerateDebriefButton } from "./_regenerate-debrief-button";
@@ -27,6 +28,7 @@ export default async function AdminPage({
 
   const data = await loadAdminPageData();
   const { athletes, stats } = data;
+  const unreadMessages = await countAdminUnread();
   const sp = await searchParams;
   const regenError = sp.regen_error ?? null;
 
@@ -61,9 +63,14 @@ export default async function AdminPage({
             </Link>
             <Link
               href="/app/admin/messages"
-              className="inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-subtle hover:text-ink-muted transition-colors duration-150"
+              className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-subtle hover:text-ink-muted transition-colors duration-150"
             >
               <span>Messages</span>
+              {unreadMessages > 0 && (
+                <span className="grid h-4 min-w-4 place-items-center rounded-full bg-accent px-1 text-[9px] leading-none text-accent-ink">
+                  {unreadMessages > 9 ? "9+" : unreadMessages}
+                </span>
+              )}
               <span aria-hidden>›</span>
             </Link>
             <Link
