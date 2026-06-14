@@ -370,7 +370,43 @@ export function MessageBlock({ message, unread }: Props) {
       );
     }
 
-    case "system":
+    case "system": {
+      // A "message from Jason" notice: a nudge in the thread that points at
+      // the human channel. The conversation itself lives at /app/messages;
+      // this is just the pop-in. Other system messages stay plain captions.
+      const notice = (message.meta as { notice?: string }).notice;
+      if (notice === "coach") {
+        return (
+          <div className="px-5 sm:px-6 flex justify-center">
+            <a
+              href="/app/messages"
+              className="group inline-flex items-center gap-2.5 rounded-full border border-accent/30 bg-accent/[0.06] px-4 py-2 transition-colors hover:bg-accent/10"
+            >
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 20 20"
+                fill="none"
+                aria-hidden
+                className="text-accent"
+              >
+                <path
+                  d="M3.5 5.5c0-.8.7-1.5 1.5-1.5h10c.8 0 1.5.7 1.5 1.5v6c0 .8-.7 1.5-1.5 1.5H8l-3.5 3v-3H5c-.8 0-1.5-.7-1.5-1.5v-6Z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <span className="font-sans text-[13px] text-ink">
+                {message.body || "Jason sent you a message"}
+              </span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-accent">
+                Read ›
+              </span>
+            </a>
+          </div>
+        );
+      }
       return (
         <div className="px-5 sm:px-6 flex justify-center" role="status">
           <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-subtle">
@@ -378,6 +414,7 @@ export function MessageBlock({ message, unread }: Props) {
           </span>
         </div>
       );
+    }
 
     default:
       return null;

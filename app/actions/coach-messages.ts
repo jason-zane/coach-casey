@@ -9,8 +9,31 @@ import { recordAuditEvent } from "@/lib/audit/log";
 import { sendPushToAthlete } from "@/lib/push/send";
 import { pushAdmins } from "@/lib/admin/notify-admins";
 import { broadcastTargetIds } from "@/lib/coach-messages";
+import { ensureThread, appendCaseyMessage } from "@/lib/thread/repository";
 
 const MAX_BODY = 4000;
+
+/**
+ * Drop a "message from Jason" notice into the athlete's main Casey thread, so a
+ * new human message surfaces where they already are instead of in a place they
+ * have to remember to visit. The notice points at /app/messages; the
+ * conversation itself stays there. Best-effort, and excluded from Casey's
+ * context (see renderHistory). It is a `system` message tagged meta.notice.
+ */
+async function dropCoachNotice(athleteId: string) {
+  try {
+    const threadId = await ensureThread(athleteId);
+    await appendCaseyMessage(
+      threadId,
+      athleteId,
+      "system",
+      "Jason sent you a message",
+      { notice: "coach" },
+    );
+  } catch (e) {
+    console.error("[coach] failed to drop thread notice (non-fatal)", e);
+  }
+}
 
 /**
  * Coach -> athlete message. Admin only. Persists as sender='coach', pushes the
@@ -33,6 +56,7 @@ export async function sendCoachMessage(formData: FormData) {
   });
   if (error) throw error;
 
+  await dropCoachNotice(athleteId);
   await sendPushToAthlete(athleteId, {
     title: "Message from Jason",
     body,
@@ -74,14 +98,15 @@ export async function broadcastCoachMessage(formData: FormData) {
   if (error) throw error;
 
   await Promise.all(
-    ids.map((id) =>
-      sendPushToAthlete(id, {
+    ids.map(async (id) => {
+      await dropCoachNotice(id);
+      await sendPushToAthlete(id, {
         title: "Message from Jason",
         body,
         tag: `coach-msg-${id}`,
         url: "/app/messages",
-      }),
-    ),
+      });
+    }),
   );
 
   await recordAuditEvent({

@@ -383,6 +383,10 @@ function formatDuration(minutes: number): string {
 function renderHistory(messages: Message[]): Anthropic.MessageParam[] {
   return messages
     .filter((m) => m.body.trim().length > 0)
+    // `system` messages are UI markers (e.g. the "message from Jason" notice
+    // that points at the human channel), not conversation. They must never
+    // enter Casey's turn history, or they'd read as phantom assistant lines.
+    .filter((m) => m.kind !== "system")
     .map<Anthropic.MessageParam>((m) => {
       const role: "user" | "assistant" = m.kind === "chat_user" ? "user" : "assistant";
       // Non-chat Casey messages (debriefs, reviews, follow-ups) are shown to
