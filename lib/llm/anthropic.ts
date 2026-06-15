@@ -9,32 +9,31 @@ export function anthropic(): Anthropic {
   return client;
 }
 
-const HAIKU = "claude-haiku-4-5";
-const SONNET = "claude-sonnet-4-6";
+// Available models. Exported so a surface can be switched with a one-line
+// edit in the MODELS map below. HAIKU is currently unused but kept on hand.
+export const HAIKU = "claude-haiku-4-5";
+export const SONNET = "claude-sonnet-4-6";
 
 // Per-surface model selection.
 //
-// Sonnet keeps the two surfaces where its lead is concrete: weekly review
-// (multi-day synthesis, runs once/week so cost is bounded) and plan extract
-// (vision + structured PDF extraction, a wrong plan ripples for weeks).
-// Everything else is short-to-medium voice-matched prose conditioned on
-// structured context, which Haiku 4.5 handles well at roughly a third of
-// the cost and 2-3x lower latency. Voice eval (`pnpm eval:voice`) is the
-// arbiter: if a surface regresses on Haiku, flip its key back to SONNET.
+// All surfaces run on Sonnet 4.6 (founder decision: prioritise voice quality
+// across the board over the cost/latency savings of Haiku). The HAIKU constant
+// is kept so any individual surface can be flipped back if its cost or latency
+// becomes a concern; the voice eval (`pnpm eval:voice`) is the arbiter.
 export const MODELS = {
-  chat: HAIKU,
-  debriefBody: HAIKU,
-  debriefConversationalFollowUp: HAIKU,
-  debriefStructuredFollowUp: HAIKU,
-  stravaBlurb: HAIKU,
-  crossTrainingAck: HAIKU,
-  followupRpeBranched: HAIKU,
-  raceWeekBriefing: HAIKU,
-  fuelingPrerun: HAIKU,
-  fuelingRetrospective: HAIKU,
-  niggleEscalation: HAIKU,
-  midBlockFlatness: HAIKU,
-  onboardingValidation: HAIKU,
+  chat: SONNET,
+  debriefBody: SONNET,
+  debriefConversationalFollowUp: SONNET,
+  debriefStructuredFollowUp: SONNET,
+  stravaBlurb: SONNET,
+  crossTrainingAck: SONNET,
+  followupRpeBranched: SONNET,
+  raceWeekBriefing: SONNET,
+  fuelingPrerun: SONNET,
+  fuelingRetrospective: SONNET,
+  niggleEscalation: SONNET,
+  midBlockFlatness: SONNET,
+  onboardingValidation: SONNET,
   weeklyReview: SONNET,
   planExtract: SONNET,
 } as const;
