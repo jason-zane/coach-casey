@@ -53,6 +53,7 @@ function planFollowingWeek(): WeeklyReviewContext {
     ],
     priorWeeklyReviews: [],
     priorDebriefBodies: [],
+    workingReadText: null,
   };
 }
 
@@ -83,6 +84,7 @@ function emptyWeek(): WeeklyReviewContext {
     goalRaces: [],
     priorWeeklyReviews: [],
     priorDebriefBodies: [],
+    workingReadText: null,
   };
 }
 

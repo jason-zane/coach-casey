@@ -12,6 +12,7 @@ import { ensureThread } from "@/lib/thread/repository";
 import { sendPushToAthlete } from "@/lib/push/send";
 import { leadFromBody } from "@/lib/push/lead-from-body";
 import { MODELS } from "@/lib/llm/anthropic";
+import { consolidate } from "@/lib/memory/consolidate";
 
 export type GenerateWeeklyReviewResult =
   | { kind: "created"; reviewId: string }
@@ -153,6 +154,38 @@ export async function generateWeeklyReviewForAthlete(
     }
   } catch (err) {
     console.warn("weekly-review push fanout failed", err);
+  }
+
+  // Write half of the maintained-read loop: fold this week and the review
+  // Casey just wrote back into the interpreted-memory layer, so next week's
+  // surfaces carry it forward. Best-effort; never blocks the review.
+  try {
+    const runLine =
+      ctx.weekRuns
+        .map(
+          (r) =>
+            `${r.date.slice(0, 10)} ${r.name ?? "run"} ${r.distanceKm.toFixed(1)}km${r.isWorkout ? " [workout]" : ""}`,
+        )
+        .join("; ") || "none";
+    const interactionText = [
+      `Week of ${week.weekStartIso} to ${week.weekEndIso}.`,
+      `Runs: ${runLine}.`,
+      ctx.injuries.length
+        ? `Known niggles: ${ctx.injuries.map((i) => `${i.content}${i.tags.length ? ` (${i.tags.join(", ")})` : ""}`).join("; ")}.`
+        : "",
+      ctx.lifeContext.length
+        ? `Recent life context: ${ctx.lifeContext.map((l) => l.content).join("; ")}.`
+        : "",
+      ctx.goalRaces.length
+        ? `Goal races: ${ctx.goalRaces.map((g) => `${g.name ?? "race"} on ${g.raceDate ?? "TBD"}`).join("; ")}.`
+        : "",
+      `\nCasey's weekly review just written:\n${outcome.body}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+    await consolidate({ athleteId, source: "weekly_review", interactionText });
+  } catch (err) {
+    console.warn("weekly-review consolidation failed", err);
   }
 
   return { kind: "created", reviewId };

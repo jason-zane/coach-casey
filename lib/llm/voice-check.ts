@@ -105,6 +105,18 @@ const HEDGE_WORDS = [
   "sort of",
 ];
 
+// Canned structural connectors. Phrases that announce the shape of the
+// writing instead of carrying content. The weekly-review arc clichés live
+// here too: they are the specific filler we are killing, and distinctive
+// enough that real Casey prose does not trip them ("the shape of the run"
+// is fine; "the shape of the week is" is the tell).
+const CANNED_PHRASES = [
+  "the shape of the week",
+  "the through-line is",
+  "in the four-week arc",
+  "across the four-week arc",
+];
+
 // Emoji range, broad. Catches the common BMP and astral-plane emoji
 // blocks. False positives on box-drawing or CJK punctuation are unlikely
 // in Casey's prose register.
@@ -189,6 +201,11 @@ export function checkVoice(text: string, opts: VoiceCheckOptions = {}): VoiceChe
     for (const m of text.matchAll(re)) {
       add("hedge", word, m.index ?? 0);
     }
+  }
+
+  // Canned structural phrasing.
+  for (const phrase of CANNED_PHRASES) {
+    for (const idx of findAll(text, phrase)) add("canned-phrase", phrase, idx);
   }
 
   // Markdown markers. Bold, italic, headings, fenced blocks, bullets.

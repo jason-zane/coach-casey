@@ -76,6 +76,7 @@ export async function GET() {
       preferences,
       pushSubscriptions,
       trials,
+      athleteInsights,
     ] = await Promise.all([
       fetchAll("activities", "*", "start_date_local"),
       fetchAll("activity_laps", "*", "lap_index"),
@@ -98,6 +99,7 @@ export async function GET() {
         "endpoint, created_at, last_used_at, last_error_at, last_error_code",
       ),
       fetchAll("trials", "*", "started_at"),
+      fetchAll("athlete_insights", "*", "recorded_at"),
     ]);
 
     payload = {
@@ -121,6 +123,7 @@ export async function GET() {
       preferences: preferences[0] ?? null,
       push_subscriptions: pushSubscriptions,
       trials,
+      athlete_insights: athleteInsights,
     };
   } catch (err) {
     console.error("account export failed", err);

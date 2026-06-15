@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/server";
 import { summariseActivity, type ChatContext } from "@/lib/llm/chat";
+import { loadWorkingReadText } from "@/lib/memory/insights";
 import { classifyActivityType } from "@/lib/strava/activity-types";
 import { extractWorkoutType } from "@/lib/strava/ingest";
 import { classifyWorkout } from "@/lib/strava/workout-detect";
@@ -43,6 +44,7 @@ export async function buildChatContext(
     planRes,
     racesRes,
     oldestRes,
+    workingReadRes,
   ] = await Promise.all([
       admin
         .from("athletes")
@@ -100,7 +102,11 @@ export async function buildChatContext(
         .order("start_date_local", { ascending: true })
         .limit(1)
         .maybeSingle(),
+      // Casey's maintained read (interpreted-memory working set).
+      loadWorkingReadText(athleteId),
     ]);
+
+  const workingReadText = workingReadRes;
 
   const historyRows = (historyRes.data ?? []) as Message[];
   const recentMessages = [...historyRows].reverse();
@@ -232,5 +238,6 @@ export async function buildChatContext(
     recentBoundaryIso: since.toISOString(),
     oldestActivityIso:
       (oldestRes?.data as { start_date_local: string } | null)?.start_date_local ?? null,
+    workingReadText,
   };
 }

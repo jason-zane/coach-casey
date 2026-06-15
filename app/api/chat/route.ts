@@ -17,6 +17,7 @@ import {
   isDeclaredPayloadTooLarge,
 } from "@/lib/chat/security";
 import { consumeChatRateLimit } from "@/lib/chat/rate-limit-db";
+import { consolidate } from "@/lib/memory/consolidate";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -131,6 +132,23 @@ export async function POST(req: NextRequest) {
 
         await executeToolEffects(athleteId, pendingTools);
         send({ type: "done" });
+
+        // Write half of the maintained-read loop for chat. Runs after the
+        // user-visible response, on substantive turns only (the athlete
+        // shared something memory-worthy, or it was a real exchange), so the
+        // read stays current between weekly consolidations. The consolidation
+        // call self-guards by returning no-ops when nothing changed, and
+        // swallows its own errors; this guard just avoids paying for "ok".
+        const capturedMemory = pendingTools.length > 0;
+        const substantive =
+          capturedMemory || (userText.trim().length >= 40 && text.length > 0);
+        if (substantive) {
+          await consolidate({
+            athleteId,
+            source: "chat",
+            interactionText: `Athlete said:\n${userText.trim()}\n\nCasey replied:\n${text}`,
+          });
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : "unknown error";
         send({ type: "error", message: msg });

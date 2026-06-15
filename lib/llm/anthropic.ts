@@ -35,6 +35,13 @@ export const MODELS = {
   niggleEscalation: HAIKU,
   midBlockFlatness: HAIKU,
   onboardingValidation: HAIKU,
+  // Cheap planning pass that picks the lead angle + continuity threads
+  // before the Sonnet writer drafts the weekly review. Reasoning, not
+  // voice, so Haiku is the right tier.
+  weeklyReviewPlan: HAIKU,
+  // Consolidation pass that maintains the interpreted-memory layer (the
+  // working read). Structured tool output, not voice; Haiku tier.
+  consolidation: HAIKU,
   weeklyReview: SONNET,
   planExtract: SONNET,
 } as const;
