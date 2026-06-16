@@ -13,8 +13,8 @@ import { logVoiceFindings } from "./voice-check";
 import type { WeeklyReviewContext } from "@/lib/thread/weekly-review-context";
 
 // v2 (2026-06-15): arc demoted from mandatory beat to earned mention,
-// priors reframed from de-dup to continuity, cheap Haiku planning pass
-// added before the writer. See prompts/weekly-review.md.
+// priors reframed from de-dup to continuity, a planning pass added before
+// the writer. See prompts/weekly-review.md.
 export const WEEKLY_REVIEW_PROMPT_VERSION = "weekly-review@v2";
 
 /**
@@ -183,7 +183,7 @@ AVOID: the central image or claim from last week's review and recent debriefs th
 Be specific to the data in front of you. If a line has nothing real, say so plainly rather than inventing.`;
 
 /**
- * Cheap planning pass (Haiku). Reads the same week + priors the writer
+ * Planning pass. Reads the same week + priors the writer
  * gets and returns a short "read": what to lead on, which threads to
  * carry, whether the multi-week arc earns a mention this week, and what
  * not to repeat. This is the intelligence step that runs before the prose

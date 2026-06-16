@@ -10,9 +10,9 @@ export function anthropic(): Anthropic {
 }
 
 // Available models. Exported so a surface can be switched with a one-line
-// edit in the MODELS map below. HAIKU powers the internal reasoning and
-// extraction passes (weekly-review planning, consolidation); the
-// athlete-facing voice surfaces all run on Sonnet.
+// edit in the MODELS map below. HAIKU is currently unused but kept on hand
+// so any surface can be flipped to it if its cost or latency becomes a
+// concern.
 export const HAIKU = "claude-haiku-4-5";
 export const SONNET = "claude-sonnet-4-6";
 
@@ -38,15 +38,11 @@ export const MODELS = {
   onboardingValidation: SONNET,
   weeklyReview: SONNET,
   planExtract: SONNET,
-  // The two passes below are internal (reasoning + structured extraction),
-  // not athlete-facing voice, so the all-Sonnet decision above does not
-  // target them. They run on Haiku to keep cost in check: consolidation
-  // fires per debrief and per substantial chat turn. Flip either to SONNET
-  // for sharper angle-picking / fewer mis-consolidated beliefs at higher cost.
-  //
-  // weeklyReviewPlan picks the lead angle + continuity threads before the
-  // weekly-review writer drafts.
-  weeklyReviewPlan: HAIKU,
-  // consolidation maintains the interpreted-memory layer (the working read).
-  consolidation: HAIKU,
+  // Internal passes, not athlete-facing voice: the weekly-review planner
+  // (lead angle + continuity threads) and the consolidation pass (structured
+  // interpreted-memory updates). On Sonnet for quality, like everything else;
+  // consolidation fires per debrief and per substantial chat turn, so it is
+  // the one to watch on cost.
+  weeklyReviewPlan: SONNET,
+  consolidation: SONNET,
 } as const;
