@@ -3,8 +3,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentSession } from "@/lib/auth/current";
-import { SkeletonBar } from "../_components/skeleton";
-import { SectionHeading } from "./_sections/section-shell";
+import { SkeletonBar, SkeletonLines } from "../_components/skeleton";
+import { SectionHeading, Subsection } from "./_sections/section-shell";
 import { YouSection } from "./_sections/you-section";
 import { GoalsSection } from "./_sections/goals-section";
 import { PlanSection } from "./_sections/plan-section";
@@ -36,7 +36,7 @@ export default async function AthletePage() {
 
   const athleteId = athlete.id;
   const userEmail = user.email ?? "";
-  const joinedAt = user.created_at;
+  const joinedAt = athlete.created_at;
 
   return (
     <div className="min-h-svh bg-paper text-ink overflow-x-hidden">
@@ -76,22 +76,43 @@ export default async function AthletePage() {
 
         <section className="space-y-0">
           <Suspense
-            fallback={<SubsectionSkeleton label="You" rows={5} />}
+            fallback={
+              <Subsection label="You">
+                <SkeletonLines rows={5} />
+              </Subsection>
+            }
           >
             <YouSection athleteId={athleteId} fallbackEmail={userEmail} />
           </Suspense>
           <Suspense
-            fallback={<SubsectionSkeleton label="Your goal race" rows={2} />}
+            fallback={
+              <Subsection label="Your goal race">
+                <SkeletonLines rows={2} />
+              </Subsection>
+            }
           >
             <GoalsSection athleteId={athleteId} />
           </Suspense>
           <Suspense
-            fallback={<SubsectionSkeleton label="On the radar" rows={2} />}
+            fallback={
+              <>
+                <Subsection label="On the radar">
+                  <SkeletonLines rows={2} />
+                </Subsection>
+                <Subsection label="Life context" helper="Last 14 days">
+                  <SkeletonLines rows={2} />
+                </Subsection>
+              </>
+            }
           >
             <TrackingSection athleteId={athleteId} />
           </Suspense>
           <Suspense
-            fallback={<SubsectionSkeleton label="What Casey's picked up" rows={3} />}
+            fallback={
+              <Subsection label="What Casey's picked up">
+                <SkeletonLines rows={3} />
+              </Subsection>
+            }
           >
             <InsightsSection athleteId={athleteId} />
           </Suspense>
@@ -103,27 +124,15 @@ export default async function AthletePage() {
             <TrainingSection athleteId={athleteId} />
           </Suspense>
           <Suspense
-            fallback={<SubsectionSkeleton label="Plan" rows={3} />}
+            fallback={
+              <Subsection label="Plan">
+                <SkeletonLines rows={3} />
+              </Subsection>
+            }
           >
             <PlanSection athleteId={athleteId} />
           </Suspense>
         </section>
-      </div>
-    </div>
-  );
-}
-
-function SubsectionSkeleton({ label, rows }: { label: string; rows: number }) {
-  return (
-    <div className="border-t border-rule/40 pt-5 space-y-3">
-      <h3 className="text-[13px] font-semibold text-ink">{label}</h3>
-      <div className="space-y-3">
-        {Array.from({ length: rows }).map((_, i) => (
-          <SkeletonBar
-            key={i}
-            width={i === 0 ? "70%" : i === rows - 1 ? "45%" : "85%"}
-          />
-        ))}
       </div>
     </div>
   );

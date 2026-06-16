@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { getSigningKeys } from "@/lib/auth/jwks";
 
 /**
  * Admin gate. Source of truth: the `ADMIN_EMAILS` env var, comma-separated,
@@ -38,14 +39,20 @@ export function isAdminEmail(email: string | null | undefined): boolean {
  */
 export async function requireAdmin() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  // Local ES256 verification (cached JWKS) instead of a getUser() round trip;
+  // the proxy already revalidated this request's session. See lib/auth/current.ts.
+  const keys = await getSigningKeys();
+  const { data } = await supabase.auth.getClaims(
+    undefined,
+    keys.length ? { jwks: { keys } } : undefined,
+  );
+  const claims = data?.claims;
+  if (!claims?.sub) {
     return { ok: false as const, redirect: "/signin" as const };
   }
-  if (!isAdminEmail(user.email ?? null)) {
+  const email = typeof claims.email === "string" ? claims.email : null;
+  if (!isAdminEmail(email)) {
     return { ok: false as const, redirect: "/app" as const };
   }
-  return { ok: true as const, user, supabase };
+  return { ok: true as const, user: { id: claims.sub, email }, supabase };
 }

@@ -22,26 +22,21 @@ export function SkeletonBar({
   );
 }
 
-export function SkeletonSection({
-  title,
-  rows = 2,
-}: {
-  title: string;
-  rows?: number;
-}) {
+/**
+ * A run of skeleton bars with the house width rhythm (first wide, last
+ * short, the rest full-ish). The single source of truth for "some text
+ * is loading here", shared by every loading.tsx and every in-page
+ * Suspense fallback so the two never drift from each other.
+ */
+export function SkeletonLines({ rows = 2 }: { rows?: number }) {
   return (
-    <section className="space-y-3">
-      <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-muted">
-        {title}
-      </h2>
-      <div className="space-y-3 border-t border-rule/60 pt-4">
-        {Array.from({ length: rows }).map((_, i) => (
-          <SkeletonBar
-            key={i}
-            width={i === 0 ? "70%" : i === rows - 1 ? "45%" : "85%"}
-          />
-        ))}
-      </div>
-    </section>
+    <div className="space-y-3">
+      {Array.from({ length: rows }).map((_, i) => (
+        <SkeletonBar
+          key={i}
+          width={i === 0 ? "70%" : i === rows - 1 ? "45%" : "85%"}
+        />
+      ))}
+    </div>
   );
 }

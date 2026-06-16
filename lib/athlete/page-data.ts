@@ -148,6 +148,12 @@ function startOfThisWeekIso(tz: string | null): string {
  * of activity rows used to make every athlete-page render wait on the
  * full activities scan, now the You / Goals / Memory sections show
  * before that finishes.
+ *
+ * Every loader is wrapped in React `cache()` so a query issued by more
+ * than one section in the same render collapses to a single round trip.
+ * The hero line and the tracking section both read tracking items; the
+ * hero line and the You/Training sections share the profile and Strava
+ * snapshots. Without this they each re-queried independently.
  */
 
 export const loadAthleteProfile = cache(_loadAthleteProfile);
@@ -213,7 +219,9 @@ async function _loadAthleteProfile(
   };
 }
 
-export async function loadGoalRace(
+export const loadGoalRace = cache(_loadGoalRace);
+
+async function _loadGoalRace(
   athleteId: string,
 ): Promise<GoalRace | null> {
   const admin = createAdminClient();
@@ -239,7 +247,9 @@ export async function loadGoalRace(
   };
 }
 
-export async function loadActivePlan(
+export const loadActivePlan = cache(_loadActivePlan);
+
+async function _loadActivePlan(
   athleteId: string,
 ): Promise<ActivePlan | null> {
   const admin = createAdminClient();
@@ -277,7 +287,9 @@ export async function loadActivePlan(
   };
 }
 
-export async function loadWeeklyTraining(
+export const loadWeeklyTraining = cache(_loadWeeklyTraining);
+
+async function _loadWeeklyTraining(
   athleteId: string,
   timezone: string | null,
 ): Promise<WeeklyTraining> {
@@ -313,7 +325,9 @@ export type TrackingItems = {
   lifeContext: LifeContextItem[];
 };
 
-export async function loadTrackingItems(
+export const loadTrackingItems = cache(_loadTrackingItems);
+
+async function _loadTrackingItems(
   athleteId: string,
 ): Promise<TrackingItems> {
   const admin = createAdminClient();
@@ -369,7 +383,9 @@ const INSIGHT_LAYER_LABELS: Record<InsightLayer, string> = {
 
 const INSIGHT_LAYER_ORDER: InsightLayer[] = ["profile", "block", "pattern", "thread"];
 
-export async function loadInsightItems(
+export const loadInsightItems = cache(_loadInsightItems);
+
+async function _loadInsightItems(
   athleteId: string,
 ): Promise<InsightUiItem[]> {
   const insights = await fetchHotInsights(athleteId);
@@ -398,7 +414,9 @@ export async function loadInsightItems(
     });
 }
 
-export async function loadMemoryProgress(
+export const loadMemoryProgress = cache(_loadMemoryProgress);
+
+async function _loadMemoryProgress(
   athleteId: string,
 ): Promise<MemoryProgress> {
   const admin = createAdminClient();
@@ -433,7 +451,9 @@ export type StravaConnectionInfo = {
   isConnected: boolean;
 };
 
-export async function loadStravaConnection(
+export const loadStravaConnection = cache(_loadStravaConnection);
+
+async function _loadStravaConnection(
   athleteId: string,
 ): Promise<StravaConnectionInfo> {
   const admin = createAdminClient();
@@ -459,7 +479,9 @@ export async function loadStravaConnection(
  * activity descriptions. Default true (on unless the athlete turns it
  * off); the missing-row and missing-column cases both read as on.
  */
-export async function loadStravaBlurbEnabled(
+export const loadStravaBlurbEnabled = cache(_loadStravaBlurbEnabled);
+
+async function _loadStravaBlurbEnabled(
   athleteId: string,
 ): Promise<boolean> {
   const admin = createAdminClient();

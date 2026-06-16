@@ -59,6 +59,7 @@ export async function loadAdminPageData(): Promise<AdminPageData> {
     stravaRes,
     debriefs7dRes,
     reviews7dRes,
+    authUsers,
   ] = await Promise.all([
     // Athletes list with user_id baked in so we can drop the legacy
     // second lookup query.
@@ -98,6 +99,13 @@ export async function loadAdminPageData(): Promise<AdminPageData> {
       .select("id", { count: "exact", head: true })
       .eq("kind", "weekly_review")
       .gte("created_at", sevenDaysAgoIso),
+    // Auth listing for last_sign_in_at, fetched alongside the table queries
+    // rather than after them. Tolerates failure so the table still renders
+    // (every lastSignInAt just reads null) if the auth admin call errors.
+    admin.auth.admin
+      .listUsers({ page: 1, perPage: 200 })
+      .then((r) => r.data?.users ?? [])
+      .catch(() => []),
   ]);
 
   if (athleteRes.error) throw athleteRes.error;
@@ -147,21 +155,13 @@ export async function loadAdminPageData(): Promise<AdminPageData> {
     stravaConnected.add(row.athlete_id);
   }
 
-  // Auth listing for last_sign_in_at. We already have user_id on each
-  // athlete row above, so no second athletes query needed.
+  // Auth listing for last_sign_in_at (fetched in parallel above). We already
+  // have user_id on each athlete row, so no second athletes query is needed.
   const lastSignIn = new Map<string, string>();
-  try {
-    const { data: authPage } = await admin.auth.admin.listUsers({
-      page: 1,
-      perPage: 200,
-    });
-    for (const u of authPage?.users ?? []) {
-      if (u.last_sign_in_at) {
-        lastSignIn.set(u.id, u.last_sign_in_at);
-      }
+  for (const u of authUsers) {
+    if (u.last_sign_in_at) {
+      lastSignIn.set(u.id, u.last_sign_in_at);
     }
-  } catch {
-    // Ignore, just leave lastSignInAt as null on every row.
   }
 
   const sevenDaysAgoMs = now - 7 * DAY_MS;

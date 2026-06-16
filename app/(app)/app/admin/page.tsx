@@ -26,10 +26,14 @@ export default async function AdminPage({
   const gate = await requireAdmin();
   if (!gate.ok) redirect(gate.redirect);
 
-  const data = await loadAdminPageData();
+  // These three are independent; fetch them concurrently so the admin
+  // critical path is the slowest single query, not their sum.
+  const [data, unreadMessages, sp] = await Promise.all([
+    loadAdminPageData(),
+    countAdminUnread(),
+    searchParams,
+  ]);
   const { athletes, stats } = data;
-  const unreadMessages = await countAdminUnread();
-  const sp = await searchParams;
   const regenError = sp.regen_error ?? null;
 
   return (

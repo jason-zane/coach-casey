@@ -7,7 +7,7 @@ import { signOut } from "@/app/actions/auth";
 import { requestAccountDeletion } from "@/app/actions/account";
 import { isAdminEmail } from "@/lib/admin/auth";
 import { countUnreadForAthlete } from "@/lib/coach-messages";
-import { SkeletonBar } from "../_components/skeleton";
+import { SkeletonLines } from "../_components/skeleton";
 import { Section } from "./_sections/section-shell";
 import { StravaSection } from "./_sections/strava-section";
 import { DeleteAccountButton } from "./_delete-account-button";
@@ -78,7 +78,11 @@ export default async function SettingsPage() {
         </Section>
 
         <Suspense
-          fallback={<SectionSkeleton title="Strava" rows={2} />}
+          fallback={
+            <Section title="Strava">
+              <SkeletonLines rows={2} />
+            </Section>
+          }
         >
           <StravaSection athleteId={athleteId} />
         </Suspense>
@@ -163,23 +167,5 @@ export default async function SettingsPage() {
         </Section>
       </div>
     </div>
-  );
-}
-
-function SectionSkeleton({ title, rows }: { title: string; rows: number }) {
-  return (
-    <section className="space-y-3">
-      <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-muted">
-        {title}
-      </h2>
-      <div className="space-y-3 border-t border-rule/60 pt-4">
-        {Array.from({ length: rows }).map((_, i) => (
-          <SkeletonBar
-            key={i}
-            width={i === 0 ? "70%" : i === rows - 1 ? "45%" : "85%"}
-          />
-        ))}
-      </div>
-    </section>
   );
 }
