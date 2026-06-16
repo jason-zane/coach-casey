@@ -1,5 +1,13 @@
-import { SkeletonBar } from "../_components/skeleton";
+import { SkeletonLines } from "../_components/skeleton";
+import { Section } from "./_sections/section-shell";
 
+/**
+ * Settings route-level skeleton. Built from the same Section primitive the
+ * real page uses, with the static chrome (back-link, title, subhead,
+ * section labels) rendered for real so only the per-section body fills in.
+ * Section list kept in lockstep with page.tsx; the admin-only section is
+ * omitted here since the shell can't know whether the viewer is an admin.
+ */
 export default function SettingsLoading() {
   return (
     <div className="min-h-svh bg-paper text-ink">
@@ -9,33 +17,33 @@ export default function SettingsLoading() {
             <span aria-hidden>‹</span>
             <span>Back to athlete page</span>
           </div>
-          <SkeletonBar className="h-7" width="35%" />
-          <SkeletonBar className="h-3 mt-2" width="55%" />
+          <h1
+            className="text-[26px] leading-tight font-medium text-ink"
+            style={{ fontFamily: "var(--font-serif)" }}
+          >
+            Settings
+          </h1>
+          <p className="text-[14px] leading-[1.55] text-ink-muted">
+            Account, data, and connections.
+          </p>
         </header>
 
-        <SectionShell title="Strava" rows={2} />
-        <SectionShell title="Data" rows={2} />
-        <SectionShell title="Account" rows={3} />
-        <SectionShell title="Legal" rows={1} />
+        <Section title="Messages from Jason">
+          <SkeletonLines rows={2} />
+        </Section>
+        <Section title="Strava">
+          <SkeletonLines rows={2} />
+        </Section>
+        <Section title="Data">
+          <SkeletonLines rows={2} />
+        </Section>
+        <Section title="Account">
+          <SkeletonLines rows={3} />
+        </Section>
+        <Section title="Legal">
+          <SkeletonLines rows={1} />
+        </Section>
       </div>
     </div>
-  );
-}
-
-function SectionShell({ title, rows }: { title: string; rows: number }) {
-  return (
-    <section className="space-y-3">
-      <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-muted">
-        {title}
-      </h2>
-      <div className="space-y-3 border-t border-rule/60 pt-4">
-        {Array.from({ length: rows }).map((_, i) => (
-          <SkeletonBar
-            key={i}
-            width={i === 0 ? "70%" : i === rows - 1 ? "45%" : "85%"}
-          />
-        ))}
-      </div>
-    </section>
   );
 }

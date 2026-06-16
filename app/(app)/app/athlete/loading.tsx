@@ -1,10 +1,14 @@
-import { SkeletonBar } from "../_components/skeleton";
+import { SkeletonBar, SkeletonLines } from "../_components/skeleton";
+import { SectionHeading, Subsection } from "./_sections/section-shell";
 
 /**
- * Athlete page route-level skeleton. Mirrors the new structure: a
- * header with two utility links, the serif H1, the subhead, the
- * memory hero line placeholder, then the grouped subsections and
- * the "Your training" block.
+ * Athlete page route-level skeleton. Built from the *same* Subsection and
+ * SectionHeading primitives the real page uses, so the shell lands in the
+ * exact shape the content fills, no jolt when data arrives. Only the
+ * genuinely dynamic bits (the display-name H1 and the memory hero line)
+ * are skeleton bars; the static chrome (back-links, subhead, subsection
+ * labels) renders for real. Keep the subsection list in lockstep with
+ * page.tsx.
  */
 export default function AthleteLoading() {
   return (
@@ -22,58 +26,37 @@ export default function AthleteLoading() {
             </div>
           </div>
           <SkeletonBar className="h-7" width="50%" />
-          <SkeletonBar className="h-3 mt-2" width="60%" />
-          <SkeletonBar className="h-3 mt-1" width="80%" />
+          <p className="text-[14px] leading-[1.55] text-ink-muted">
+            What Coach Casey knows about you.
+          </p>
+          <SkeletonBar className="h-3 mt-1" width="70%" />
         </header>
 
-        <section>
-          <SubsectionShell label="You" rows={5} />
-          <SubsectionShell label="Your goal race" rows={2} />
-          <SubsectionShell label="On the radar" rows={2} />
-          <SubsectionShell label="Life context" helper="Last 14 days" rows={2} />
+        <section className="space-y-0">
+          <Subsection label="You">
+            <SkeletonLines rows={5} />
+          </Subsection>
+          <Subsection label="Your goal race">
+            <SkeletonLines rows={2} />
+          </Subsection>
+          <Subsection label="On the radar">
+            <SkeletonLines rows={2} />
+          </Subsection>
+          <Subsection label="Life context" helper="Last 14 days">
+            <SkeletonLines rows={2} />
+          </Subsection>
+          <Subsection label="What Casey's picked up">
+            <SkeletonLines rows={3} />
+          </Subsection>
         </section>
 
         <section className="space-y-5">
-          <h2
-            className="text-[22px] sm:text-[24px] leading-tight font-medium text-ink"
-            style={{ fontFamily: "var(--font-serif)", letterSpacing: "-0.015em" }}
-          >
-            Your training
-          </h2>
+          <SectionHeading>Your training</SectionHeading>
           <SkeletonBar className="h-3" width="80%" />
-          <SubsectionShell label="Plan" rows={3} />
+          <Subsection label="Plan">
+            <SkeletonLines rows={3} />
+          </Subsection>
         </section>
-      </div>
-    </div>
-  );
-}
-
-function SubsectionShell({
-  label,
-  helper,
-  rows,
-}: {
-  label: string;
-  helper?: string;
-  rows: number;
-}) {
-  return (
-    <div className="border-t border-rule/40 pt-5 space-y-3">
-      <div className="flex items-baseline justify-between gap-3">
-        <h3 className="text-[13px] font-semibold text-ink">{label}</h3>
-        {helper && (
-          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-subtle">
-            {helper}
-          </span>
-        )}
-      </div>
-      <div className="space-y-3">
-        {Array.from({ length: rows }).map((_, i) => (
-          <SkeletonBar
-            key={i}
-            width={i === 0 ? "70%" : i === rows - 1 ? "45%" : "85%"}
-          />
-        ))}
       </div>
     </div>
   );
