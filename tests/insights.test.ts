@@ -98,6 +98,28 @@ test("findRecurrence ignores live insights and other layers", () => {
 // ---------------------------------------------------------------------------
 // Bounded hot set
 
+test("new hot inserts alone cannot exceed the hot cap (first/broad consolidation)", () => {
+  // No existing rows: a single consolidation proposes more hot patterns than
+  // the cap. The bounded-read invariant must still hold.
+  const proposed: ProposedInsight[] = Array.from(
+    { length: HOT_CAPS.pattern + 3 },
+    (_, i) => ({
+      op: "add" as const,
+      layer: "pattern" as const,
+      content: `pattern ${i}`,
+      confidence: "high" as const,
+    }),
+  );
+  const plan = planInsightWrites([], proposed, NOW, "weekly_review");
+  const hotInserts = plan.inserts.filter((i) => i.layer === "pattern" && i.hot).length;
+  assert.equal(hotInserts, HOT_CAPS.pattern, "new hot inserts are capped");
+  // The overflow is stored, just not hot, so nothing is lost.
+  assert.equal(
+    plan.inserts.filter((i) => i.layer === "pattern").length,
+    HOT_CAPS.pattern + 3,
+  );
+});
+
 test("adding past the hot cap demotes the coldest existing rows", () => {
   // Fill the pattern hot set to its cap, with distinct last-referenced times.
   const existing: Insight[] = Array.from({ length: HOT_CAPS.pattern }, (_, i) =>

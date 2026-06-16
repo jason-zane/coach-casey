@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import {
   appendAthleteMessage,
@@ -133,21 +133,24 @@ export async function POST(req: NextRequest) {
         await executeToolEffects(athleteId, pendingTools);
         send({ type: "done" });
 
-        // Write half of the maintained-read loop for chat. Runs after the
-        // user-visible response, on substantive turns only (the athlete
-        // shared something memory-worthy, or it was a real exchange), so the
-        // read stays current between weekly consolidations. The consolidation
-        // call self-guards by returning no-ops when nothing changed, and
-        // swallows its own errors; this guard just avoids paying for "ok".
+        // Write half of the maintained-read loop for chat. Scheduled via
+        // after() so it runs AFTER the response is flushed, never holding the
+        // stream open or risking the client marking an already-sent message
+        // as failed. Fires on substantive turns only (the athlete shared
+        // something memory-worthy, or it was a real exchange); consolidate()
+        // self-guards on no-op turns and swallows its own errors.
         const capturedMemory = pendingTools.length > 0;
         const substantive =
           capturedMemory || (userText.trim().length >= 40 && text.length > 0);
         if (substantive) {
-          await consolidate({
-            athleteId,
-            source: "chat",
-            interactionText: `Athlete said:\n${userText.trim()}\n\nCasey replied:\n${text}`,
-          });
+          const interactionText = `Athlete said:\n${userText.trim()}\n\nCasey replied:\n${text}`;
+          try {
+            after(() => consolidate({ athleteId, source: "chat", interactionText }));
+          } catch {
+            // after() unavailable in this context: skip post-response
+            // consolidation rather than disturb the already-sent response.
+            // The weekly consolidation still folds this turn in later.
+          }
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : "unknown error";

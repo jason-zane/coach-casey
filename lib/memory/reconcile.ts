@@ -231,7 +231,7 @@ export function planInsightWrites(
   for (const layer of Object.keys(HOT_CAPS) as InsightLayer[]) {
     const cap = HOT_CAPS[layer];
 
-    const newHotCount = inserts.filter((i) => i.layer === layer && i.hot).length;
+    const newHot = inserts.filter((i) => i.layer === layer && i.hot);
 
     // Existing rows that remain hot after patches, with their effective
     // last-referenced time.
@@ -245,13 +245,25 @@ export function planInsightWrites(
       })
       .filter((e) => e.hot);
 
-    const overBy = newHotCount + existingHot.length - cap;
+    let overBy = newHot.length + existingHot.length - cap;
     if (overBy <= 0) continue;
 
-    // Cool the coldest existing rows first (oldest last-referenced).
+    // Cool the coldest existing rows first (oldest last-referenced); the new
+    // inserts are all freshly referenced, so they outrank them.
     existingHot.sort((a, b) => (a.lastRef < b.lastRef ? -1 : 1));
-    for (let i = 0; i < overBy && i < existingHot.length; i++) {
+    for (let i = 0; i < existingHot.length && overBy > 0; i++) {
       upsertPatch(existingHot[i].id, { hot: false });
+      overBy--;
+    }
+
+    // If a single consolidation proposed more hot inserts than the cap, the
+    // inserts themselves still exceed it once existing rows are exhausted (a
+    // first or broad consolidation). Demote the trailing inserts so the
+    // bounded-read invariant holds. They share the same reference time, so
+    // trailing order is as fair as any.
+    for (let i = newHot.length - 1; i >= 0 && overBy > 0; i--) {
+      newHot[i].hot = false;
+      overBy--;
     }
   }
 
