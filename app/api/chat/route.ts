@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import {
   appendAthleteMessage,
@@ -17,6 +17,7 @@ import {
   isDeclaredPayloadTooLarge,
 } from "@/lib/chat/security";
 import { consumeChatRateLimit } from "@/lib/chat/rate-limit-db";
+import { consolidate } from "@/lib/memory/consolidate";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -131,6 +132,26 @@ export async function POST(req: NextRequest) {
 
         await executeToolEffects(athleteId, pendingTools);
         send({ type: "done" });
+
+        // Write half of the maintained-read loop for chat. Scheduled via
+        // after() so it runs AFTER the response is flushed, never holding the
+        // stream open or risking the client marking an already-sent message
+        // as failed. Fires on substantive turns only (the athlete shared
+        // something memory-worthy, or it was a real exchange); consolidate()
+        // self-guards on no-op turns and swallows its own errors.
+        const capturedMemory = pendingTools.length > 0;
+        const substantive =
+          capturedMemory || (userText.trim().length >= 40 && text.length > 0);
+        if (substantive) {
+          const interactionText = `Athlete said:\n${userText.trim()}\n\nCasey replied:\n${text}`;
+          try {
+            after(() => consolidate({ athleteId, source: "chat", interactionText }));
+          } catch {
+            // after() unavailable in this context: skip post-response
+            // consolidation rather than disturb the already-sent response.
+            // The weekly consolidation still folds this turn in later.
+          }
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : "unknown error";
         send({ type: "error", message: msg });

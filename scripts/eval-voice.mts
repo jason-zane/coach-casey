@@ -151,6 +151,11 @@ const NEGATIVE_SAMPLES: Sample[] = [
     athleteName: "Jason",
     expectViolation: "athlete-name-third-person",
   },
+  {
+    label: "negative.canned-phrase",
+    text: "In the four-week arc this lands as a hold week.",
+    expectViolation: "canned-phrase",
+  },
 ];
 
 // ---------------------------------------------------------------------------

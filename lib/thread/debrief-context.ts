@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/server";
+import { loadWorkingReadText } from "@/lib/memory/insights";
 
 /**
  * Years between two ISO dates (floor). Used to render the athlete's age
@@ -126,6 +127,8 @@ export type DebriefContext = {
    */
   priorFollowUps: PriorFollowUp[];
   isFirstDebrief: boolean;
+  /** Casey's maintained read of the athlete (interpreted-memory working set), pre-rendered. Null before any consolidation has run. */
+  workingReadText: string | null;
   /**
    * Trailing 28-day `(activity, rpe_value, planned_intent_inferred)`
    * triples. Per `rpe-feature-spec.md` §6 + §9.1, the debrief prompt
@@ -317,6 +320,7 @@ export async function buildDebriefContext(
     priorDebriefsRes,
     priorFollowUpsRes,
     rpeHistoryRes,
+    workingReadRes,
   ] = await Promise.all([
     admin
       .from("athletes")
@@ -387,6 +391,9 @@ export async function buildDebriefContext(
       .not("rpe_value", "is", null)
       .gte("activities.start_date_local", rpeHistoryStart.toISOString())
       .lte("activities.start_date_local", activity.date),
+    // Casey's maintained read (interpreted-memory working set). As-of the
+    // activity date so a backfilled debrief reads against the right epoch.
+    loadWorkingReadText(athleteId, activity.date),
   ]);
 
   const arcRows = (arcRes.data ?? []) as ActivityRow[];
@@ -510,6 +517,7 @@ export async function buildDebriefContext(
     priorDebriefs,
     priorFollowUps,
     isFirstDebrief: priorDebriefs.length === 0,
+    workingReadText: workingReadRes,
     rpeHistory,
   };
 }

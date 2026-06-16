@@ -90,6 +90,8 @@ export type ChatContext = {
   recentBoundaryIso: string;
   /** ISO date of the oldest activity in the DB, used for the detail-availability marker. Null when no history. */
   oldestActivityIso: string | null;
+  /** Casey's maintained read of the athlete (interpreted-memory working set), pre-rendered. Null before any consolidation has run. */
+  workingReadText: string | null;
 };
 
 export type ChatStreamEvent =
@@ -232,6 +234,10 @@ function renderContext(ctx: ChatContext): string {
       coachingMode: ctx.coachingMode,
     }),
   ];
+
+  // Casey's maintained read of the athlete sits high in context, right
+  // after identity: it is what Casey already knows, carried forward.
+  if (ctx.workingReadText) parts.push(ctx.workingReadText);
 
   const goalBlock = renderGoalRacesBlock(ctx.goalRaces);
   if (goalBlock) parts.push(goalBlock);

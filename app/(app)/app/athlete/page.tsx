@@ -10,6 +10,7 @@ import { GoalsSection } from "./_sections/goals-section";
 import { PlanSection } from "./_sections/plan-section";
 import { TrainingSection } from "./_sections/training-section";
 import { TrackingSection } from "./_sections/tracking-section";
+import { InsightsSection } from "./_sections/insights-section";
 import { HeroMemoryLine } from "./_hero-memory-line";
 
 export const dynamic = "force-dynamic";
@@ -88,6 +89,11 @@ export default async function AthletePage() {
             fallback={<SubsectionSkeleton label="On the radar" rows={2} />}
           >
             <TrackingSection athleteId={athleteId} />
+          </Suspense>
+          <Suspense
+            fallback={<SubsectionSkeleton label="What Casey's picked up" rows={3} />}
+          >
+            <InsightsSection athleteId={athleteId} />
           </Suspense>
         </section>
 

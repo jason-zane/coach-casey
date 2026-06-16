@@ -67,6 +67,7 @@ function steadyRunFixture(): DebriefContext {
     priorDebriefs: [],
     priorFollowUps: [],
     isFirstDebrief: false,
+    workingReadText: null,
     rpeHistory: rpeHistory(),
   };
 }
@@ -133,6 +134,7 @@ function workoutShapeFixture(): DebriefContext {
     priorDebriefs: [],
     priorFollowUps: [],
     isFirstDebrief: false,
+    workingReadText: null,
     rpeHistory: rpeHistory(),
   };
 }

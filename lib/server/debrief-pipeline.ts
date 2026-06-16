@@ -17,6 +17,7 @@ import { sendPushToAthlete } from "@/lib/push/send";
 import { leadFromBody } from "@/lib/push/lead-from-body";
 import { MODELS } from "@/lib/llm/anthropic";
 import { fireFuelingRetrospective } from "@/app/actions/proactive-surfaces";
+import { consolidate } from "@/lib/memory/consolidate";
 
 const DEBRIEF_PROMPT_VERSION = "post-run-debrief@v1";
 const FOLLOW_UP_PROMPT_VERSION = "post-run-followup-conversational@v1";
@@ -194,6 +195,28 @@ export async function generateDebriefForActivity(
     } else {
       followUpId = (followRow as { id: string }).id;
     }
+  }
+
+  // Write half of the maintained-read loop for debriefs: fold this run and
+  // the debrief Casey just wrote into the interpreted-memory layer, so the
+  // next interaction carries it forward. Best-effort; never blocks.
+  try {
+    const a = ctx.activity;
+    const interactionText = [
+      `Run on ${a.date} (${a.dayOfWeek}): ${a.name ?? "run"}, ${a.distanceKm.toFixed(1)}km${a.hasWorkoutShape ? " [workout]" : ""}.`,
+      ctx.injuries.length
+        ? `Known niggles: ${ctx.injuries.map((i) => `${i.content}${i.tags.length ? ` (${i.tags.join(", ")})` : ""}`).join("; ")}.`
+        : "",
+      ctx.lifeContext.length
+        ? `Recent life context: ${ctx.lifeContext.map((l) => l.content).join("; ")}.`
+        : "",
+      `\nCasey's debrief just written:\n${outcome.body}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+    await consolidate({ athleteId, source: "debrief", interactionText });
+  } catch (err) {
+    console.warn("debrief consolidation failed", err);
   }
 
   // Best-effort Strava description writeback: Casey's one-line verdict

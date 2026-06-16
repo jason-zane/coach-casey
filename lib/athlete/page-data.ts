@@ -13,6 +13,9 @@ import {
   classifyActivityType,
   CROSS_TRAINING_TYPES,
 } from "@/lib/strava/activity-types";
+import { fetchHotInsights } from "@/lib/memory/insights";
+import { formatAge } from "@/lib/memory/render";
+import type { InsightLayer } from "@/lib/memory/reconcile";
 import { backfillStravaProfile } from "@/lib/athlete/profile-sync";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -339,6 +342,60 @@ export async function loadTrackingItems(
       recordedAt: m.created_at,
     }));
   return { niggles, lifeContext };
+}
+
+/**
+ * Casey's maintained read, shaped for the athlete page. One UI row per hot
+ * insight, ordered by layer then recency, with a friendly layer label and a
+ * relative-age tag. This is the legible, correctable face of the
+ * interpreted-memory layer: the athlete sees what Casey believes and can
+ * dismiss or correct any of it.
+ */
+export type InsightUiItem = {
+  id: string;
+  content: string;
+  layer: InsightLayer;
+  layerLabel: string;
+  ageLabel: string | null;
+  recurring: boolean;
+};
+
+const INSIGHT_LAYER_LABELS: Record<InsightLayer, string> = {
+  profile: "About you as a runner",
+  block: "Where you're at",
+  pattern: "What Casey has learned",
+  thread: "On Casey's mind",
+};
+
+const INSIGHT_LAYER_ORDER: InsightLayer[] = ["profile", "block", "pattern", "thread"];
+
+export async function loadInsightItems(
+  athleteId: string,
+): Promise<InsightUiItem[]> {
+  const insights = await fetchHotInsights(athleteId);
+  const nowIso = new Date().toISOString();
+  return insights
+    .slice()
+    .sort(
+      (a, b) =>
+        INSIGHT_LAYER_ORDER.indexOf(a.layer) -
+          INSIGHT_LAYER_ORDER.indexOf(b.layer) ||
+        (a.lastReferencedAt < b.lastReferencedAt ? 1 : -1),
+    )
+    .map((i) => {
+      // Threads read by when they last mattered; everything else by when it
+      // was true (falling back to when Casey recorded it).
+      const ageIso = i.layer === "thread" ? i.lastReferencedAt : i.eventAt ?? i.recordedAt;
+      const age = formatAge(ageIso, nowIso);
+      return {
+        id: i.id,
+        content: i.content,
+        layer: i.layer,
+        layerLabel: INSIGHT_LAYER_LABELS[i.layer],
+        ageLabel: age && age !== "today" ? age : null,
+        recurring: i.recurrence,
+      };
+    });
 }
 
 export async function loadMemoryProgress(

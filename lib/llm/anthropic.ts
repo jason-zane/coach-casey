@@ -10,7 +10,9 @@ export function anthropic(): Anthropic {
 }
 
 // Available models. Exported so a surface can be switched with a one-line
-// edit in the MODELS map below. HAIKU is currently unused but kept on hand.
+// edit in the MODELS map below. HAIKU is currently unused but kept on hand
+// so any surface can be flipped to it if its cost or latency becomes a
+// concern.
 export const HAIKU = "claude-haiku-4-5";
 export const SONNET = "claude-sonnet-4-6";
 
@@ -36,4 +38,11 @@ export const MODELS = {
   onboardingValidation: SONNET,
   weeklyReview: SONNET,
   planExtract: SONNET,
+  // Internal passes, not athlete-facing voice: the weekly-review planner
+  // (lead angle + continuity threads) and the consolidation pass (structured
+  // interpreted-memory updates). On Sonnet for quality, like everything else;
+  // consolidation fires per debrief and per substantial chat turn, so it is
+  // the one to watch on cost.
+  weeklyReviewPlan: SONNET,
+  consolidation: SONNET,
 } as const;

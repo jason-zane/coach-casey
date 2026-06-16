@@ -156,6 +156,8 @@ function renderStableContext(ctx: DebriefContext): string {
     }),
   ];
 
+  if (ctx.workingReadText) parts.push(ctx.workingReadText);
+
   const goalBlock = renderGoalRacesBlock(ctx.goalRaces);
   if (goalBlock) parts.push(goalBlock);
 

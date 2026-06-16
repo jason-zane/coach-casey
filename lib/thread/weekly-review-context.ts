@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/server";
+import { loadWorkingReadText } from "@/lib/memory/insights";
 import { classifyActivityType } from "@/lib/strava/activity-types";
 import {
   ageOnDate,
@@ -74,6 +75,8 @@ export type WeeklyReviewContext = {
   priorWeeklyReviews: PriorWeeklyReview[];
   /** Most-recent debrief bodies (last 5) for repetition avoidance. */
   priorDebriefBodies: string[];
+  /** Casey's maintained read of the athlete (interpreted-memory working set), pre-rendered. Null before any consolidation has run. */
+  workingReadText: string | null;
 };
 
 type ActivityRow = {
@@ -200,6 +203,7 @@ export async function buildWeeklyReviewContext(
     goalRes,
     priorReviewsRes,
     priorDebriefsRes,
+    workingReadRes,
   ] = await Promise.all([
     admin
       .from("athletes")
@@ -254,6 +258,8 @@ export async function buildWeeklyReviewContext(
       .eq("kind", "debrief")
       .order("created_at", { ascending: false })
       .limit(5),
+    // Casey's maintained read (interpreted-memory working set).
+    loadWorkingReadText(athleteId),
   ]);
 
   if (athleteRes.error || !athleteRes.data) {
@@ -379,5 +385,6 @@ export async function buildWeeklyReviewContext(
     goalRaces,
     priorWeeklyReviews,
     priorDebriefBodies,
+    workingReadText: workingReadRes,
   };
 }

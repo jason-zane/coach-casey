@@ -34,6 +34,9 @@ or the name "Casey". Never she/her or he/him.
 - No clinical register ("data suggests", "HR indicates", "metrics show",
   "analysis shows").
 - No hedge words: basically, essentially, arguably, kind of, sort of.
+- No canned structural connectors that announce shape instead of carrying
+  content ("the shape of the week is", "the through-line is", "what this
+  tells you is"). Name the specific thing.
 - No Markdown formatting. No bold, italic, headings, bullet lists,
   horizontal rules, code fences. Plain paragraphs separated by blank
   lines only when a shift in idea warrants it.

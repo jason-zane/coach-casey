@@ -170,16 +170,16 @@ export function mockWeeklyReview(ctx: WeeklyReviewContext): string {
     return "Quiet one. If that was deliberate, fold the reason into next week's read; if not, talk to me when you can.";
   }
   if (runCount === 0) {
-    return `Cross-training only this week, ${ctx.weekCrossTraining.length} sessions, no runs. Easy week to read at the surface, harder to read underneath without the running data, so worth saying out loud how the body felt by Sunday.\n\nIn the four-week arc this lands as a deliberate dip rather than a drift, and the timing fits a pull-back week. Whatever sent the running away for the week, the cross-training kept the engine on.`;
+    return `Cross-training only this week, ${ctx.weekCrossTraining.length} sessions, no runs. Hard to read the running when there isn't any, so the useful thing is how the body felt by Sunday. Whatever pulled the running for the week, the engine stayed on.`;
   }
-  const opener = `${runCount} runs this week, ${totalKm} km in the legs, the shape reads honestly against the four-week arc.`;
-  const arcLine = ctx.arcWeeks.length
-    ? `In the four-week arc this is a ${runCount >= 5 ? "build" : "hold"} week, the volume sitting where the prior weeks set you up to go.`
-    : "Early in the picture I have of you, so I'm reading this week mostly on its own merits.";
+  const opener = `${runCount} runs this week, ${totalKm} km in the legs, and it reads honestly for where you are.`;
+  const trajLine = ctx.arcWeeks.length
+    ? `It sits a little ${runCount >= 5 ? "above" : "below"} the recent weeks, and the legs look like they took it in stride.`
+    : "Early in the picture I have of you, so I'm reading this one mostly on its own.";
   const planLine = ctx.activePlanText
-    ? "The week mostly tracked the plan, the workout day landed where it was meant to and the long run came in within range."
-    : "Without a plan to read against I'm reading the shape, not the prescription, and the shape is steady.";
-  return `${opener}\n\n${arcLine}\n\n${planLine}\n\nNothing flagged that needs an answer right now. Talk to me if anything in the week felt off.`;
+    ? "The workout day landed where it was meant to and the long run came in within range."
+    : "No plan to read against, so I'm reading the running itself, and it stays steady.";
+  return `${opener}\n\n${trajLine}\n\n${planLine}\n\nNothing here needs an answer right now. Say so if any of it felt different from the inside.`;
 }
 
 // ---------------------------------------------------------------------------
