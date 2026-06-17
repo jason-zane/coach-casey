@@ -1,9 +1,13 @@
 @import "tailwindcss";
 
-/* Raw tokens on :root. Light mode is default; dark-mode is a :root override
-   triggered by prefers-color-scheme. Nesting @theme inside @media is invalid
-   in Tailwind v4: keep values here, reference them in @theme below. */
+/* Raw tokens on :root. The app is light-only by design (paper-toned, print
+   feel), matching the marketing site, so there is no dark-mode override.
+   `color-scheme: light` pins native UI (form controls, scrollbars, date
+   pickers) to light even when the OS is set to dark. Values live here and
+   are referenced in @theme below (nesting @theme inside @media is invalid in
+   Tailwind v4). */
 :root {
+  color-scheme: light;
   --paper: #faf8f5;
   --surface: #ffffff;
   --ink: #1c1915;
@@ -13,20 +17,6 @@
   --rule-strong-color: #d2ccc1;
   --accent: #5c3763;
   --accent-ink: #ffffff;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #131217;
-    --surface: #1a1920;
-    --ink: #f0ede8;
-    --ink-muted: #a8a29e;
-    --ink-subtle: #706a65;
-    --rule-color: #2a2630;
-    --rule-strong-color: #3a3540;
-    --accent: #8b6b92;
-    --accent-ink: #0f0e13;
-  }
 }
 
 @theme inline {

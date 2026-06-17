@@ -7,9 +7,5 @@ export const APPLE_SPLASH_STARTUP_IMAGES: Array<{
 }> = [
   {
     "url": "/splash/apple-splash.png"
-  },
-  {
-    "url": "/splash/apple-splash-dark.png",
-    "media": "(prefers-color-scheme: dark)"
   }
 ];
