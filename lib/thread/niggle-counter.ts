@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/server";
+import { normaliseBodyPart } from "./niggle-dedup";
 
 /**
  * Niggle escalation gating helper.
@@ -7,30 +8,19 @@ import { createAdminClient } from "@/lib/supabase/server";
  * Counts mentions of a body part across recent memory_items
  * (kind='injury'), returns the recent mentions for the prompt, and
  * decides whether the count has crossed the escalation threshold (3
- * mentions in 14 days, v1 heuristic).
+ * mentions in 14 days, v1 heuristic). With chat de-dup now collapsing
+ * same-day re-mentions of a body part into one row (see niggle-dedup),
+ * each row is a distinct-day mention, so the count reads as recurrence.
  *
- * Body-part normalisation is light: lowercase, strip side-prefixes
- * (left/right). "Left calf", "right calf", "calf tight" all roll up
- * to "calf".
+ * Body-part normalisation (normaliseBodyPart, shared with the de-dup)
+ * is light: lowercase, strip side-prefixes. "Left calf", "right calf",
+ * "calf tight" all roll up to "calf".
  */
 
 const WINDOW_DAYS = 14;
 const ESCALATION_THRESHOLD = 3;
 
-/**
- * Normalise a niggle body-part tag. Light enough to roll up common
- * variants without invent-merging unrelated items.
- */
-export function normaliseBodyPart(raw: string | null | undefined): string | null {
-  if (!raw) return null;
-  const lower = raw.trim().toLowerCase();
-  if (!lower) return null;
-  const stripped = lower
-    .replace(/^(left|right)\s+/, "")
-    .replace(/[^a-z\s]/g, "")
-    .trim();
-  return stripped || null;
-}
+export { normaliseBodyPart };
 
 export type NiggleCount = {
   bodyPart: string;

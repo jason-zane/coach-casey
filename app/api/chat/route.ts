@@ -18,6 +18,7 @@ import {
 } from "@/lib/chat/security";
 import { consumeChatRateLimit } from "@/lib/chat/rate-limit-db";
 import { consolidate } from "@/lib/memory/consolidate";
+import { planNiggleWrites } from "@/lib/thread/niggle-dedup";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -219,45 +220,86 @@ async function executeToolEffects(
 ) {
   if (tools.length === 0) return;
   const admin = createAdminClient();
-  const rows: Array<{
+
+  type Row = {
     athlete_id: string;
     kind: string;
     content: string;
     tags: string[];
     source: string;
-  }> = [];
+  };
+  const contextRows: Row[] = [];
+  // One niggle per body part per day. Casey re-mentions the same niggle
+  // across a conversation, so a turn (or a whole day) that touches the calf
+  // several times used to stack several rows, showing as several niggles AND
+  // inflating the escalation counter (which reads each row as a "mention").
+  // planNiggleWrites collapses this turn's injuries by normalised body part
+  // and folds them into an existing same-part niggle from today (update)
+  // instead of duplicating. Separate days still create separate rows, the
+  // genuine recurrence signal the escalation counter is built on.
+  const injuryCalls: Array<{ content: string; tag: string }> = [];
 
   for (const t of tools) {
     if (t.name === "remember_context") {
       const content = cleanMemoryContent(t.input.content);
       if (!content) continue;
       const tags = cleanMemoryTags(t.input.tags);
-      rows.push({ athlete_id: athleteId, kind: "context", content, tags, source: "chat" });
+      contextRows.push({ athlete_id: athleteId, kind: "context", content, tags, source: "chat" });
     } else if (t.name === "remember_injury") {
       const content = cleanMemoryContent(t.input.content);
-      const bodyPart = cleanMemoryTag(t.input.body_part);
-      if (!content) continue;
-      const tags = bodyPart ? [bodyPart] : [];
-      rows.push({ athlete_id: athleteId, kind: "injury", content, tags, source: "chat" });
+      const tag = cleanMemoryTag(t.input.body_part);
+      if (!content || !tag) continue;
+      injuryCalls.push({ content, tag });
     }
   }
 
-  if (rows.length > 0) {
-    await admin.from("memory_items").insert(rows);
-    // After a chat-tool memory write that includes an injury, see if
-    // the niggle has crossed the escalation threshold and fire the
-    // escalation surface if so. Best-effort, never block the chat
-    // response on this.
-    const hasInjury = rows.some((r) => r.kind === "injury");
-    if (hasInjury) {
-      try {
-        const { maybeFireNiggleEscalation } = await import(
-          "@/lib/thread/niggle-counter"
-        );
-        await maybeFireNiggleEscalation(athleteId);
-      } catch (err) {
-        console.warn("niggle escalation check failed", err);
-      }
+  const injuryInsertRows: Row[] = [];
+  if (injuryCalls.length > 0) {
+    const startOfDay = new Date();
+    startOfDay.setUTCHours(0, 0, 0, 0);
+    const { data: today } = await admin
+      .from("memory_items")
+      .select("id, tags")
+      .eq("athlete_id", athleteId)
+      .eq("kind", "injury")
+      .gte("created_at", startOfDay.toISOString())
+      .order("created_at", { ascending: false });
+
+    const existingToday = ((today ?? []) as { id: string; tags: string[] | null }[]).map(
+      (r) => ({ id: r.id, tags: r.tags ?? [] }),
+    );
+    const plan = planNiggleWrites(injuryCalls, existingToday);
+
+    for (const { id, content } of plan.updates) {
+      await admin.from("memory_items").update({ content }).eq("id", id);
+    }
+    for (const { content, tag } of plan.inserts) {
+      injuryInsertRows.push({
+        athlete_id: athleteId,
+        kind: "injury",
+        content,
+        tags: [tag],
+        source: "chat",
+      });
+    }
+  }
+
+  const insertRows = [...contextRows, ...injuryInsertRows];
+  if (insertRows.length > 0) {
+    await admin.from("memory_items").insert(insertRows);
+  }
+
+  // Only a genuinely new niggle row (a new mention occasion) can move the
+  // escalation count; a same-day update of an existing niggle cannot. Fire the
+  // check only when we inserted an injury. Best-effort, never blocks the reply.
+  if (injuryInsertRows.length > 0) {
+    try {
+      const { maybeFireNiggleEscalation } = await import(
+        "@/lib/thread/niggle-counter"
+      );
+      await maybeFireNiggleEscalation(athleteId);
+    } catch (err) {
+      console.warn("niggle escalation check failed", err);
     }
   }
 }
