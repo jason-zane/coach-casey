@@ -1,4 +1,4 @@
-import { SkeletonBar } from "../_components/skeleton";
+import { SkeletonBar, SkeletonTable } from "../_components/skeleton";
 
 /**
  * Admin route-level skeleton. Mirrors page.tsx exactly: the static chrome
@@ -78,37 +78,7 @@ export default function AdminLoading() {
           <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-muted">
             Athletes
           </h2>
-          <div className="overflow-x-auto rounded-md border border-rule">
-            <table className="w-full font-sans text-[12px] text-ink">
-              <thead className="bg-surface text-ink-muted">
-                <tr>
-                  {COLUMNS.map((col) => (
-                    <th
-                      key={col}
-                      className="px-3 py-2 text-left font-mono text-[10px] uppercase tracking-[0.14em] font-medium"
-                    >
-                      {col}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {Array.from({ length: 6 }).map((_, r) => (
-                  <tr key={r} className="border-t border-rule">
-                    <td className="px-3 py-2 align-top">
-                      <SkeletonBar className="h-3" width="70%" />
-                      <SkeletonBar className="h-2 mt-1.5" width="90%" />
-                    </td>
-                    {Array.from({ length: COLUMNS.length - 1 }).map((_, c) => (
-                      <td key={c} className="px-3 py-2 align-top">
-                        <SkeletonBar className="h-3" width="60%" />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <SkeletonTable columns={COLUMNS} rows={6} twoLineCol={0} />
         </section>
       </div>
     </div>
