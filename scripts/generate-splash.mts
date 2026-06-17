@@ -4,8 +4,8 @@
  * iOS without apple-touch-startup-image falls back to the manifest's
  * background_color + the largest icon scaled up: readable but generic.
  * We render a high-resolution splash with the brand "C" mark centred
- * on a paper background, in light + dark variants, and let iOS scale
- * it to fit whatever device the user is on.
+ * on a paper background and let iOS scale it to fit whatever device the
+ * user is on. The app is light-only, so there is a single light splash.
  *
  * Why one universal image instead of a per-device matrix: Apple ships
  * a new iPhone every September, and `apple-touch-startup-image` only
@@ -40,11 +40,9 @@ const SPLASH_HEIGHT = 2868;
 
 // Brand palette mirrored from app/globals.css.
 const PAPER_LIGHT = { r: 0xfa, g: 0xf8, b: 0xf5 };
-const PAPER_DARK = { r: 0x13, g: 0x12, b: 0x17 };
 
 type SplashEntry = {
   url: string;
-  /** Optional: omit for the universal default; set only for the dark variant. */
   media?: string;
 };
 
@@ -62,41 +60,28 @@ async function generate() {
   await clearOldSplashes();
   const iconBuf = await readFile(ICON_PATH);
 
-  const entries: SplashEntry[] = [];
+  // Icon takes ~22% of the shorter dimension so it lands at a comfortable
+  // size on every screen, neither cramped on small phones nor lost on iPad.
+  const iconSize = Math.round(Math.min(SPLASH_WIDTH, SPLASH_HEIGHT) * 0.22);
+  const resizedIcon = await sharp(iconBuf)
+    .resize(iconSize, iconSize, { fit: "contain" })
+    .png()
+    .toBuffer();
 
-  for (const prefersDark of [false, true] as const) {
-    const bg = prefersDark ? PAPER_DARK : PAPER_LIGHT;
-    // Icon takes ~22% of the shorter dimension so it lands at a comfortable
-    // size on every screen, neither cramped on small phones nor lost on iPad.
-    const iconSize = Math.round(Math.min(SPLASH_WIDTH, SPLASH_HEIGHT) * 0.22);
-    const resizedIcon = await sharp(iconBuf)
-      .resize(iconSize, iconSize, { fit: "contain" })
-      .png()
-      .toBuffer();
+  await sharp({
+    create: {
+      width: SPLASH_WIDTH,
+      height: SPLASH_HEIGHT,
+      channels: 3,
+      background: PAPER_LIGHT,
+    },
+  })
+    .composite([{ input: resizedIcon, gravity: "center" }])
+    .png({ compressionLevel: 9 })
+    .toFile(join(OUT_DIR, "apple-splash.png"));
 
-    const filename = prefersDark
-      ? "apple-splash-dark.png"
-      : "apple-splash.png";
-
-    await sharp({
-      create: {
-        width: SPLASH_WIDTH,
-        height: SPLASH_HEIGHT,
-        channels: 3,
-        background: bg,
-      },
-    })
-      .composite([{ input: resizedIcon, gravity: "center" }])
-      .png({ compressionLevel: 9 })
-      .toFile(join(OUT_DIR, filename));
-
-    entries.push({
-      url: `/splash/${filename}`,
-      // The light variant is the universal fallback (no media query).
-      // The dark variant only kicks in when the device is in dark mode.
-      media: prefersDark ? "(prefers-color-scheme: dark)" : undefined,
-    });
-  }
+  // Single light splash; no prefers-color-scheme media query.
+  const entries: SplashEntry[] = [{ url: "/splash/apple-splash.png" }];
 
   // Emit the metadata array as a TS module the layout can import. Keeping
   // it as data (not embedded in layout.tsx) means future tweaks to the

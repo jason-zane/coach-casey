@@ -26,7 +26,7 @@
  * current version, so a new SW deploy invalidates the prior shell.
  */
 
-const CACHE_VERSION = "v5-shell-shrink-2026-05-08";
+const CACHE_VERSION = "v6-light-2026-06-17";
 const PRECACHE = `precache-${CACHE_VERSION}`;
 const SHELL = `shell-${CACHE_VERSION}`;
 const STATIC = `static-${CACHE_VERSION}`;
