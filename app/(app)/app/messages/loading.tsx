@@ -1,4 +1,9 @@
-import { SkeletonComposer, SkeletonThread } from "../_components/skeleton";
+import {
+  HandNote,
+  PenUnderline,
+  SkeletonComposer,
+  SkeletonThread,
+} from "../_components/skeleton";
 
 /**
  * Loading shell for the athlete's "Messages with Jason" thread. Header
@@ -20,10 +25,12 @@ export default function MessagesLoading() {
           >
             Messages with Jason
           </h1>
+          <PenUnderline />
           <p className="text-[13px] leading-[1.55] text-ink-muted">
             You&rsquo;re talking to Jason here, the human who built Coach Casey,
             not Casey itself. He reads every reply.
           </p>
+          <HandNote>finding your messages</HandNote>
         </header>
 
         <div className="flex-1">

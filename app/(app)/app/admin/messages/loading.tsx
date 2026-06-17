@@ -1,4 +1,9 @@
-import { SkeletonBar, SkeletonComposer } from "../../_components/skeleton";
+import {
+  HandNote,
+  PenUnderline,
+  SkeletonBar,
+  SkeletonComposer,
+} from "../../_components/skeleton";
 
 /**
  * Loading shell for the admin coach<->athlete inbox. Title and the
@@ -20,7 +25,9 @@ export default function AdminMessagesLoading() {
           >
             Messages
           </h1>
+          <PenUnderline />
           <SkeletonBar className="h-3 mt-2" width="65%" />
+          <HandNote>loading the inbox</HandNote>
         </header>
 
         <section className="space-y-3 rounded-md border border-rule bg-surface p-4">

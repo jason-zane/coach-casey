@@ -1,4 +1,6 @@
 import {
+  HandNote,
+  PenUnderline,
   SkeletonBar,
   SkeletonComposer,
   SkeletonThread,
@@ -18,7 +20,9 @@ export default function AdminConversationLoading() {
             <span>All messages</span>
           </div>
           <SkeletonBar className="h-6" width="40%" />
+          <PenUnderline />
           <SkeletonBar className="h-3 mt-1" width="55%" />
+          <HandNote>opening the thread</HandNote>
         </header>
 
         <div className="flex-1">

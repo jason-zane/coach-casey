@@ -119,5 +119,26 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Admin gate. requireAdmin() in each admin page is the real check, but it
+  // runs inside page.tsx, so the route-level loading.tsx would stream the
+  // admin shell, confirming the surface exists and revealing its structure,
+  // to any signed-in non-admin who hits the URL before that redirect fires.
+  // Gate here so non-admins never reach the admin route renderer at all,
+  // preserving requireAdmin's "don't even confirm the route exists" intent.
+  // Mirrors isAdminEmail() in lib/admin/auth.ts; inlined to keep that
+  // server-only module (and its Supabase client import) out of the proxy.
+  if (pathname.startsWith("/app/admin")) {
+    const admins = (process.env.ADMIN_EMAILS ?? "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter((e) => e.length > 0);
+    const email = user.email?.toLowerCase() ?? "";
+    if (!email || admins.length === 0 || !admins.includes(email)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/app";
+      return NextResponse.redirect(url);
+    }
+  }
+
   return supabaseResponse;
 }

@@ -1,4 +1,9 @@
-import { SkeletonBar, SkeletonLines } from "../_components/skeleton";
+import {
+  HandNote,
+  PenUnderline,
+  SkeletonBar,
+  SkeletonLines,
+} from "../_components/skeleton";
 import { SectionHeading, Subsection } from "./_sections/section-shell";
 
 /**
@@ -26,9 +31,11 @@ export default function AthleteLoading() {
             </div>
           </div>
           <SkeletonBar className="h-7" width="50%" />
+          <PenUnderline />
           <p className="text-[14px] leading-[1.55] text-ink-muted">
             What Coach Casey knows about you.
           </p>
+          <HandNote>reading your training</HandNote>
           <SkeletonBar className="h-3 mt-1" width="70%" />
         </header>
 

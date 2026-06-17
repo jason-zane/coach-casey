@@ -1,4 +1,4 @@
-import { SkeletonLines } from "../_components/skeleton";
+import { HandNote, PenUnderline, SkeletonLines } from "../_components/skeleton";
 import { Section } from "./_sections/section-shell";
 
 /**
@@ -23,9 +23,11 @@ export default function SettingsLoading() {
           >
             Settings
           </h1>
+          <PenUnderline />
           <p className="text-[14px] leading-[1.55] text-ink-muted">
             Account, data, and connections.
           </p>
+          <HandNote>reading your account</HandNote>
         </header>
 
         <Section title="Messages from Jason">

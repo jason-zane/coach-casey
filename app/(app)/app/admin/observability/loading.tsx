@@ -1,4 +1,9 @@
-import { SkeletonBar, SkeletonTable } from "../../_components/skeleton";
+import {
+  HandNote,
+  PenUnderline,
+  SkeletonBar,
+  SkeletonTable,
+} from "../../_components/skeleton";
 
 /**
  * Loading shell for the admin observability page. Title, subhead, and the
@@ -20,10 +25,12 @@ export default function ObservabilityLoading() {
           >
             Observability
           </h1>
+          <PenUnderline />
           <p className="text-[13px] leading-[1.55] text-ink-muted">
             Errors, background-job health, and the audit trail. Errors and cron
             runs feed from the last few hundred records.
           </p>
+          <HandNote>reading the dials</HandNote>
         </header>
 
         <section className="grid grid-cols-2 sm:grid-cols-5 gap-3">
