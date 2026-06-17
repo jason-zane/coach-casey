@@ -2,8 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   normaliseBodyPart,
+  planContextWrites,
   planNiggleWrites,
-} from "../lib/thread/niggle-dedup.ts";
+} from "../lib/thread/memory-dedup.ts";
 
 test("normaliseBodyPart rolls up side prefixes and punctuation", () => {
   assert.equal(normaliseBodyPart("Left Calf"), "calf");
@@ -77,4 +78,63 @@ test("empty content or tag is ignored", () => {
     [],
   );
   assert.deepEqual(plan, { updates: [], inserts: [] });
+});
+
+// --- life context -----------------------------------------------------------
+
+test("a conversation that re-mentions the same context lands as one note", () => {
+  const plan = planContextWrites(
+    [
+      { content: "work has been stressful", tags: ["work"] },
+      { content: "big deadline at work this week", tags: ["work"] },
+    ],
+    [],
+  );
+  assert.equal(plan.updates.length, 0);
+  assert.equal(plan.inserts.length, 1);
+  assert.equal(plan.inserts[0].content, "big deadline at work this week");
+});
+
+test("a second same-day context note with the same tags refreshes it", () => {
+  const plan = planContextWrites(
+    [{ content: "still slammed at work", tags: ["work"] }],
+    [{ id: "ctx-1", tags: ["work"] }],
+  );
+  assert.deepEqual(plan.inserts, []);
+  assert.deepEqual(plan.updates, [{ id: "ctx-1", content: "still slammed at work" }]);
+});
+
+test("context with different tag sets stays separate (no over-merge)", () => {
+  const plan = planContextWrites(
+    [
+      { content: "sleeping badly", tags: ["sleep"] },
+      { content: "deadline pressure", tags: ["work"] },
+      { content: "tired from travel and work", tags: ["work", "travel"] },
+    ],
+    [],
+  );
+  // Three distinct tag sets: sleep, work, work+travel — none merge.
+  assert.equal(plan.updates.length, 0);
+  assert.equal(plan.inserts.length, 3);
+});
+
+test("context tag order does not matter for identity", () => {
+  const plan = planContextWrites(
+    [{ content: "wedding weekend away", tags: ["travel", "family"] }],
+    [{ id: "ctx-x", tags: ["family", "travel"] }],
+  );
+  assert.equal(plan.updates.length, 1);
+  assert.equal(plan.updates[0].id, "ctx-x");
+});
+
+test("tagless context never merges and always inserts", () => {
+  const plan = planContextWrites(
+    [
+      { content: "feeling good lately", tags: [] },
+      { content: "a bit flat today", tags: [] },
+    ],
+    [{ id: "ctx-old", tags: [] }],
+  );
+  assert.equal(plan.updates.length, 0);
+  assert.equal(plan.inserts.length, 2);
 });

@@ -1,6 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/server";
-import { normaliseBodyPart } from "./niggle-dedup";
+import { normaliseBodyPart } from "./memory-dedup";
 
 /**
  * Niggle escalation gating helper.
@@ -9,7 +9,7 @@ import { normaliseBodyPart } from "./niggle-dedup";
  * (kind='injury'), returns the recent mentions for the prompt, and
  * decides whether the count has crossed the escalation threshold (3
  * mentions in 14 days, v1 heuristic). With chat de-dup now collapsing
- * same-day re-mentions of a body part into one row (see niggle-dedup),
+ * same-day re-mentions of a body part into one row (see memory-dedup),
  * each row is a distinct-day mention, so the count reads as recurrence.
  *
  * Body-part normalisation (normaliseBodyPart, shared with the de-dup)

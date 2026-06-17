@@ -18,7 +18,7 @@ import {
 } from "@/lib/chat/security";
 import { consumeChatRateLimit } from "@/lib/chat/rate-limit-db";
 import { consolidate } from "@/lib/memory/consolidate";
-import { planNiggleWrites } from "@/lib/thread/niggle-dedup";
+import { planContextWrites, planNiggleWrites } from "@/lib/thread/memory-dedup";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -228,23 +228,22 @@ async function executeToolEffects(
     tags: string[];
     source: string;
   };
-  const contextRows: Row[] = [];
-  // One niggle per body part per day. Casey re-mentions the same niggle
-  // across a conversation, so a turn (or a whole day) that touches the calf
-  // several times used to stack several rows, showing as several niggles AND
-  // inflating the escalation counter (which reads each row as a "mention").
-  // planNiggleWrites collapses this turn's injuries by normalised body part
-  // and folds them into an existing same-part niggle from today (update)
-  // instead of duplicating. Separate days still create separate rows, the
-  // genuine recurrence signal the escalation counter is built on.
+  // One remembered thing per day. Casey re-mentions the same niggle (or the
+  // same life context) across a conversation, so a turn used to stack a fresh
+  // row per mention: several niggles for one calf, several notes for one
+  // "stressful week", and an inflated escalation count (which reads each
+  // injury row as a "mention"). plan{Niggle,Context}Writes collapse this turn
+  // and fold each into an existing same-key row from today (update) instead of
+  // duplicating. Separate days still create separate rows, the genuine
+  // recurrence signal the escalation counter is built on.
   const injuryCalls: Array<{ content: string; tag: string }> = [];
+  const contextCalls: Array<{ content: string; tags: string[] }> = [];
 
   for (const t of tools) {
     if (t.name === "remember_context") {
       const content = cleanMemoryContent(t.input.content);
       if (!content) continue;
-      const tags = cleanMemoryTags(t.input.tags);
-      contextRows.push({ athlete_id: athleteId, kind: "context", content, tags, source: "chat" });
+      contextCalls.push({ content, tags: cleanMemoryTags(t.input.tags) });
     } else if (t.name === "remember_injury") {
       const content = cleanMemoryContent(t.input.content);
       const tag = cleanMemoryTag(t.input.body_part);
@@ -253,38 +252,54 @@ async function executeToolEffects(
     }
   }
 
-  const injuryInsertRows: Row[] = [];
+  if (injuryCalls.length === 0 && contextCalls.length === 0) return;
+
+  // Fetch today's niggles + context once to de-dup against.
+  const startOfDay = new Date();
+  startOfDay.setUTCHours(0, 0, 0, 0);
+  const { data: todayData } = await admin
+    .from("memory_items")
+    .select("id, kind, tags")
+    .eq("athlete_id", athleteId)
+    .in("kind", ["injury", "context"])
+    .gte("created_at", startOfDay.toISOString())
+    .order("created_at", { ascending: false });
+  const todayRows = (todayData ?? []) as {
+    id: string;
+    kind: string;
+    tags: string[] | null;
+  }[];
+  const todayInjuries = todayRows
+    .filter((r) => r.kind === "injury")
+    .map((r) => ({ id: r.id, tags: r.tags ?? [] }));
+  const todayContext = todayRows
+    .filter((r) => r.kind === "context")
+    .map((r) => ({ id: r.id, tags: r.tags ?? [] }));
+
+  const insertRows: Row[] = [];
+  let injuryInserted = false;
+
   if (injuryCalls.length > 0) {
-    const startOfDay = new Date();
-    startOfDay.setUTCHours(0, 0, 0, 0);
-    const { data: today } = await admin
-      .from("memory_items")
-      .select("id, tags")
-      .eq("athlete_id", athleteId)
-      .eq("kind", "injury")
-      .gte("created_at", startOfDay.toISOString())
-      .order("created_at", { ascending: false });
-
-    const existingToday = ((today ?? []) as { id: string; tags: string[] | null }[]).map(
-      (r) => ({ id: r.id, tags: r.tags ?? [] }),
-    );
-    const plan = planNiggleWrites(injuryCalls, existingToday);
-
+    const plan = planNiggleWrites(injuryCalls, todayInjuries);
     for (const { id, content } of plan.updates) {
       await admin.from("memory_items").update({ content }).eq("id", id);
     }
     for (const { content, tag } of plan.inserts) {
-      injuryInsertRows.push({
-        athlete_id: athleteId,
-        kind: "injury",
-        content,
-        tags: [tag],
-        source: "chat",
-      });
+      insertRows.push({ athlete_id: athleteId, kind: "injury", content, tags: [tag], source: "chat" });
+      injuryInserted = true;
     }
   }
 
-  const insertRows = [...contextRows, ...injuryInsertRows];
+  if (contextCalls.length > 0) {
+    const plan = planContextWrites(contextCalls, todayContext);
+    for (const { id, content } of plan.updates) {
+      await admin.from("memory_items").update({ content }).eq("id", id);
+    }
+    for (const { content, tags } of plan.inserts) {
+      insertRows.push({ athlete_id: athleteId, kind: "context", content, tags, source: "chat" });
+    }
+  }
+
   if (insertRows.length > 0) {
     await admin.from("memory_items").insert(insertRows);
   }
@@ -292,7 +307,7 @@ async function executeToolEffects(
   // Only a genuinely new niggle row (a new mention occasion) can move the
   // escalation count; a same-day update of an existing niggle cannot. Fire the
   // check only when we inserted an injury. Best-effort, never blocks the reply.
-  if (injuryInsertRows.length > 0) {
+  if (injuryInserted) {
     try {
       const { maybeFireNiggleEscalation } = await import(
         "@/lib/thread/niggle-counter"
