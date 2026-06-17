@@ -1,4 +1,9 @@
-import { SkeletonBar, SkeletonTable } from "../_components/skeleton";
+import {
+  HandNote,
+  PenUnderline,
+  SkeletonBar,
+  SkeletonTable,
+} from "../_components/skeleton";
 
 /**
  * Admin route-level skeleton. Mirrors page.tsx exactly: the static chrome
@@ -43,10 +48,12 @@ export default function AdminLoading() {
           >
             Admin
           </h1>
+          <PenUnderline />
           <p className="text-[13px] leading-[1.55] text-ink-muted">
             Cohort overview. Toggle test-user flag, retroactively trigger
             weekly reviews. Use sparingly.
           </p>
+          <HandNote>counting the cohort</HandNote>
           <div className="flex flex-wrap gap-x-5 gap-y-1">
             {["Early access", "Messages", "Observability"].map((label) => (
               <span

@@ -216,6 +216,44 @@ body {
   animation: breath 1.8s ease-in-out infinite;
 }
 
+/* Casey's pen. The loading shells borrow the marketing site's two hand
+   gestures: a stroke that draws itself (a path with pathLength=1, revealed by
+   running stroke-dashoffset to 0) and a handwritten margin note, both in the
+   plum accent (--accent, which already matches the marketing pen ink). On the
+   marketing site these fire once on scroll; in a loading state they loop
+   softly so the moment reads as a pen mid-stroke. */
+.ink-hand {
+  font-family: var(--font-hand), "Bradley Hand", cursive;
+  color: var(--accent);
+}
+.pen-draw path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: pen-draw-loop 3.4s cubic-bezier(0.5, 0.08, 0.35, 1) infinite;
+  animation-delay: var(--pen-delay, 0s);
+}
+@keyframes pen-draw-loop {
+  0% { stroke-dashoffset: 1; opacity: 1; }
+  34% { stroke-dashoffset: 0; opacity: 1; }
+  74% { stroke-dashoffset: 0; opacity: 1; }
+  88% { stroke-dashoffset: 0; opacity: 0; }
+  89% { stroke-dashoffset: 1; opacity: 0; }
+  100% { stroke-dashoffset: 1; opacity: 0; }
+}
+.hand-note {
+  animation: hand-note-loop 3.4s ease infinite;
+}
+@keyframes hand-note-loop {
+  0%, 8% { opacity: 0; transform: translateY(4px); }
+  26%, 80% { opacity: 1; transform: none; }
+  94%, 100% { opacity: 0; transform: none; }
+}
+
 /* Gesture-teaching hint: a short outward drift on the menu-bar button to
    suggest the swipe-from-edge alternative. Fired for the first few uses of
    calendar / search, then disabled per home-state §5.2. */
@@ -284,6 +322,17 @@ body {
   }
   .hint-drift-left, .hint-drift-right {
     animation: none;
+  }
+  /* Pen strokes render finished (drawn) and the note stays visible; no loop. */
+  .pen-draw path {
+    animation: none;
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  .hand-note {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 }
 

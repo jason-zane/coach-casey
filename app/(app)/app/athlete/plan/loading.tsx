@@ -1,4 +1,4 @@
-import { SkeletonBar } from "../../_components/skeleton";
+import { HandNote, PenUnderline, SkeletonBar } from "../../_components/skeleton";
 
 export default function PlanLoading() {
   return (
@@ -10,7 +10,9 @@ export default function PlanLoading() {
             <span>Back to athlete page</span>
           </div>
           <SkeletonBar className="h-7" width="50%" />
+          <PenUnderline />
           <SkeletonBar className="h-3 mt-2" width="90%" />
+          <HandNote>finding your plan</HandNote>
         </header>
 
         <div className="space-y-3">

@@ -1,4 +1,9 @@
-import { SkeletonBar, SkeletonTable } from "../../_components/skeleton";
+import {
+  HandNote,
+  PenUnderline,
+  SkeletonBar,
+  SkeletonTable,
+} from "../../_components/skeleton";
 
 /**
  * Loading shell for the early-access requests page. Title and section
@@ -20,7 +25,9 @@ export default function AccessLoading() {
           >
             Early access
           </h1>
+          <PenUnderline />
           <SkeletonBar className="h-3 mt-2" width="60%" />
+          <HandNote>checking the list</HandNote>
         </header>
 
         <section className="space-y-2">

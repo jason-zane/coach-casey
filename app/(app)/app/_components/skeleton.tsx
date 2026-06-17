@@ -135,3 +135,47 @@ export function SkeletonComposer() {
     />
   );
 }
+
+/**
+ * Casey's pen, mid-stroke. A gently curved underline that draws itself under
+ * a page title and loops, in the plum accent. Pure CSS (.pen-draw in
+ * globals.css); a warm accent on top of the grey skeletons, not a
+ * replacement. The slight negative margin tucks it under the title against
+ * the header's space-y rhythm.
+ */
+export function PenUnderline({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden
+      className={`pen-draw -mt-1 block h-3.5 w-[150px] overflow-visible ${className}`}
+      viewBox="0 0 150 14"
+    >
+      <path pathLength={1} d="M3 8 C40 3 92 4 124 7 C133 8 142 7 147 5.5" />
+    </svg>
+  );
+}
+
+/**
+ * A short handwritten margin note in the pen ink, with a little drawn arrow
+ * pointing back at what it annotates. The loading shells use it for a
+ * contextual aside ("reading your account…") that fades and redraws on the
+ * same loop as the underline.
+ */
+export function HandNote({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="hand-note ink-hand mt-3 inline-flex items-center gap-2 text-[19px] leading-tight">
+      <span>{children}</span>
+      <svg
+        aria-hidden
+        className="pen-draw h-[18px] w-[26px] overflow-visible"
+        viewBox="0 0 60 32"
+        style={{ "--pen-delay": "0.5s" } as React.CSSProperties}
+      >
+        <path
+          pathLength={1}
+          d="M58 8 C42 4 24 8 8 17 M8 17 L18 10.5 M8 17 L18 22.5"
+        />
+      </svg>
+    </p>
+  );
+}
