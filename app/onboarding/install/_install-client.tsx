@@ -7,6 +7,7 @@ import {
   GhostButton,
   PrimaryButton,
 } from "@/app/onboarding/_components/form";
+import { useAutoAdvance } from "@/app/onboarding/_components/use-auto-advance";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -31,6 +32,14 @@ export function InstallClient({ platform }: { platform: MobilePlatform }) {
   const [pending, startTransition] = useTransition();
   const [autoAdvancing, setAutoAdvancing] = useState(false);
 
+  // When we detect we're already running inside the installed PWA, the advance
+  // is driven through this robust helper rather than a one-shot transition: it
+  // re-fires if the tab is backgrounded mid-hand-off, and the Continue button
+  // below guarantees a manual way forward.
+  const autoAdvance = useAutoAdvance(() => markInstalledAndAdvance(), {
+    enabled: autoAdvancing,
+  });
+
   useEffect(() => {
     const onBefore = (e: Event) => {
       e.preventDefault();
@@ -53,11 +62,10 @@ export function InstallClient({ platform }: { platform: MobilePlatform }) {
   // toggle mid-session.
   useEffect(() => {
     if (!isStandalonePwa()) return;
+    // Flip into auto-advance mode; useAutoAdvance(enabled: autoAdvancing) drives
+    // the actual hand-off and recovers if the tab is backgrounded mid-way.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setAutoAdvancing(true);
-    startTransition(async () => {
-      await markInstalledAndAdvance();
-    });
   }, []);
 
   async function triggerNativeInstall() {
@@ -87,9 +95,24 @@ export function InstallClient({ platform }: { platform: MobilePlatform }) {
 
   if (autoAdvancing) {
     return (
-      <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-subtle breath">
-        Already installed, continuing…
-      </p>
+      <div className="space-y-6">
+        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-subtle breath">
+          Already installed, continuing…
+        </p>
+        <PrimaryButton
+          type="button"
+          onClick={autoAdvance.run}
+          loading={autoAdvance.pending}
+          loadingLabel="Continuing…"
+        >
+          Continue
+        </PrimaryButton>
+        {autoAdvance.error ? (
+          <p className="font-sans text-xs text-ink-muted">
+            Tap Continue if it doesn&rsquo;t move on by itself.
+          </p>
+        ) : null}
+      </div>
     );
   }
 

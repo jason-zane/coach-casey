@@ -56,6 +56,23 @@ export function NotificationsClient({ platform, configured, publicKey }: Props) 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  // The "checking" and "subscribing" phases are the only ones without an
+  // always-tappable control: device detection (service-worker registration,
+  // subscription reconcile) or the subscribe handshake could in principle
+  // stall with the user staring at a spinner. If we sit in either for too
+  // long, reveal a skip so no one can be held here.
+  const [stalled, setStalled] = useState(false);
+  useEffect(() => {
+    if (phase !== "checking" && phase !== "subscribing") return;
+    const t = setTimeout(() => setStalled(true), 8000);
+    // Reset on the way out of the phase (cleanup, so no synchronous setState
+    // in the effect body), so a stale "stalled" can't leak into a later phase.
+    return () => {
+      clearTimeout(t);
+      setStalled(false);
+    };
+  }, [phase]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -246,6 +263,14 @@ export function NotificationsClient({ platform, configured, publicKey }: Props) 
           onSkip={skip}
           pending={pending}
         />
+      ) : null}
+
+      {stalled && (phase === "checking" || phase === "subscribing") ? (
+        <div className="pt-2">
+          <GhostButton type="button" onClick={skip}>
+            Taking a while &mdash; skip for now
+          </GhostButton>
+        </div>
       ) : null}
     </div>
   );
