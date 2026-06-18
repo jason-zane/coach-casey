@@ -40,6 +40,22 @@ export function ValidationLoop({
   const currentIsOpen = current && !current.submitted;
   const canFinish = entries.filter((e) => e.submitted).length >= 3;
 
+  // The very first observation is the only loading moment with no control on
+  // screen — every later one renders beneath answered entries with a "Move on"
+  // already visible. If that first read stalls (the model call hangs), reveal
+  // a skip so the user is never held with nothing to tap.
+  const [firstReadStalled, setFirstReadStalled] = useState(false);
+  useEffect(() => {
+    if (!(loading && entries.length === 0)) return;
+    const t = setTimeout(() => setFirstReadStalled(true), 15000);
+    // Reset via cleanup (not a synchronous setState in the effect body) once
+    // the first observation lands or the loading state clears.
+    return () => {
+      clearTimeout(t);
+      setFirstReadStalled(false);
+    };
+  }, [loading, entries.length]);
+
   // Auto-fetch the first observation if none exist
   useEffect(() => {
     if (entries.length > 0 || fetchedOnceRef.current) return;
@@ -125,7 +141,13 @@ export function ValidationLoop({
 
   function finish() {
     startTransition(async () => {
-      await finishValidation();
+      try {
+        await finishValidation();
+      } catch {
+        // finishValidation redirects on success (not a client-side throw), so
+        // landing here means a genuine failure. The transition ends and the
+        // button re-enables, letting the user tap again rather than spinning.
+      }
     });
   }
 
@@ -214,12 +236,24 @@ export function ValidationLoop({
       </ul>
 
       {loading ? (
-        <p
-          className="font-mono text-xs uppercase tracking-wider text-ink-subtle breath"
-          aria-live="polite"
-        >
-          Casey is reading
-        </p>
+        <div className="space-y-4">
+          <p
+            className="font-mono text-xs uppercase tracking-wider text-ink-subtle breath"
+            aria-live="polite"
+          >
+            Casey is reading
+          </p>
+          {firstReadStalled ? (
+            <button
+              type="button"
+              onClick={finish}
+              disabled={pending}
+              className="font-sans text-xs text-ink-subtle underline-offset-4 hover:underline disabled:opacity-50"
+            >
+              {pending ? "Skipping…" : "Taking a while — skip ahead"}
+            </button>
+          ) : null}
+        </div>
       ) : null}
 
       {error ? (
