@@ -1,4 +1,5 @@
 import { anthropic, MODELS } from "@/lib/llm/anthropic";
+import { logModelUsage } from "@/lib/observability/usage";
 import type { Insight, ProposedInsight } from "./reconcile";
 import { buildConsolidationParams, extractProposedOps } from "./consolidation-prompt";
 
@@ -23,5 +24,10 @@ export async function proposeInsightOps(params: {
       model: MODELS.consolidation,
     }),
   );
+  logModelUsage({
+    surface: `consolidation:${params.source}`,
+    model: MODELS.consolidation,
+    usage: response.usage,
+  });
   return extractProposedOps(response);
 }

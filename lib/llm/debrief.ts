@@ -1,6 +1,7 @@
 import "server-only";
 import type Anthropic from "@anthropic-ai/sdk";
 import { anthropic, MODELS } from "./anthropic";
+import { logModelUsage } from "@/lib/observability/usage";
 import { buildSystemPrompt } from "./prompts";
 import {
   formatPace,
@@ -309,6 +310,12 @@ export async function generateDebriefBody(ctx: DebriefContext): Promise<string> 
       ],
     }),
   );
+  logModelUsage({
+    surface: "post-run-debrief",
+    model: MODELS.debriefBody,
+    usage: response.usage,
+    athleteId: ctx.athleteId,
+  });
 
   const text =
     response.content
@@ -356,6 +363,12 @@ export async function generateConversationalFollowUp(
       ],
     }),
   );
+  logModelUsage({
+    surface: "post-run-followup-conversational",
+    model: MODELS.debriefConversationalFollowUp,
+    usage: response.usage,
+    athleteId: ctx.athleteId,
+  });
 
   const text =
     response.content
@@ -407,6 +420,12 @@ export async function generateStructuredFollowUp(
       ],
     }),
   );
+  logModelUsage({
+    surface: "post-run-followup-structured",
+    model: MODELS.debriefStructuredFollowUp,
+    usage: response.usage,
+    athleteId: ctx.athleteId,
+  });
 
   const text =
     response.content
@@ -507,6 +526,12 @@ export async function generateStravaBlurb(
         ],
       }),
     );
+    logModelUsage({
+      surface: "strava-blurb",
+      model: MODELS.stravaBlurb,
+      usage: response.usage,
+      athleteId: ctx.athleteId,
+    });
 
     raw =
       response.content

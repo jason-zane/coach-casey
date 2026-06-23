@@ -1,6 +1,7 @@
 import "server-only";
 import type Anthropic from "@anthropic-ai/sdk";
 import { anthropic, MODELS } from "./anthropic";
+import { logModelUsage } from "@/lib/observability/usage";
 import { buildSystemPrompt } from "./prompts";
 import {
   formatPace,
@@ -309,6 +310,12 @@ export async function generateCrossTrainingAck(
       ],
     }),
   );
+  logModelUsage({
+    surface: "cross-training-acknowledgement",
+    model: MODELS.crossTrainingAck,
+    usage: response.usage,
+    athleteId: ctx.athleteId,
+  });
 
   const text =
     response.content

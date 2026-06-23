@@ -11,6 +11,7 @@ import {
 } from "./context-render";
 import { mockChatStream, mockMode } from "./mocks";
 import { logVoiceFindings } from "./voice-check";
+import { logModelUsage } from "@/lib/observability/usage";
 import {
   renderLapBreakdown,
   type WorkoutClassification,
@@ -490,6 +491,15 @@ export async function* streamChat(
 
   let fullText = "";
 
+  // Token usage accumulated across every turn of the tool loop, so one chat
+  // message logs a single total even when it round-tripped through tools.
+  const usageTotals = {
+    input_tokens: 0,
+    output_tokens: 0,
+    cache_read_input_tokens: 0,
+    cache_creation_input_tokens: 0,
+  };
+
   for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
     const stream = anthropic().messages.stream({
       model: MODELS.chat,
@@ -503,9 +513,22 @@ export async function* streamChat(
     const toolBuffers = new Map<number, { id: string; name: string; json: string }>();
     let turnTextRaw = "";
     let turnTextEmitted = "";
+    let turnOutputTokens = 0;
 
     for await (const event of stream) {
-      if (event.type === "content_block_start") {
+      if (event.type === "message_start") {
+        // Per-message input + cache counts are final at message_start; output
+        // accrues via message_delta below. Captured from events already in the
+        // loop, so no extra request and no impact on the streamed response.
+        const u = event.message.usage;
+        usageTotals.input_tokens += u.input_tokens ?? 0;
+        usageTotals.cache_read_input_tokens += u.cache_read_input_tokens ?? 0;
+        usageTotals.cache_creation_input_tokens += u.cache_creation_input_tokens ?? 0;
+      } else if (event.type === "message_delta") {
+        // output_tokens on message_delta is the cumulative total for this
+        // message; the loop only adds the final value once per turn below.
+        turnOutputTokens = event.usage.output_tokens ?? turnOutputTokens;
+      } else if (event.type === "content_block_start") {
         if (event.content_block.type === "tool_use") {
           toolBuffers.set(event.index, {
             id: event.content_block.id,
@@ -547,6 +570,8 @@ export async function* streamChat(
       blocks.unshift({ type: "text", text: turnTextRaw });
       fullText += turnTextEmitted;
     }
+
+    usageTotals.output_tokens += turnOutputTokens;
 
     const toolUses = blocks.filter(
       (b): b is Extract<AssistantBlock, { type: "tool_use" }> => b.type === "tool_use",
@@ -601,6 +626,12 @@ export async function* streamChat(
     surface: "chat-system",
     athleteId: ctx.athleteId,
     athleteName: ctx.displayName,
+  });
+  logModelUsage({
+    surface: "chat",
+    model: MODELS.chat,
+    usage: usageTotals,
+    athleteId: ctx.athleteId,
   });
   yield { type: "done", fullText };
 }

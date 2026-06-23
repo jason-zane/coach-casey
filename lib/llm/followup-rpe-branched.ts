@@ -1,6 +1,7 @@
 import "server-only";
 import type Anthropic from "@anthropic-ai/sdk";
 import { anthropic, MODELS } from "./anthropic";
+import { logModelUsage } from "@/lib/observability/usage";
 import { buildSystemPrompt } from "./prompts";
 import { mockMode, mockRpeBranchedFollowUp } from "./mocks";
 import { logVoiceFindings } from "./voice-check";
@@ -68,6 +69,13 @@ export async function generateRpeBranchedFollowUp(
         content: `${volatile}\n\n# Task\n\nThis is the **${branch}** branch. The athlete rated this run RPE ${rpeValue}, which the picker classified as divergent from the run's shape. Produce one follow-up question that reads the divergence and invites context. Output the question text only.`,
       },
     ],
+  });
+
+  logModelUsage({
+    surface: "post-run-followup-rpe-branched",
+    model: MODELS.followupRpeBranched,
+    usage: response.usage,
+    athleteId: ctx.athleteId,
   });
 
   const text =

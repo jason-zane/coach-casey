@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { anthropic, MODELS } from "@/lib/llm/anthropic";
+import { logModelUsage } from "@/lib/observability/usage";
 import { mockMode } from "@/lib/llm/mocks";
 
 /**
@@ -189,6 +190,12 @@ export async function extractPlanFromFile(
           ],
         },
       ],
+    });
+
+    logModelUsage({
+      surface: "plan-extract",
+      model: MODELS.planExtract,
+      usage: response.usage,
     });
 
     const text = response.content

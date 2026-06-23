@@ -1,5 +1,6 @@
 import "server-only";
 import { anthropic, MODELS } from "./anthropic";
+import { logModelUsage } from "@/lib/observability/usage";
 import { buildSystemPrompt } from "./prompts";
 import {
   formatPace,
@@ -210,6 +211,11 @@ async function planWeeklyReview(
         },
       ],
     });
+    logModelUsage({
+      surface: "weekly-review-plan",
+      model: MODELS.weeklyReviewPlan,
+      usage: response.usage,
+    });
     const text = response.content
       .filter((c): c is { type: "text"; text: string } & (typeof c) => c.type === "text")
       .map((c) => c.text)
@@ -264,6 +270,12 @@ export async function generateWeeklyReview(
         content: `${volatile}\n\n${planBlock}# Task\n\nWrite the weekly review for the week described above. Output the review body only as plain prose, no header, no sign-off.`,
       },
     ],
+  });
+
+  logModelUsage({
+    surface: "weekly-review",
+    model: MODELS.weeklyReview,
+    usage: response.usage,
   });
 
   const body = response.content

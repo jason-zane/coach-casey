@@ -1,5 +1,6 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { anthropic, MODELS } from "./anthropic";
+import { logModelUsage } from "@/lib/observability/usage";
 import { buildSystemPrompt } from "./prompts";
 import { formatPace } from "./context-render";
 import { mockMode, MOCK_VALIDATION_OBSERVATIONS } from "./mocks";
@@ -189,6 +190,12 @@ there is not enough material to say something specific.`;
       messages: [{ role: "user", content: userMessage }],
     }),
   );
+  logModelUsage({
+    surface: "onboarding-validation",
+    model: MODELS.onboardingValidation,
+    usage: response.usage,
+    athleteId,
+  });
 
   const text =
     response.content
