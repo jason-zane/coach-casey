@@ -38,11 +38,21 @@ export const MODELS = {
   onboardingValidation: SONNET,
   weeklyReview: SONNET,
   planExtract: SONNET,
-  // Internal passes, not athlete-facing voice: the weekly-review planner
+  // Internal passes, NOT athlete-facing voice: the weekly-review planner
   // (lead angle + continuity threads) and the consolidation pass (structured
-  // interpreted-memory updates). On Sonnet for quality, like everything else;
-  // consolidation fires per debrief and per substantial chat turn, so it is
-  // the one to watch on cost.
+  // interpreted-memory updates). Consolidation fires per debrief and per
+  // substantial chat turn, so on Sonnet it is a second full-price call on
+  // every chat turn, the prime cost target.
+  //
+  // We tried Haiku here. `pnpm eval:insights` caught a real regression:
+  // Sonnet 4/4, Haiku 2/4. Haiku tags body parts more specifically ("left
+  // calf" vs "calf"), and findRecurrence() in reconcile.ts matches on EXACT
+  // tag equality, so Haiku's drift breaks recurrence detection, the headline
+  // of the maintained read. Kept on Sonnet until the cost is addressed
+  // another way (cache the consolidation system prompt + debounce per session)
+  // or recurrence matching is made tolerant of tag granularity. Per-surface
+  // usage is logged via logModelUsage so the cost of any model choice is
+  // visible.
   weeklyReviewPlan: SONNET,
   consolidation: SONNET,
 } as const;

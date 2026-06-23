@@ -2,6 +2,7 @@ import "server-only";
 
 import type Anthropic from "@anthropic-ai/sdk";
 import { anthropic, MODELS } from "./anthropic";
+import { logModelUsage } from "@/lib/observability/usage";
 import { buildSystemPrompt } from "./prompts";
 import {
   mockFuelingPrerun,
@@ -112,6 +113,13 @@ export async function generateRaceWeekBriefing(
     messages: [{ role: "user", content: userBlock }],
   });
 
+  logModelUsage({
+    surface: "race-week-briefing",
+    model: MODELS.raceWeekBriefing,
+    usage: response.usage,
+    athleteId: ctx.athleteId,
+  });
+
   const body = extractText(response);
   if (!body || body.toUpperCase() === "SKIP") return null;
 
@@ -194,6 +202,13 @@ export async function generateFuelingPrerunNudge(
     messages: [{ role: "user", content: userBlock }],
   });
 
+  logModelUsage({
+    surface: "fueling-prerun",
+    model: MODELS.fuelingPrerun,
+    usage: response.usage,
+    athleteId: ctx.athleteId,
+  });
+
   const body = extractText(response);
   if (!body || body.toUpperCase() === "SKIP") return null;
 
@@ -265,6 +280,13 @@ export async function generateFuelingRetrospective(
     messages: [{ role: "user", content: userBlock }],
   });
 
+  logModelUsage({
+    surface: "fueling-retrospective",
+    model: MODELS.fuelingRetrospective,
+    usage: response.usage,
+    athleteId: ctx.athleteId,
+  });
+
   const body = extractText(response);
   if (!body || body.toUpperCase() === "SKIP") return null;
 
@@ -329,6 +351,13 @@ export async function generateNiggleEscalation(
     temperature: 0.9,
     system,
     messages: [{ role: "user", content: userBlock }],
+  });
+
+  logModelUsage({
+    surface: "niggle-escalation",
+    model: MODELS.niggleEscalation,
+    usage: response.usage,
+    athleteId: ctx.athleteId,
   });
 
   const body = extractText(response);
@@ -400,6 +429,13 @@ export async function generateMidBlockFlatness(
     temperature: 0.9,
     system,
     messages: [{ role: "user", content: userBlock }],
+  });
+
+  logModelUsage({
+    surface: "mid-block-flatness",
+    model: MODELS.midBlockFlatness,
+    usage: response.usage,
+    athleteId: ctx.athleteId,
   });
 
   const body = extractText(response);

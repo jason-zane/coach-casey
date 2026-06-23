@@ -19,9 +19,21 @@ import {
 import { consumeChatRateLimit } from "@/lib/chat/rate-limit-db";
 import { consolidate } from "@/lib/memory/consolidate";
 import { planContextWrites, planNiggleWrites } from "@/lib/thread/memory-dedup";
+import type { Message } from "@/lib/thread/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+/**
+ * Consolidate the maintained read at most once every N chat turns, instead of
+ * after every substantive turn. Consolidation is a full Sonnet call, so per
+ * turn it was the dominant chat cost (a second model call on top of the reply).
+ * Debouncing loses nothing: when it fires it folds the whole recent window
+ * (see buildChatWindowText), so every exchange is still consolidated exactly
+ * once, just in batches. Tune here. Debrief and weekly-review consolidations
+ * are once-per-event already and unaffected.
+ */
+const CHAT_CONSOLIDATION_EVERY_N = 4;
 
 type ChatRequest = { body?: string };
 
@@ -137,21 +149,29 @@ export async function POST(req: NextRequest) {
         // Write half of the maintained-read loop for chat. Scheduled via
         // after() so it runs AFTER the response is flushed, never holding the
         // stream open or risking the client marking an already-sent message
-        // as failed. Fires on substantive turns only (the athlete shared
-        // something memory-worthy, or it was a real exchange); consolidate()
-        // self-guards on no-op turns and swallows its own errors.
-        const capturedMemory = pendingTools.length > 0;
-        const substantive =
-          capturedMemory || (userText.trim().length >= 40 && text.length > 0);
-        if (substantive) {
-          const interactionText = `Athlete said:\n${userText.trim()}\n\nCasey replied:\n${text}`;
-          try {
-            after(() => consolidate({ athleteId, source: "chat", interactionText }));
-          } catch {
-            // after() unavailable in this context: skip post-response
-            // consolidation rather than disturb the already-sent response.
-            // The weekly consolidation still folds this turn in later.
-          }
+        // as failed. Debounced to once every CHAT_CONSOLIDATION_EVERY_N turns
+        // (the turn count, the window read, and the model call all run inside
+        // after(), off the response path). consolidate() self-guards on no-op
+        // windows and swallows its own errors.
+        try {
+          after(async () => {
+            // The current user turn is already persisted, so this count
+            // includes it. Fire only on the Nth turn; skipped turns are still
+            // in the thread and get folded in by the next window.
+            const turns = await countChatTurns(threadId);
+            if (turns === 0 || turns % CHAT_CONSOLIDATION_EVERY_N !== 0) return;
+            const interactionText = buildChatWindowText(
+              ctxForStream.recentMessages,
+              userText.trim(),
+              text,
+              CHAT_CONSOLIDATION_EVERY_N,
+            );
+            await consolidate({ athleteId, source: "chat", interactionText });
+          });
+        } catch {
+          // after() unavailable in this context: skip post-response
+          // consolidation rather than disturb the already-sent response.
+          // The weekly consolidation still folds these turns in later.
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : "unknown error";
@@ -168,6 +188,47 @@ export async function POST(req: NextRequest) {
       "cache-control": "no-cache, no-transform",
     },
   });
+}
+
+/**
+ * Count the athlete-authored chat turns in a thread. Admin client because
+ * this runs inside after(), where the request's cookie/auth context is no
+ * longer guaranteed. Cheap, indexed COUNT with head: true (no rows fetched).
+ */
+async function countChatTurns(threadId: string): Promise<number> {
+  const admin = createAdminClient();
+  const { count } = await admin
+    .from("messages")
+    .select("id", { count: "exact", head: true })
+    .eq("thread_id", threadId)
+    .eq("kind", "chat_user")
+    .is("deleted_at", null);
+  return count ?? 0;
+}
+
+/**
+ * Build the consolidation interaction text from the last `maxExchanges`
+ * chat exchanges: the persisted recent window (chronological, current user
+ * turn excluded) plus the just-finished turn. Non-chat messages (debriefs,
+ * reviews) are filtered out so the window is the conversation only.
+ */
+function buildChatWindowText(
+  recent: Message[],
+  currentUser: string,
+  currentCasey: string,
+  maxExchanges: number,
+): string {
+  const lines: string[] = [];
+  for (const m of recent) {
+    const body = m.body.trim();
+    if (!body) continue;
+    if (m.kind === "chat_user") lines.push(`Athlete: ${body}`);
+    else if (m.kind === "chat_casey") lines.push(`Casey: ${body}`);
+  }
+  if (currentUser) lines.push(`Athlete: ${currentUser}`);
+  if (currentCasey) lines.push(`Casey: ${currentCasey}`);
+  const tail = lines.slice(-maxExchanges * 2);
+  return `Recent chat exchange (last ${maxExchanges} turns):\n${tail.join("\n")}`;
 }
 
 function jsonError(
