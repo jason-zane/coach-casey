@@ -105,6 +105,12 @@ export default async function AthleteDetailPage({
               returnTo={`/admin/athletes/${core.id}`}
             />
             <Link
+              href={`/admin/athletes/${core.id}/thread`}
+              className="rounded-md bg-accent px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-accent-ink transition-opacity hover:opacity-90"
+            >
+              conversation
+            </Link>
+            <Link
               href={`/admin/messages/${core.id}`}
               className="rounded-md border border-rule px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-subtle transition-colors hover:border-rule-strong hover:text-ink"
             >
@@ -283,7 +289,17 @@ export default async function AthleteDetailPage({
             )}
           </Section>
 
-          <Section title="Recent Casey output">
+          <Section
+            title="Recent Casey output"
+            right={
+              <Link
+                href={`/admin/athletes/${core.id}/thread`}
+                className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-subtle transition-colors hover:text-ink"
+              >
+                full thread ›
+              </Link>
+            }
+          >
             {caseyMessages.length > 0 ? (
               <div className="space-y-2.5">
                 {caseyMessages.map((m) => (
