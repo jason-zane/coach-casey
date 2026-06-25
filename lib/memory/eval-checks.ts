@@ -1,3 +1,4 @@
+import { tagRegions } from "./reconcile.ts";
 import type { InsightLayer, ProposedInsight } from "./reconcile";
 
 /**
@@ -17,6 +18,14 @@ export function hasOp(ops: ProposedInsight[], op: ProposedInsight["op"]): boolea
 export function tagPresent(ops: ProposedInsight[], tag: string): boolean {
   const t = tag.toLowerCase();
   return ops.some((o) => (o.tags ?? []).some((x) => x.toLowerCase() === t));
+}
+
+/** Like tagPresent, but matches the body REGION even when the model fused the
+ *  side into the tag ("left calf" still counts as region "calf"). Use this for
+ *  injury/niggle grading so a fused tag is not a false failure. */
+export function regionPresent(ops: ProposedInsight[], region: string): boolean {
+  const r = region.toLowerCase();
+  return ops.some((o) => tagRegions(o.tags ?? []).includes(r));
 }
 
 export function contentMentions(ops: ProposedInsight[], needle: string): boolean {

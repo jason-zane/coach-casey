@@ -32,7 +32,10 @@ import { formatPace } from "./context-render";
 export function mockMode(): boolean {
   if (process.env.LLM_MODE === "mock") return true;
   if (process.env.LLM_MODE === "real") return false;
-  return !process.env.ANTHROPIC_API_KEY;
+  // Real mode needs a usable key for EITHER provider. Without the OpenRouter
+  // check, switching to OpenRouter (and dropping ANTHROPIC_API_KEY) would
+  // silently serve mocks instead of calling DeepSeek.
+  return !process.env.ANTHROPIC_API_KEY && !process.env.OPENROUTER_API_KEY;
 }
 
 // ---------------------------------------------------------------------------

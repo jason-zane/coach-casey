@@ -17,7 +17,7 @@
  */
 
 import type { Insight, ProposedInsight } from "../lib/memory/reconcile.ts";
-import { tagPresent, hasOp, contentMentions } from "../lib/memory/eval-checks.ts";
+import { regionPresent, hasOp, contentMentions } from "../lib/memory/eval-checks.ts";
 import {
   buildConsolidationParams,
   extractProposedOps,
@@ -59,7 +59,7 @@ const SCENARIOS: Scenario[] = [
     interactionText:
       "Athlete said:\nLeft calf has been tight since Tuesday's intervals.\n\nCasey replied:\nNoted, I'll keep an eye on how it travels through the week.",
     check: (ops) =>
-      tagPresent(ops, "calf") ? null : "expected an insight tagged 'calf'",
+      regionPresent(ops, "calf") ? null : "expected an insight with body region 'calf'",
   },
   {
     label: "recurrence of a closed niggle is surfaced",
@@ -77,7 +77,7 @@ const SCENARIOS: Scenario[] = [
     interactionText:
       "Athlete said:\nThe left calf is back, same spot as the spring thing, after today's reps.\n\nCasey replied:\nThat's the spring one again.",
     check: (ops) =>
-      tagPresent(ops, "calf") ? null : "expected the calf thread to be re-surfaced",
+      regionPresent(ops, "calf") ? null : "expected the calf thread to be re-surfaced",
   },
   {
     label: "goal-race change supersedes the block",
