@@ -25,7 +25,7 @@ Discipline, follow it exactly:
 - Prefer updating or closing an existing insight (pass its id) over adding a near-duplicate. Reuse ids from the current insights.
 - Close a thread when it resolves (op "close"). A niggle that stopped coming up, a question that got answered.
 - When a block/profile fact has genuinely changed (new goal race, switched to a coach, new block), op "supersede" the old one (pass its id) and the new value is added.
-- For an injury or niggle, set tags to the body part ("calf", "left achilles") and event_at to when it started if known. Recurrence of a prior issue is high-signal; surface it.
+- Every injury or niggle insight MUST carry the body region as a tag; this is required for recurrence detection, not optional. Tag the region and the side as SEPARATE tags: ["calf", "left"], never ["left calf"], and never the body part in the content alone with no tags. Use "left", "right", or "bilateral" for the side, and omit the side tag when it is not stated. Set event_at to when it started if known. Recurrence of a prior issue is high-signal; surface it.
 - If nothing meaningful changed, return an empty operations array. Silence is fine.
 
 Keep content short and in Casey's terms, one clause each. event_at is an ISO date (YYYY-MM-DD).`;
@@ -60,7 +60,8 @@ export const UPDATE_INSIGHTS_TOOL: Anthropic.Tool = {
             tags: {
               type: "array",
               items: { type: "string" },
-              description: "Lowercase tags. Body part for injuries.",
+              description:
+                'Lowercase tags. For injuries, tag the body region and side as separate tags, e.g. ["calf", "left"], not ["left calf"].',
             },
             evidence: { type: "string", description: "What supports this belief." },
             event_at: {

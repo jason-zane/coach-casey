@@ -132,20 +132,86 @@ function hotEligible(
 }
 
 /**
- * A new insight is a recurrence if it shares a tag with an existing CLOSED
- * insight in the same layer. Returns the prior insight when found.
+ * Body-part tags are recorded as a REGION plus an optional SIDE, kept as
+ * separate tags (["calf", "left"]), never fused into "left calf". That split is
+ * what makes recurrence reliable: the consolidation model is inconsistent about
+ * granularity ("calf" one call, "left calf" the next), so matching on the
+ * region — while still respecting the side — keeps a left and a right calf from
+ * collapsing into one recurring issue.
+ */
+type Side = "left" | "right" | "bilateral" | "unknown";
+
+const SIDE_TOKENS: Record<string, Side> = {
+  left: "left",
+  right: "right",
+  bilateral: "bilateral",
+  both: "bilateral",
+};
+
+/** A side word fused onto the front of a region, e.g. "left calf". */
+const FUSED_SIDE = /^(left|right|bilateral|both)\s+(.+)$/;
+
+/**
+ * Split a tag list into its region tags and a single laterality. Tolerant of
+ * the model emitting the side either as its own tag (["calf","left"]) or fused
+ * onto the region ("left calf"); both yield region "calf", side "left". This is
+ * the defence that keeps recurrence working when the model ignores the prompt's
+ * separate-tag instruction on a given call.
+ */
+function splitTags(tags: string[] | undefined | null): { regions: Set<string>; side: Side } {
+  const regions = new Set<string>();
+  let side: Side = "unknown";
+  for (const t of normalizeTags(tags)) {
+    const bare = SIDE_TOKENS[t];
+    if (bare) {
+      side = bare;
+      continue;
+    }
+    const fused = FUSED_SIDE.exec(t);
+    if (fused) {
+      side = SIDE_TOKENS[fused[1]];
+      regions.add(fused[2]);
+    } else {
+      regions.add(t);
+    }
+  }
+  return { regions, side };
+}
+
+/** The body-region tags from a tag list, with any fused/standalone side
+ *  stripped. Exported so grading and other callers share one notion of region. */
+export function tagRegions(tags: string[] | undefined | null): string[] {
+  return [...splitTags(tags).regions];
+}
+
+/** Sides are compatible unless both are known and opposite. An unrecorded side
+ *  ("unknown") or "bilateral" matches either; "left" vs "right" does not. */
+function sidesCompatible(a: Side, b: Side): boolean {
+  if (a === "unknown" || b === "unknown") return true;
+  if (a === "bilateral" || b === "bilateral") return true;
+  return a === b;
+}
+
+/**
+ * A new insight is a recurrence of an existing CLOSED insight in the same layer
+ * when they share a body REGION tag and their sides are compatible. Returns the
+ * prior insight when found. Overlap on the side alone (e.g. both "left" but
+ * different regions) is not a recurrence.
  */
 export function findRecurrence(
   proposedTags: string[],
   layer: InsightLayer,
   existing: Insight[],
 ): Insight | null {
-  const tags = new Set(normalizeTags(proposedTags));
-  if (tags.size === 0) return null;
+  const { regions, side } = splitTags(proposedTags);
+  if (regions.size === 0) return null;
   for (const e of existing) {
     if (e.layer !== layer) continue;
     if (e.status !== "closed") continue;
-    if (normalizeTags(e.tags).some((t) => tags.has(t))) return e;
+    const ex = splitTags(e.tags);
+    if ([...ex.regions].some((r) => regions.has(r)) && sidesCompatible(side, ex.side)) {
+      return e;
+    }
   }
   return null;
 }

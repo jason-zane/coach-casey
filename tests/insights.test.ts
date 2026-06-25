@@ -8,7 +8,7 @@ import {
   type ProposedInsight,
 } from "../lib/memory/reconcile.ts";
 import { renderWorkingRead, formatAge } from "../lib/memory/render.ts";
-import { tagPresent, hasOp, contentMentions } from "../lib/memory/eval-checks.ts";
+import { tagPresent, regionPresent, hasOp, contentMentions } from "../lib/memory/eval-checks.ts";
 import { coerceOperations } from "../lib/memory/consolidation-prompt.ts";
 
 const NOW = "2026-06-15T00:00:00.000Z";
@@ -93,6 +93,62 @@ test("findRecurrence ignores live insights and other layers", () => {
   ];
   assert.equal(findRecurrence(["calf"], "thread", existing), null);
   assert.equal(findRecurrence(["calf"], "pattern", existing)?.id, "b");
+});
+
+// Region + side laterality. Tags are recorded as a region plus an optional
+// side ("calf", "left"); recurrence matches on the region but must respect the
+// side so a left and a right issue stay distinct.
+
+test("recurrence matches a region across inconsistent side granularity", () => {
+  // Closed thread tagged just "calf" (side unknown); new niggle is region+side.
+  const existing = [
+    insight({ id: "old", layer: "thread", status: "closed", hot: false, tags: ["calf"] }),
+  ];
+  assert.equal(findRecurrence(["calf", "left"], "thread", existing)?.id, "old");
+});
+
+test("the same region on the opposite side is not a recurrence", () => {
+  const existing = [
+    insight({ id: "L", layer: "thread", status: "closed", hot: false, tags: ["calf", "left"] }),
+  ];
+  assert.equal(findRecurrence(["calf", "right"], "thread", existing), null);
+});
+
+test("the same region and same side is a recurrence", () => {
+  const existing = [
+    insight({ id: "L", layer: "thread", status: "closed", hot: false, tags: ["calf", "left"] }),
+  ];
+  assert.equal(findRecurrence(["calf", "left"], "thread", existing)?.id, "L");
+});
+
+test("bilateral matches either side", () => {
+  const existing = [
+    insight({ id: "B", layer: "thread", status: "closed", hot: false, tags: ["calf", "bilateral"] }),
+  ];
+  assert.equal(findRecurrence(["calf", "left"], "thread", existing)?.id, "B");
+});
+
+test("sharing only a side tag is not a recurrence", () => {
+  // Left hamstring vs left calf share the side but no body region.
+  const existing = [
+    insight({ id: "h", layer: "thread", status: "closed", hot: false, tags: ["hamstring", "left"] }),
+  ];
+  assert.equal(findRecurrence(["calf", "left"], "thread", existing), null);
+});
+
+test("a fused 'left calf' tag still matches a coarser closed 'calf'", () => {
+  // Defence for when the model ignores the separate-tag instruction and fuses.
+  const existing = [
+    insight({ id: "old", layer: "thread", status: "closed", hot: false, tags: ["calf"] }),
+  ];
+  assert.equal(findRecurrence(["left calf"], "thread", existing)?.id, "old");
+});
+
+test("a fused 'left calf' is still distinct from a closed 'right calf'", () => {
+  const existing = [
+    insight({ id: "R", layer: "thread", status: "closed", hot: false, tags: ["right calf"] }),
+  ];
+  assert.equal(findRecurrence(["left calf"], "thread", existing), null);
 });
 
 // ---------------------------------------------------------------------------
@@ -218,6 +274,11 @@ test("eval grading helpers read proposed ops", () => {
   ];
   assert.equal(tagPresent(ops, "Calf"), true, "tag match is case-insensitive");
   assert.equal(tagPresent(ops, "achilles"), false);
+  // regionPresent strips a fused side, so "left calf" still reads as "calf".
+  assert.equal(
+    regionPresent([{ op: "add", layer: "thread", content: "x", tags: ["left calf"] }], "calf"),
+    true,
+  );
   assert.equal(hasOp(ops, "supersede"), true);
   assert.equal(hasOp(ops, "close"), false);
   assert.equal(contentMentions(ops, "valencia"), true);
