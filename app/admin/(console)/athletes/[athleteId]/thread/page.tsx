@@ -2,8 +2,27 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/admin/auth";
 import { loadAthleteAdminCore, loadFullThread } from "@/lib/admin/athlete-detail";
 import { MessageBlock } from "@/app/(app)/app/_components/message";
+import { renderInlineCopy } from "@/app/(app)/app/_components/rich-text";
 import type { Message } from "@/lib/thread/types";
 import { PageHeader } from "../../../_components/ui";
+
+/**
+ * Kinds the shared MessageBlock renders. Anything else (today: casey_briefing —
+ * race-week / fuelling / niggle briefings inserted by proactive surfaces, which
+ * MessageBlock has no case for and would drop to null) is rendered by the
+ * fallback below, so the admin's "complete thread" never silently omits a
+ * stored message. Future kinds are caught the same way.
+ */
+const MESSAGE_BLOCK_KINDS = new Set([
+  "chat_user",
+  "chat_casey",
+  "debrief",
+  "weekly_review",
+  "follow_up",
+  "cross_training_ack",
+  "cross_training_substitution",
+  "system",
+]);
 
 export const dynamic = "force-dynamic";
 
@@ -65,11 +84,15 @@ export default async function AthleteThreadPage({
                     </div>
                     <div className="h-px flex-1 bg-rule/60" />
                   </div>
-                  {g.items.map((m) => (
-                    <div key={m.id}>
-                      <MessageBlock message={m} />
-                    </div>
-                  ))}
+                  {g.items.map((m) =>
+                    MESSAGE_BLOCK_KINDS.has(m.kind) ? (
+                      <div key={m.id}>
+                        <MessageBlock message={m} />
+                      </div>
+                    ) : (
+                      <BriefingBlock key={m.id} message={m} />
+                    ),
+                  )}
                 </section>
               ))}
             </div>
@@ -77,6 +100,49 @@ export default async function AthleteThreadPage({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Fallback renderer for Casey-authored kinds the shared MessageBlock doesn't
+ * handle (proactive-surface briefings). Styled to match the debrief/weekly
+ * eyebrow rhythm, labelled from meta.surface (e.g. "race-week-briefing"). The
+ * athlete app doesn't currently surface these in-thread; the admin audit view
+ * shows them so the conversation is genuinely complete.
+ */
+function BriefingBlock({ message }: { message: Message }) {
+  const meta = message.meta as { surface?: unknown; day_marker?: unknown };
+  const surface =
+    typeof meta.surface === "string" && meta.surface.length > 0
+      ? meta.surface.replace(/[-_]/g, " ")
+      : "Briefing";
+  const label = surface.charAt(0).toUpperCase() + surface.slice(1);
+  const dayMarker =
+    typeof meta.day_marker === "string" && meta.day_marker.length > 0
+      ? meta.day_marker
+      : null;
+
+  return (
+    <article
+      data-kind={message.kind}
+      className="max-w-[66ch] space-y-4 border-l-[2px] border-transparent px-5 pl-4 sm:px-6 sm:pl-5"
+    >
+      <div className="space-y-2 pt-1">
+        <div className="h-px w-8 bg-accent/70" aria-hidden />
+        <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-muted">
+          {label}
+          {dayMarker && (
+            <>
+              {" "}
+              <span className="text-ink-subtle">·</span> {dayMarker}
+            </>
+          )}
+        </div>
+      </div>
+      <div className="prose-serif whitespace-pre-wrap break-words text-ink">
+        {renderInlineCopy(message.body)}
+      </div>
+    </article>
   );
 }
 
