@@ -7,11 +7,10 @@ import type { Message } from "@/lib/thread/types";
 import { PageHeader } from "../../../_components/ui";
 
 /**
- * Kinds the shared MessageBlock renders. Anything else (today: casey_briefing —
- * race-week / fuelling / niggle briefings inserted by proactive surfaces, which
- * MessageBlock has no case for and would drop to null) is rendered by the
- * fallback below, so the admin's "complete thread" never silently omits a
- * stored message. Future kinds are caught the same way.
+ * Kinds the shared MessageBlock renders — which now includes casey_briefing
+ * (briefings render in-thread for athletes too). The fallback below catches
+ * any *future* kind MessageBlock doesn't yet handle, so the admin's "complete
+ * thread" can never silently omit a stored message.
  */
 const MESSAGE_BLOCK_KINDS = new Set([
   "chat_user",
@@ -21,6 +20,7 @@ const MESSAGE_BLOCK_KINDS = new Set([
   "follow_up",
   "cross_training_ack",
   "cross_training_substitution",
+  "casey_briefing",
   "system",
 ]);
 
@@ -90,7 +90,7 @@ export default async function AthleteThreadPage({
                         <MessageBlock message={m} />
                       </div>
                     ) : (
-                      <BriefingBlock key={m.id} message={m} />
+                      <FallbackBlock key={m.id} message={m} />
                     ),
                   )}
                 </section>
@@ -104,24 +104,13 @@ export default async function AthleteThreadPage({
 }
 
 /**
- * Fallback renderer for Casey-authored kinds the shared MessageBlock doesn't
- * handle (proactive-surface briefings). Styled to match the debrief/weekly
- * eyebrow rhythm, labelled from meta.surface (e.g. "race-week-briefing"). The
- * athlete app doesn't currently surface these in-thread; the admin audit view
- * shows them so the conversation is genuinely complete.
+ * Defensive fallback for any future Casey kind the shared MessageBlock doesn't
+ * yet handle (every current kind, casey_briefing included, now renders via
+ * MessageBlock). Labelled from the raw kind so an unrecognised message is still
+ * shown — the audit view never silently drops a stored row.
  */
-function BriefingBlock({ message }: { message: Message }) {
-  const meta = message.meta as { surface?: unknown; day_marker?: unknown };
-  const surface =
-    typeof meta.surface === "string" && meta.surface.length > 0
-      ? meta.surface.replace(/[-_]/g, " ")
-      : "Briefing";
-  const label = surface.charAt(0).toUpperCase() + surface.slice(1);
-  const dayMarker =
-    typeof meta.day_marker === "string" && meta.day_marker.length > 0
-      ? meta.day_marker
-      : null;
-
+function FallbackBlock({ message }: { message: Message }) {
+  const label = message.kind.replace(/[-_]/g, " ");
   return (
     <article
       data-kind={message.kind}
@@ -129,14 +118,8 @@ function BriefingBlock({ message }: { message: Message }) {
     >
       <div className="space-y-2 pt-1">
         <div className="h-px w-8 bg-accent/70" aria-hidden />
-        <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-muted">
+        <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-subtle">
           {label}
-          {dayMarker && (
-            <>
-              {" "}
-              <span className="text-ink-subtle">·</span> {dayMarker}
-            </>
-          )}
         </div>
       </div>
       <div className="prose-serif whitespace-pre-wrap break-words text-ink">

@@ -6,6 +6,7 @@ export type MessageKind =
   | "follow_up"
   | "cross_training_ack"
   | "cross_training_substitution"
+  | "casey_briefing"
   | "system";
 
 export type Message = {

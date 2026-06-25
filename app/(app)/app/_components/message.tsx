@@ -127,6 +127,21 @@ function activityLabel(
   return map[activityType] ?? fallback;
 }
 
+// Maps a proactive-surface briefing's meta.surface to its thread eyebrow.
+// Briefings are inserted by app/actions/proactive-surfaces.ts with
+// kind='casey_briefing'; the surface tells us which one (race week, fuelling,
+// niggle, mid-block check-in). Unknown/missing surfaces fall back to the
+// generic "Briefing" so a new surface still renders rather than dropping out.
+function briefingLabel(surface: unknown): string {
+  if (typeof surface !== "string") return "Briefing";
+  if (surface.startsWith("race-week")) return "Race week";
+  if (surface.startsWith("fueling") || surface.startsWith("fuelling"))
+    return "Fuelling";
+  if (surface.startsWith("niggle")) return "Niggle";
+  if (surface.startsWith("mid-block")) return "Check-in";
+  return "Briefing";
+}
+
 function formatPace(secPerKm: number): string {
   // Round total seconds first, then split, a naive `Math.round(secPerKm % 60)`
   // can produce `:60` for paces that round up across a minute boundary
@@ -320,6 +335,42 @@ export function MessageBlock({ message, unread }: Props) {
           </div>
         </article>
       );
+
+    case "casey_briefing": {
+      const meta = message.meta as { surface?: unknown; day_marker?: unknown };
+      const label = briefingLabel(meta.surface);
+      const dayMarker =
+        typeof meta.day_marker === "string" && meta.day_marker.length > 0
+          ? meta.day_marker
+          : null;
+      return (
+        <article
+          data-kind={message.kind}
+          aria-label={`Coach Casey ${label.toLowerCase()} briefing: ${message.body}`}
+          className={`${wrapperBase} ${unreadRail} pl-4 sm:pl-5 space-y-4 max-w-[66ch]`}
+        >
+          <div className="pt-1 space-y-2">
+            <div className="h-px w-12 bg-accent/70" aria-hidden />
+            <div
+              className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-muted"
+              suppressHydrationWarning
+              aria-hidden
+            >
+              {label}
+              {dayMarker && (
+                <>
+                  {" "}
+                  <span className="text-ink-subtle">·</span> {dayMarker}
+                </>
+              )}
+            </div>
+          </div>
+          <div className="prose-serif text-ink whitespace-pre-wrap break-words">
+            {renderInlineCopy(message.body)}
+          </div>
+        </article>
+      );
+    }
 
     case "follow_up":
       return (

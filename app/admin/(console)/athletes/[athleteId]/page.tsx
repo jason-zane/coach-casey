@@ -42,6 +42,7 @@ const KIND_LABELS: Record<string, string> = {
   debrief: "Debrief",
   weekly_review: "Weekly review",
   cross_training_ack: "Cross-training",
+  casey_briefing: "Briefing",
 };
 
 export default async function AthleteDetailPage({
