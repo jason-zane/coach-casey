@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/admin/auth";
+import { safeNextPath } from "@/lib/security/redirects";
 import { recordAuditEvent } from "@/lib/audit/log";
 import { generateWeeklyReviewForAthlete } from "@/app/actions/weekly-review";
 import { generateDebriefForActivity } from "@/lib/server/debrief-pipeline";
@@ -152,6 +153,11 @@ export async function adminRegenerateLatestDebrief(formData: FormData) {
     throw new Error("adminRegenerateLatestDebrief: athlete_id required");
   }
 
+  // Where to land on error / after the action. Defaults to the in-app admin;
+  // the desktop console passes its own athlete route so the admin stays put.
+  const rawReturn = String(formData.get("return_to") ?? "").trim();
+  const returnTo = rawReturn ? safeNextPath(rawReturn) : "/app/admin";
+
   const admin = createAdminClient();
   const { data: latest } = await admin
     .from("activities")
@@ -195,7 +201,7 @@ export async function adminRegenerateLatestDebrief(formData: FormData) {
       detail,
     });
     redirect(
-      `/app/admin?regen_error=${encodeURIComponent(detail.slice(0, 1500))}`,
+      `${returnTo}?regen_error=${encodeURIComponent(detail.slice(0, 1500))}`,
     );
   }
 
@@ -209,4 +215,5 @@ export async function adminRegenerateLatestDebrief(formData: FormData) {
   });
 
   revalidatePath("/app/admin");
+  revalidatePath(returnTo);
 }

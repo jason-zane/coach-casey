@@ -435,7 +435,8 @@ async function _loadMemoryProgress(
       .from("messages")
       .select("id", { count: "exact", head: true })
       .eq("athlete_id", athleteId)
-      .eq("kind", "chat_casey"),
+      .eq("kind", "chat_casey")
+      .is("deleted_at", null),
   ]);
   return {
     runs: runsRes.count ?? 0,

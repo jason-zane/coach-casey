@@ -8,7 +8,14 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: "/",
         // auth-gated and machine-only surfaces; nothing here should rank
-        disallow: ["/api/", "/app/", "/onboarding/", "/auth/", "/ingest/"],
+        disallow: [
+          "/api/",
+          "/app/",
+          "/admin",
+          "/onboarding/",
+          "/auth/",
+          "/ingest/",
+        ],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
