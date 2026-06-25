@@ -167,7 +167,12 @@ export async function loadRecentCaseyMessages(
       .from("messages")
       .select("id, kind, body, created_at")
       .eq("athlete_id", athleteId)
-      .in("kind", ["debrief", "weekly_review", "cross_training_ack"])
+      .in("kind", [
+        "debrief",
+        "weekly_review",
+        "cross_training_ack",
+        "casey_briefing",
+      ])
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(limit);

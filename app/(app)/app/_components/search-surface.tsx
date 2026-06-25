@@ -37,6 +37,8 @@ function labelForResult(r: SearchResult): string {
     case "cross_training_ack":
     case "cross_training_substitution":
       return "Cross-training";
+    case "casey_briefing":
+      return "Briefing";
     case "system":
       return "System";
     default:
