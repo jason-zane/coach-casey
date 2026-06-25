@@ -1064,6 +1064,7 @@ function Footer() {
           <Link href="/privacy">Privacy</Link>
           <Link href="/terms">Terms</Link>
           <a href="#faq">FAQ</a>
+          <Link href="/admin">Admin</Link>
           <span className="rd-hand rd-footer-end">
             km 42.2, you finished. nice one.
           </span>

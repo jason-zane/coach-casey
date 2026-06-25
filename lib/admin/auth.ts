@@ -1,4 +1,5 @@
 import "server-only";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getSigningKeys } from "@/lib/auth/jwks";
 
@@ -32,10 +33,29 @@ export function isAdminEmail(email: string | null | undefined): boolean {
 }
 
 /**
+ * Whether this request was issued from the desktop admin console (/admin)
+ * rather than the in-app admin (/app/admin). A server action POSTs to the page
+ * that fired it, so the Referer's path is the reliable signal. Used only to
+ * pick the right sign-in surface when the gate fails; absent/odd Referer (and
+ * every non-console caller) falls back to the app's surfaces.
+ */
+async function isConsoleRequest(): Promise<boolean> {
+  try {
+    const referer = (await headers()).get("referer");
+    if (!referer) return false;
+    const path = new URL(referer).pathname;
+    return path === "/admin" || path.startsWith("/admin/");
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Returns the signed-in user when they're an admin, throws-redirects
- * otherwise. Used as the standard preamble for admin pages and admin
- * server actions. Sends would-be admins to /signin and would-be
- * impostors to /app (so the admin route doesn't even confirm it exists).
+ * otherwise. Used as the standard preamble for admin pages and admin server
+ * actions. Failure redirects are context-aware: console callers go to
+ * /admin/login, the in-app admin keeps /signin (no session) and /app
+ * (signed-in impostor, so the admin route doesn't even confirm it exists).
  */
 export async function requireAdmin() {
   const supabase = await createClient();
@@ -48,11 +68,13 @@ export async function requireAdmin() {
   );
   const claims = data?.claims;
   if (!claims?.sub) {
-    return { ok: false as const, redirect: "/signin" as const };
+    const redirect = (await isConsoleRequest()) ? "/admin/login" : "/signin";
+    return { ok: false as const, redirect };
   }
   const email = typeof claims.email === "string" ? claims.email : null;
   if (!isAdminEmail(email)) {
-    return { ok: false as const, redirect: "/app" as const };
+    const redirect = (await isConsoleRequest()) ? "/admin/login" : "/app";
+    return { ok: false as const, redirect };
   }
   return { ok: true as const, user: { id: claims.sub, email }, supabase };
 }
