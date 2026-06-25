@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/server";
+import type { Message } from "@/lib/thread/types";
 
 /**
  * Admin-only reads for a single athlete's detail page. Each loader is
@@ -112,6 +113,48 @@ export type AdminCaseyMessage = {
   body: string;
   createdAt: string;
 };
+
+export type FullThread = {
+  messages: Message[];
+  /** True when the thread was longer than the cap and only the latest are shown. */
+  truncated: boolean;
+};
+
+const THREAD_CAP = 2000;
+
+/**
+ * The athlete's entire Casey thread, oldest-first, exactly as it's stored —
+ * every kind (chat, debrief, weekly review, follow-up, cross-training,
+ * system). Service-role (the app's thread loaders are RLS-scoped to the owning
+ * athlete, so they can't be reused here). Deliberately does NOT attach RPE
+ * meta, so the shared MessageBlock renders debriefs read-only (no picker).
+ * Capped at the most recent THREAD_CAP messages to bound a very long history.
+ */
+export async function loadFullThread(athleteId: string): Promise<FullThread> {
+  try {
+    const admin = createAdminClient();
+    const { data: thread } = await admin
+      .from("threads")
+      .select("id")
+      .eq("athlete_id", athleteId)
+      .maybeSingle<{ id: string }>();
+    if (!thread) return { messages: [], truncated: false };
+
+    // Newest-first with the cap so a huge history yields the latest window,
+    // then flip to oldest-first for top-to-bottom rendering.
+    const { data } = await admin
+      .from("messages")
+      .select("id, thread_id, athlete_id, kind, body, meta, created_at")
+      .eq("thread_id", thread.id)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(THREAD_CAP);
+    const rows = ((data ?? []) as Message[]).slice().reverse();
+    return { messages: rows, truncated: rows.length >= THREAD_CAP };
+  } catch {
+    return { messages: [], truncated: false };
+  }
+}
 
 /** Casey-authored output (debriefs, weekly reviews, cross-training acks). */
 export async function loadRecentCaseyMessages(
