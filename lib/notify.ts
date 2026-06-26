@@ -1,12 +1,12 @@
 import "server-only";
 import { getResendClient } from "@/lib/resend";
 
-// Resend is in sandbox mode (no verified domain), so it can only send FROM
-// onboarding@resend.dev TO the Resend account address (hello@coachcasey.app).
-// Once coachcasey.app is verified at resend.com/domains, set NOTIFY_FROM to an
-// address on the domain and NOTIFY_TO to wherever alerts should land (e.g.
-// jasonzanehunt@gmail.com).
-const NOTIFY_FROM = process.env.NOTIFY_FROM?.trim() || "onboarding@resend.dev";
+// coachcasey.app is a verified Resend sending domain, so we send FROM a Coach
+// Casey address. Both default to hello@coachcasey.app (the monitored founder
+// inbox). Override NOTIFY_TO via env to route alerts somewhere else (e.g. a
+// personal inbox); replyTo on access requests still routes replies to the
+// requester regardless.
+const NOTIFY_FROM = process.env.NOTIFY_FROM?.trim() || "Coach Casey <hello@coachcasey.app>";
 const NOTIFY_TO = process.env.NOTIFY_TO?.trim() || "hello@coachcasey.app";
 
 /**

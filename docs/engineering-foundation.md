@@ -128,7 +128,6 @@ Every one of these costs nothing until usage exceeds the free tier. At 100–200
 ### Domains (register now)
 
 - **`coachcasey.app`**: primary product domain. Register at foundation setup; forward to Vercel once deployed. Also the basis for product email (`hello@coachcasey.app`, `coach@coachcasey.app` via Resend for transactional, forwarding to Workspace inbox for inbound).
-- **`coachcasey.run`**: defensive registration, redirects to primary. Cheap insurance against on-theme competitors.
 - **`themarathonclinic.com`**: Jason owns this separately. Placeholder at V1 launch; content buildout deferred post-V1 (see `strategy-foundation.md` §9). Not part of Coach Casey's operational infrastructure at launch.
 - **`coachcasey.com`**: premium-priced (~$10k). Deferred. Revisit post-launch if warranted.
 

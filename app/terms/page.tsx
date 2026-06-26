@@ -270,8 +270,8 @@ export default function TermsPage() {
               time from{" "}
               <strong>Settings &rsaquo; Delete account</strong> or by
               emailing{" "}
-              <a className="link" href="mailto:hello@coachcasey.com">
-                hello@coachcasey.com
+              <a className="link" href="mailto:hello@coachcasey.app">
+                hello@coachcasey.app
               </a>
               .
             </p>
@@ -315,8 +315,8 @@ export default function TermsPage() {
             <p>
               For anything, questions about these terms, privacy, or
               security, email{" "}
-              <a className="link" href="mailto:hello@coachcasey.com">
-                hello@coachcasey.com
+              <a className="link" href="mailto:hello@coachcasey.app">
+                hello@coachcasey.app
               </a>
               .
             </p>

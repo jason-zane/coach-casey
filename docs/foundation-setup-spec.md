@@ -76,9 +76,8 @@ No ordering dependency between these - do them in whatever order feels natural. 
 Goal: own the product domains before anything else gets labelled.
 
 1. **Register `coachcasey.app`.** Use any reputable registrar (Namecheap, Cloudflare, Porkbun). Cloudflare is slightly cheaper and has better DNS tooling, but all three are fine.
-2. **Register `coachcasey.run`.** Same registrar. Defensive registration, will redirect to the primary later.
-3. **Do not attempt to register `coachcasey.com`** - premium-priced, deferred (see `engineering-foundation.md` §3).
-4. Keep `themarathonclinic.com` as-is under Jason's existing registration. Not part of Coach Casey's operational infrastructure at launch.
+2. **Do not attempt to register `coachcasey.com`** - premium-priced, deferred (see `engineering-foundation.md` §3).
+3. Keep `themarathonclinic.com` as-is under Jason's existing registration. Not part of Coach Casey's operational infrastructure at launch.
 
 Don't point DNS at anything yet - Vercel will give you DNS records to add in Phase 5. Just own the domains.
 
@@ -186,8 +185,6 @@ Goal: every push to `main` triggers an automatic deploy to Vercel; the live URL 
 
 6. **Connect `coachcasey.app` as a custom domain.** Vercel project → Settings → Domains → Add `coachcasey.app`. Vercel gives you DNS records to add at your registrar. Add them. DNS propagation is usually minutes, occasionally hours.
 
-7. **Set up `coachcasey.run` to redirect to `coachcasey.app`.** Add it as a second domain in Vercel, configure as a redirect.
-
 At the end of Phase 4: pushing to `main` auto-deploys, `coachcasey.app` serves the Next.js landing page over HTTPS.
 
 ---
@@ -230,7 +227,7 @@ Approval timelines vary - days to weeks. You'll know the outcome by the time fea
 Foundation setup is complete when all of the following are true:
 
 - [ ] All services from `engineering-foundation.md` §3 have accounts; all API keys are captured in your password manager.
-- [ ] `coachcasey.app` and `coachcasey.run` are registered.
+- [ ] `coachcasey.app` is registered.
 - [ ] GitHub repo `coach-casey` exists, is private, has the directory structure from §2 of the foundation doc, has branch protection on `main`, has secret scanning enabled.
 - [ ] Pushing to `main` triggers an automatic Vercel deploy.
 - [ ] `https://coachcasey.app` serves the default Next.js landing page over HTTPS.
