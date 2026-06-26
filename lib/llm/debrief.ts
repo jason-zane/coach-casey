@@ -1,6 +1,6 @@
 import "server-only";
 import type Anthropic from "@anthropic-ai/sdk";
-import { anthropic, MODELS } from "./anthropic";
+import { createMessage, MODELS } from "./anthropic";
 import { logModelUsage } from "@/lib/observability/usage";
 import { buildSystemPrompt } from "./prompts";
 import {
@@ -297,7 +297,7 @@ export async function generateDebriefBody(ctx: DebriefContext): Promise<string> 
   });
 
   const response = await callWithRetry(() =>
-    anthropic().messages.create({
+    createMessage({
       model: MODELS.debriefBody,
       max_tokens: 900,
       temperature: 1.0,
@@ -350,7 +350,7 @@ export async function generateConversationalFollowUp(
   });
 
   const response = await callWithRetry(() =>
-    anthropic().messages.create({
+    createMessage({
       model: MODELS.debriefConversationalFollowUp,
       max_tokens: 160,
       temperature: 0.9,
@@ -407,7 +407,7 @@ export async function generateStructuredFollowUp(
   });
 
   const response = await callWithRetry(() =>
-    anthropic().messages.create({
+    createMessage({
       model: MODELS.debriefStructuredFollowUp,
       max_tokens: 160,
       temperature: 0.7,
@@ -513,7 +513,7 @@ export async function generateStravaBlurb(
     });
 
     const response = await callWithRetry(() =>
-      anthropic().messages.create({
+      createMessage({
         model: MODELS.stravaBlurb,
         max_tokens: 120,
         temperature: 1.0,

@@ -1,4 +1,4 @@
-import { anthropic, MODELS } from "@/lib/llm/anthropic";
+import { createMessage, MODELS } from "@/lib/llm/anthropic";
 import { logModelUsage } from "@/lib/observability/usage";
 import type { Insight, ProposedInsight } from "./reconcile";
 import { buildConsolidationParams, extractProposedOps } from "./consolidation-prompt";
@@ -16,7 +16,7 @@ export async function proposeInsightOps(params: {
   source: string;
   interactionText: string;
 }): Promise<ProposedInsight[]> {
-  const response = await anthropic().messages.create(
+  const response = await createMessage(
     buildConsolidationParams({
       existing: params.existing,
       source: params.source,

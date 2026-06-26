@@ -2,7 +2,7 @@ import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { anthropic, MODELS } from "@/lib/llm/anthropic";
+import { createMessage, MODELS } from "@/lib/llm/anthropic";
 import { logModelUsage } from "@/lib/observability/usage";
 import { mockMode } from "@/lib/llm/mocks";
 
@@ -167,7 +167,7 @@ export async function extractPlanFromFile(
         };
 
   try {
-    const response = await anthropic().messages.create({
+    const response = await createMessage({
       model: MODELS.planExtract,
       max_tokens: 3000,
       temperature: 0,

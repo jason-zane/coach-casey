@@ -1,7 +1,7 @@
 import "server-only";
 
 import type Anthropic from "@anthropic-ai/sdk";
-import { anthropic, MODELS } from "./anthropic";
+import { createMessage, MODELS } from "./anthropic";
 import { logModelUsage } from "@/lib/observability/usage";
 import { buildSystemPrompt } from "./prompts";
 import {
@@ -105,7 +105,7 @@ export async function generateRaceWeekBriefing(
     `Produce the race-week briefing for ${ctx.dayMarker}. Follow the shape rules in the surface prompt. Output prose only, or the literal string SKIP if this day-marker is not in the schedule for this tier.`,
   ].join("\n");
 
-  const response = await anthropic().messages.create({
+  const response = await createMessage({
     model: MODELS.raceWeekBriefing,
     max_tokens: 400,
     temperature: 0.9,
@@ -194,7 +194,7 @@ export async function generateFuelingPrerunNudge(
     `Produce one short pre-run fuelling nudge for the planned long run. Output prose only, or the literal string SKIP if the surface should not fire (pattern well-established and run is routine).`,
   ].join("\n");
 
-  const response = await anthropic().messages.create({
+  const response = await createMessage({
     model: MODELS.fuelingPrerun,
     max_tokens: 160,
     temperature: 0.9,
@@ -272,7 +272,7 @@ export async function generateFuelingRetrospective(
     `Produce one short retrospective fuelling check for the run. Output prose only, or the literal string SKIP.`,
   ].join("\n");
 
-  const response = await anthropic().messages.create({
+  const response = await createMessage({
     model: MODELS.fuelingRetrospective,
     max_tokens: 160,
     temperature: 0.9,
@@ -345,7 +345,7 @@ export async function generateNiggleEscalation(
     `Produce the niggle-escalation message. Output prose only.`,
   ].join("\n");
 
-  const response = await anthropic().messages.create({
+  const response = await createMessage({
     model: MODELS.niggleEscalation,
     max_tokens: 220,
     temperature: 0.9,
@@ -423,7 +423,7 @@ export async function generateMidBlockFlatness(
     `Produce the mid-block flatness check-in. Output prose only.`,
   ].join("\n");
 
-  const response = await anthropic().messages.create({
+  const response = await createMessage({
     model: MODELS.midBlockFlatness,
     max_tokens: 260,
     temperature: 0.9,

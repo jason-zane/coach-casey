@@ -1,6 +1,6 @@
 import "server-only";
 import type Anthropic from "@anthropic-ai/sdk";
-import { anthropic, MODELS } from "./anthropic";
+import { createMessage, MODELS } from "./anthropic";
 import { logModelUsage } from "@/lib/observability/usage";
 import { buildSystemPrompt } from "./prompts";
 import { mockMode, mockRpeBranchedFollowUp } from "./mocks";
@@ -58,7 +58,7 @@ export async function generateRpeBranchedFollowUp(
       : "None on file.",
   ].join("\n");
 
-  const response = await anthropic().messages.create({
+  const response = await createMessage({
     model: MODELS.followupRpeBranched,
     max_tokens: 160,
     temperature: 0.85,

@@ -294,14 +294,14 @@ async function loadSharedBlocks(): Promise<{
 }
 
 async function runLiveFixtures(): Promise<void> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    console.log("\n[live] ANTHROPIC_API_KEY unset; skipping live-LLM pass.\n");
+  if (!process.env.OPENROUTER_API_KEY) {
+    console.log("\n[live] OPENROUTER_API_KEY unset; skipping live-LLM pass.\n");
     return;
   }
   // Lazy import so the script stays Node-runnable without the SDK installed.
-  const { default: Anthropic } = await import("@anthropic-ai/sdk");
-  const client = new Anthropic({ apiKey });
+  // Route through the shared client + configured model, exactly like production.
+  const { anthropic, PRIMARY_MODEL } = await import("../lib/llm/anthropic.ts");
+  const client = anthropic();
   const shared = await loadSharedBlocks();
 
   for (const fx of LIVE_FIXTURES) {
@@ -321,7 +321,7 @@ async function runLiveFixtures(): Promise<void> {
     console.log(`\n=== ${fx.label} ===\n`);
     try {
       const response = await client.messages.create({
-        model: "claude-sonnet-4-6",
+        model: PRIMARY_MODEL,
         max_tokens: 1100,
         temperature: 1.0,
         system: [{ type: "text", text: system }],
