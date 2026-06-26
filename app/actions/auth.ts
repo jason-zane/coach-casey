@@ -7,44 +7,78 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { isValidInviteCode } from "@/lib/auth/invite";
 import { notifyFounder } from "@/lib/notify";
 import { pushAdmins } from "@/lib/admin/notify-admins";
+import { SITE_URL } from "@/lib/site-url";
 
 export type AuthState =
+  | { sent: true; email: string }
   | { error: string }
   | { success: true }
   | null;
 
-export async function signInWithEmail(
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Every email/OAuth flow lands on /auth/callback, which verifies the token and
+// forwards to `next`. We always point athletes at /app; the proxy's onboarding
+// gate (lib/supabase/middleware.ts) sends incomplete accounts on to /onboarding,
+// so one target serves both brand-new and returning users.
+async function appCallbackUrl(): Promise<string> {
+  const origin = (await headers()).get("origin") ?? SITE_URL;
+  return `${origin}/auth/callback?next=${encodeURIComponent("/app")}`;
+}
+
+/**
+ * Sign in an existing account with a one-tap magic link. Coach Casey is
+ * passwordless: there is no password to enter or reset. `shouldCreateUser` is
+ * false so this surface can never mint an account — unknown addresses get the
+ * same "check your email" response with no link sent, so it can't be used to
+ * probe who already has an account. New users come through the invite-gated
+ * sign-up path below.
+ */
+export async function requestSignInLink(
   _prev: AuthState,
   formData: FormData,
 ): Promise<AuthState> {
-  const email = String(formData.get("email") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
-
-  if (!email || !password) {
-    return { error: "Email and password are required." };
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
+  if (!email || !EMAIL_RE.test(email)) {
+    return { error: "Enter a valid email address." };
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      shouldCreateUser: false,
+      emailRedirectTo: await appCallbackUrl(),
+    },
+  });
+  // Swallow send errors (e.g. "user not found", rate limits) into the generic
+  // response so we never reveal whether the address has an account.
   if (error) {
-    return { error: error.message };
+    console.error("[auth] sign-in magic link send failed (non-fatal)", error);
   }
 
-  revalidatePath("/", "layout");
-  redirect("/app");
+  return { sent: true, email };
 }
 
-export async function signUpWithEmail(
+/**
+ * Sign-up magic link. Early access is invite-gated: the code is re-checked
+ * here server-side (not just hidden in the UI), and only then do we send a link
+ * that creates the account on click. The magic link itself confirms the email,
+ * so there's no separate confirmation step.
+ */
+export async function requestSignUpLink(
   _prev: AuthState,
   formData: FormData,
 ): Promise<AuthState> {
-  const email = String(formData.get("email") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
   const code = String(formData.get("code") ?? "");
 
-  // Early-access gate. Re-checked here server-side (not just hidden in the UI)
-  // so the access code is genuinely required to create an account.
+  // Early-access gate. Re-checked here server-side so the access code is
+  // genuinely required to create an account.
   if (!isValidInviteCode(code)) {
     return {
       error:
@@ -52,21 +86,16 @@ export async function signUpWithEmail(
     };
   }
 
-  if (!email || !password) {
-    return { error: "Email and password are required." };
-  }
-  if (password.length < 8) {
-    return { error: "Password must be at least 8 characters." };
+  if (!email || !EMAIL_RE.test(email)) {
+    return { error: "Enter a valid email address." };
   }
 
   const supabase = await createClient();
-  const origin = (await headers()).get("origin") ?? process.env.NEXT_PUBLIC_APP_URL;
-
-  const { data, error } = await supabase.auth.signUp({
+  const { error } = await supabase.auth.signInWithOtp({
     email,
-    password,
     options: {
-      emailRedirectTo: `${origin}/auth/callback`,
+      shouldCreateUser: true,
+      emailRedirectTo: await appCallbackUrl(),
     },
   });
 
@@ -74,25 +103,15 @@ export async function signUpWithEmail(
     return { error: error.message };
   }
 
-  // Best-effort founder alert. Awaited (so it fires before the redirect throws)
-  // but never allowed to break signup.
+  // Best-effort founder alert. Awaited so it fires before we return, but never
+  // allowed to break the sign-up (notifyFounder swallows its own errors).
   await notifyFounder({
     subject: "New Coach Casey signup",
-    text: `Someone just created a Coach Casey account.\n\nEmail: ${email}\nConfirmed immediately: ${data.session ? "yes" : "no (email confirmation pending)"}`,
+    text: `Someone used an invite link to sign up.\n\nEmail: ${email}`,
   });
 
-  // If email confirmation is off (Supabase project setting), signUp returns a
-  // session and the user is already logged in, go straight into onboarding.
-  if (data.session) {
-    revalidatePath("/", "layout");
-    redirect("/onboarding");
-  }
-
-  // Otherwise the user needs to click the confirmation email first.
-  return { success: true };
+  return { sent: true, email };
 }
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
  * Early-access request. The public site has no open signup; visitors leave

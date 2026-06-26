@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Suspense, useActionState } from "react";
 import { useSearchParams } from "next/navigation";
-import { signInWithEmail, signInWithGoogle } from "@/app/actions/auth";
+import { requestSignInLink, signInWithGoogle } from "@/app/actions/auth";
 import { GoogleButton } from "@/app/(app)/_components/google-button";
 
 export default function SignInPage() {
@@ -15,7 +15,10 @@ export default function SignInPage() {
 }
 
 function SignInForm() {
-  const [state, formAction, isPending] = useActionState(signInWithEmail, null);
+  const [state, formAction, isPending] = useActionState(
+    requestSignInLink,
+    null,
+  );
   const searchParams = useSearchParams();
   const urlError = searchParams.get("error");
 
@@ -31,82 +34,82 @@ function SignInForm() {
           </p>
         </header>
 
-        <form action={signInWithGoogle}>
-          <GoogleButton />
-        </form>
-
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center" aria-hidden>
-            <div className="w-full border-t rule" />
-          </div>
-          <div className="relative flex justify-center">
-            <span className="bg-paper px-3 font-mono text-xs uppercase tracking-wide text-ink-subtle">
-              Or
-            </span>
-          </div>
-        </div>
-
-        <form action={formAction} className="space-y-5">
-          <div className="space-y-1.5">
-            <label
-              htmlFor="email"
-              className="block font-sans text-sm text-ink-muted"
-            >
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              className="w-full rounded-md border border-rule bg-transparent px-3 py-2.5 font-sans text-sm text-ink outline-none transition-colors focus:border-accent"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label
-              htmlFor="password"
-              className="block font-sans text-sm text-ink-muted"
-            >
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              className="w-full rounded-md border border-rule bg-transparent px-3 py-2.5 font-sans text-sm text-ink outline-none transition-colors focus:border-accent"
-            />
-          </div>
-
-          {(state && "error" in state) || urlError ? (
-            <p role="alert" className="font-sans text-sm text-red-700">
-              {state && "error" in state
-                ? state.error
-                : "Something went wrong. Please try again."}
+        {state && "sent" in state ? (
+          <div className="space-y-3 rounded-md border border-rule bg-surface p-5">
+            <p className="font-serif text-[18px] text-ink">Check your email.</p>
+            <p className="font-sans text-[13px] leading-[1.55] text-ink-muted">
+              If{" "}
+              <span className="font-mono text-[12px] text-ink">
+                {state.email}
+              </span>{" "}
+              has an account, a one-tap sign-in link is on its way. It expires
+              shortly, so use it soon.
             </p>
-          ) : null}
+          </div>
+        ) : (
+          <>
+            <form action={signInWithGoogle}>
+              <GoogleButton />
+            </form>
 
-          <button
-            type="submit"
-            disabled={isPending}
-            className="w-full rounded-md bg-accent px-4 py-3 font-sans text-sm text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {isPending ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center" aria-hidden>
+                <div className="w-full border-t rule" />
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-paper px-3 font-mono text-xs uppercase tracking-wide text-ink-subtle">
+                  Or
+                </span>
+              </div>
+            </div>
 
-        <p className="text-center font-sans text-sm text-ink-muted">
-          New here?{" "}
-          <Link
-            href="/signup"
-            className="text-accent underline-offset-4 hover:underline"
-          >
-            Create an account
-          </Link>
-        </p>
+            <form action={formAction} className="space-y-5">
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="email"
+                  className="block font-sans text-sm text-ink-muted"
+                >
+                  Email
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  autoFocus
+                  className="w-full rounded-md border border-rule bg-transparent px-3 py-2.5 font-sans text-sm text-ink outline-none transition-colors focus:border-accent"
+                />
+              </div>
+
+              {(state && "error" in state) || urlError ? (
+                <p role="alert" className="font-sans text-sm text-red-700">
+                  {state && "error" in state
+                    ? state.error
+                    : "Something went wrong. Please try again."}
+                </p>
+              ) : null}
+
+              <button
+                type="submit"
+                disabled={isPending}
+                className="w-full rounded-md bg-accent px-4 py-3 font-sans text-sm text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {isPending ? "Sending…" : "Email me a sign-in link"}
+              </button>
+            </form>
+
+            <p className="text-center font-sans text-sm text-ink-muted">
+              New here?{" "}
+              <Link
+                href="/signup"
+                className="text-accent underline-offset-4 hover:underline"
+              >
+                Create an account
+              </Link>
+            </p>
+          </>
+        )}
       </div>
     </div>
   );

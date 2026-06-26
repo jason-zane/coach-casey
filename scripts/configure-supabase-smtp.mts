@@ -1,5 +1,5 @@
-// Point Supabase Auth at Resend SMTP, so transactional auth emails (magic link,
-// password reset, email change, signup confirmation) send from
+// Point Supabase Auth at Resend SMTP, so transactional auth emails (the
+// passwordless sign-in / sign-up magic link, plus email change) send from
 // hello@coachcasey.app on the verified coachcasey.app domain.
 //
 //   SUPABASE_ACCESS_TOKEN=sbp_xxx pnpm smtp:configure        apply
@@ -118,6 +118,6 @@ console.log({
   smtp_sender_name: parsed.smtp_sender_name,
 });
 console.log(
-  "\nConfirm delivery: trigger a password reset (or hit the dev send-test " +
+  "\nConfirm delivery: request a sign-in magic link (or hit the dev send-test " +
     "route) and check the email arrives DKIM-signed from coachcasey.app.",
 );

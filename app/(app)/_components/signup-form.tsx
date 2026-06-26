@@ -2,15 +2,14 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { signUpWithEmail } from "@/app/actions/auth";
+import { requestSignUpLink } from "@/app/actions/auth";
 
 export function SignUpForm({ code }: { code: string }) {
-  const [state, formAction, isPending] = useActionState(signUpWithEmail, null);
+  const [state, formAction, isPending] = useActionState(requestSignUpLink, null);
 
-  // "Check your email" state is only reached when email confirmation is on
-  // at the Supabase project level. With it off, signUp redirects straight
-  // into onboarding and this branch never renders.
-  if (state && "success" in state) {
+  // After a valid invite + email, we send a magic link that creates the
+  // account on click. There's no password to set.
+  if (state && "sent" in state) {
     return (
       <div className="flex min-h-dvh items-center justify-center px-6 py-12">
         <div className="w-full max-w-sm space-y-4">
@@ -18,8 +17,10 @@ export function SignUpForm({ code }: { code: string }) {
             Check your email.
           </h1>
           <p className="font-sans text-sm text-ink-muted">
-            We&rsquo;ve sent a confirmation link. Open it on this device to
-            finish signing up.
+            We&rsquo;ve sent a one-tap sign-up link to{" "}
+            <span className="font-mono text-[13px] text-ink">{state.email}</span>
+            . Open it to finish creating your account. It expires shortly, so use
+            it soon.
           </p>
         </div>
       </div>
@@ -54,28 +55,12 @@ export function SignUpForm({ code }: { code: string }) {
               type="email"
               autoComplete="email"
               required
-              className="w-full rounded-md border border-rule bg-transparent px-3 py-2.5 font-sans text-sm text-ink outline-none transition-colors focus:border-accent"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label
-              htmlFor="password"
-              className="block font-sans text-sm text-ink-muted"
-            >
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={8}
+              autoFocus
               className="w-full rounded-md border border-rule bg-transparent px-3 py-2.5 font-sans text-sm text-ink outline-none transition-colors focus:border-accent"
             />
             <p className="font-sans text-xs text-ink-subtle">
-              At least 8 characters.
+              We&rsquo;ll email you a one-tap link to sign in — no password
+              needed.
             </p>
           </div>
 
@@ -90,7 +75,7 @@ export function SignUpForm({ code }: { code: string }) {
             disabled={isPending}
             className="w-full rounded-md bg-accent px-4 py-3 font-sans text-sm text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50"
           >
-            {isPending ? "Creating account…" : "Create account"}
+            {isPending ? "Sending…" : "Email me a sign-up link"}
           </button>
         </form>
 
