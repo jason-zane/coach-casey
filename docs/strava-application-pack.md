@@ -54,7 +54,7 @@ Hunt
 > Note from the form: *You will receive a response to your application at this email address. Please ensure emails from developers@strava.com are not marked as spam.*
 
 ```
-hello@coachcasey.com
+hello@coachcasey.app
 ```
 
 (Or your personal email if you'd rather get the response there. The

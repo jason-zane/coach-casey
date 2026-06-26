@@ -10,14 +10,14 @@ export async function GET(request: Request) {
   const to = url.searchParams.get("to");
   if (!to) {
     return NextResponse.json(
-      { error: "Pass ?to=you@example.com. In Resend sandbox mode, 'to' must be your Resend account email." },
+      { error: "Pass ?to=you@example.com" },
       { status: 400 }
     );
   }
 
   const resend = getResendClient();
   const { data, error } = await resend.emails.send({
-    from: "onboarding@resend.dev",
+    from: "Coach Casey <hello@coachcasey.app>",
     to,
     subject: "Coach Casey, Resend wiring works",
     html: "<p>If you're reading this, <strong>lib/resend.ts</strong> is wired correctly.</p>",

@@ -53,8 +53,8 @@ export default function PrivacyPage() {
               Coach Casey is operated by Jason Hunt, based in Sydney,
               Australia. For privacy enquiries, deletion requests,
               questions about this policy, or anything else, contact{" "}
-              <a className="link" href="mailto:hello@coachcasey.com">
-                hello@coachcasey.com
+              <a className="link" href="mailto:hello@coachcasey.app">
+                hello@coachcasey.app
               </a>
               .
             </p>
@@ -315,8 +315,8 @@ export default function PrivacyPage() {
               practical effect is the same: you can see, correct, export, or
               delete your data, and disconnect Strava, at any time. To
               exercise any of these rights, email{" "}
-              <a className="link" href="mailto:hello@coachcasey.com">
-                hello@coachcasey.com
+              <a className="link" href="mailto:hello@coachcasey.app">
+                hello@coachcasey.app
               </a>{" "}
               or use the controls inside Coach Casey&apos;s settings page.
             </p>
@@ -394,8 +394,8 @@ export default function PrivacyPage() {
               comprehensive privacy laws have analogous rights, which we
               honour on the same basis. To exercise any of these rights,
               email{" "}
-              <a className="link" href="mailto:hello@coachcasey.com">
-                hello@coachcasey.com
+              <a className="link" href="mailto:hello@coachcasey.app">
+                hello@coachcasey.app
               </a>{" "}
               with the subject line &ldquo;Privacy Request&rdquo;. We will
               verify your identity (typically by replying to the email
@@ -437,8 +437,8 @@ export default function PrivacyPage() {
             <p>
               To delete your account, use{" "}
               <strong>Settings &rsaquo; Delete account</strong>, or email{" "}
-              <a className="link" href="mailto:hello@coachcasey.com">
-                hello@coachcasey.com
+              <a className="link" href="mailto:hello@coachcasey.app">
+                hello@coachcasey.app
               </a>
               . We will soft-delete immediately (you&apos;re signed out and
               can no longer sign back in) and hard-delete within 30 days.
@@ -452,8 +452,8 @@ export default function PrivacyPage() {
               security policies, and least-privilege service credentials. No
               system is impenetrable, but we take this seriously. If you
               believe you&apos;ve found a vulnerability, please email{" "}
-              <a className="link" href="mailto:hello@coachcasey.com">
-                hello@coachcasey.com
+              <a className="link" href="mailto:hello@coachcasey.app">
+                hello@coachcasey.app
               </a>
               .
             </p>
@@ -483,8 +483,8 @@ export default function PrivacyPage() {
             <p>
               For privacy enquiries, security disclosures, or anything else,
               email{" "}
-              <a className="link" href="mailto:hello@coachcasey.com">
-                hello@coachcasey.com
+              <a className="link" href="mailto:hello@coachcasey.app">
+                hello@coachcasey.app
               </a>
               .
             </p>
