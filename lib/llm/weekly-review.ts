@@ -1,5 +1,5 @@
 import "server-only";
-import { anthropic, MODELS } from "./anthropic";
+import { createMessage, MODELS } from "./anthropic";
 import { logModelUsage } from "@/lib/observability/usage";
 import { buildSystemPrompt } from "./prompts";
 import {
@@ -199,7 +199,7 @@ async function planWeeklyReview(
   volatile: string,
 ): Promise<string | null> {
   try {
-    const response = await anthropic().messages.create({
+    const response = await createMessage({
       model: MODELS.weeklyReviewPlan,
       max_tokens: 400,
       temperature: 0.4,
@@ -259,7 +259,7 @@ export async function generateWeeklyReview(
     context: stable,
   });
 
-  const response = await anthropic().messages.create({
+  const response = await createMessage({
     model: MODELS.weeklyReview,
     max_tokens: 1100,
     temperature: 1.0,

@@ -1,5 +1,5 @@
 import type Anthropic from "@anthropic-ai/sdk";
-import { anthropic, MODELS } from "./anthropic";
+import { createMessage, MODELS } from "./anthropic";
 import { logModelUsage } from "@/lib/observability/usage";
 import { buildSystemPrompt } from "./prompts";
 import { formatPace } from "./context-render";
@@ -183,7 +183,7 @@ Produce the next observation, or respond with DONE if you have already made
 there is not enough material to say something specific.`;
 
   const response = await callWithRetry(() =>
-    anthropic().messages.create({
+    createMessage({
       model: MODELS.onboardingValidation,
       max_tokens: 400,
       system,

@@ -1,6 +1,6 @@
 import "server-only";
 import type Anthropic from "@anthropic-ai/sdk";
-import { anthropic, MODELS } from "./anthropic";
+import { createMessage, MODELS } from "./anthropic";
 import { logModelUsage } from "@/lib/observability/usage";
 import { buildSystemPrompt } from "./prompts";
 import {
@@ -297,7 +297,7 @@ export async function generateCrossTrainingAck(
   });
 
   const response = await callWithRetry(() =>
-    anthropic().messages.create({
+    createMessage({
       model: MODELS.crossTrainingAck,
       max_tokens: 350,
       temperature: 1.0,

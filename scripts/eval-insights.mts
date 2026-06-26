@@ -112,10 +112,10 @@ const SCENARIOS: Scenario[] = [
   },
 ];
 
-const key = process.env.ANTHROPIC_API_KEY;
+const key = process.env.OPENROUTER_API_KEY;
 if (!key || process.env.LLM_MODE === "mock") {
   console.log(
-    "eval:insights skipped. Set ANTHROPIC_API_KEY (and not LLM_MODE=mock) to run the live consolidation eval.",
+    "eval:insights skipped. Set OPENROUTER_API_KEY (and not LLM_MODE=mock) to run the live consolidation eval.",
   );
   process.exit(0);
 }

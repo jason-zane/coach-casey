@@ -24,18 +24,17 @@ import { formatPace } from "./context-render";
 // Mode resolution
 
 /**
- * True when the runtime should serve mock outputs instead of calling
- * Anthropic. Reads `LLM_MODE` (explicit override, "mock" or "real") and
- * falls back to "no API key = mock" so local development does not need
- * a key to boot.
+ * True when the runtime should serve mock outputs instead of calling a real
+ * model (through OpenRouter). Reads `LLM_MODE` (explicit override, "mock" or
+ * "real") and falls back to "no API key = mock" so local development does not
+ * need a key to boot.
  */
 export function mockMode(): boolean {
   if (process.env.LLM_MODE === "mock") return true;
   if (process.env.LLM_MODE === "real") return false;
-  // Real mode needs a usable key for EITHER provider. Without the OpenRouter
-  // check, switching to OpenRouter (and dropping ANTHROPIC_API_KEY) would
-  // silently serve mocks instead of calling DeepSeek.
-  return !process.env.ANTHROPIC_API_KEY && !process.env.OPENROUTER_API_KEY;
+  // Real mode needs the OpenRouter key — the only provider now. Without it we
+  // serve mocks so local dev boots without credentials.
+  return !process.env.OPENROUTER_API_KEY;
 }
 
 // ---------------------------------------------------------------------------
