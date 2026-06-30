@@ -47,12 +47,13 @@ export type DebriefOutcome =
 /**
  * Fixed signature line appended (on its own line, below the verdict)
  * to the Strava activity description. Also the marker the writeback
- * path anchors on when stripping a previously-appended Casey block,
- * so changes here must keep the "coached by Coach Casey" stem (see
- * `lib/strava/blurb-description.ts`).
+ * path anchors on when stripping a previously-appended Casey block, so
+ * changes here must keep the stable "Coach Casey · coachcasey.app" stem
+ * (the anchor survives lead-verb changes like the earlier "coached by",
+ * see `lib/strava/blurb-description.ts`).
  */
 export const STRAVA_BLURB_SIGNATURE =
-  "coached by Coach Casey · coachcasey.app";
+  "a read from Coach Casey · coachcasey.app";
 
 const ABORTED_NAME_TOKENS = ["abort", "dnf", "stopped", "cut short"];
 

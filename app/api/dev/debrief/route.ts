@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { generateDebriefForActivity } from "@/lib/server/debrief-pipeline";
+import { ensureStravaLine } from "@/lib/server/strava-line";
 
 /**
  * Dev trigger for the debrief pipeline. Webhooks cannot reach localhost, so
@@ -96,7 +97,11 @@ export async function GET(request: Request) {
 
   try {
     const result = await generateDebriefForActivity(athleteId, activityId, { force });
-    return NextResponse.json({ ok: true, result });
+    // The Strava line is now its own step (decoupled from the debrief), so
+    // exercise it here too for prompt iteration. Force so a re-run rewrites
+    // the line even when the activity is already marked.
+    const stravaLine = await ensureStravaLine(athleteId, activityId, { force: true });
+    return NextResponse.json({ ok: true, result, stravaLine });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     return NextResponse.json({ error: message }, { status: 500 });

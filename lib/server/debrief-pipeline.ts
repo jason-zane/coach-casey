@@ -2,17 +2,9 @@ import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/server";
 import { buildDebriefContext } from "@/lib/thread/debrief-context";
-import {
-  debriefGate,
-  generateDebrief,
-  generateStravaBlurb,
-  STRAVA_BLURB_SIGNATURE,
-} from "@/lib/llm/debrief";
+import { debriefGate, generateDebrief } from "@/lib/llm/debrief";
 import { ensureThread } from "@/lib/thread/repository";
 import type { DebriefSkipReason } from "@/lib/llm/debrief";
-import { updateActivityDescriptionAppend } from "@/lib/strava/client";
-import { scopeHasActivityWrite } from "@/lib/strava/blurb-description";
-import { isRateLimited } from "@/lib/strava/rate-limit";
 import { sendPushToAthlete } from "@/lib/push/send";
 import { leadFromBody } from "@/lib/push/lead-from-body";
 import { MODELS } from "@/lib/llm/anthropic";
@@ -219,66 +211,10 @@ export async function generateDebriefForActivity(
     console.warn("debrief consolidation failed", err);
   }
 
-  // Best-effort Strava description writeback: Casey's one-line verdict
-  // plus the fixed signature, appended below anything the athlete wrote.
-  // On by default (preferences.strava_blurb_enabled, one-tap off in
-  // Settings) and additionally gated on the connection holding
-  // `activity:write`, athletes who connected before that scope existed
-  // keep read-only behaviour until they reconnect from Settings.
-  // Generation happens here (not in `generateDebrief`) so opted-out
-  // athletes never pay the extra LLM call, and the whole block is wrapped
-  // so no Strava or LLM failure can surface as a debrief failure. The
-  // debrief is the value; this line is decoration.
-  try {
-    if (ctx.activity.strava_id != null) {
-      const [{ data: blurbPrefs }, { data: conn }] = await Promise.all([
-        admin
-          .from("preferences")
-          .select("strava_blurb_enabled")
-          .eq("athlete_id", athleteId)
-          .maybeSingle(),
-        admin
-          .from("strava_connections")
-          .select("scope, is_mock")
-          .eq("athlete_id", athleteId)
-          .maybeSingle(),
-      ]);
-      const blurbOn =
-        (blurbPrefs as { strava_blurb_enabled?: boolean } | null)
-          ?.strava_blurb_enabled ?? true;
-      const connRow = conn as { scope: string | null; is_mock: boolean | null } | null;
-      const connWritable =
-        connRow != null &&
-        !connRow.is_mock &&
-        scopeHasActivityWrite(connRow.scope);
-      if (blurbOn && connWritable) {
-        const blurb = await generateStravaBlurb(ctx);
-        if (blurb) {
-          const appended = `${blurb}\n\n${STRAVA_BLURB_SIGNATURE}`;
-          const result = await updateActivityDescriptionAppend(
-            athleteId,
-            ctx.activity.strava_id,
-            appended,
-            STRAVA_BLURB_SIGNATURE,
-          );
-          if (result.kind === "error") {
-            console.warn(
-              `strava blurb writeback failed for activity ${activityId}: ${result.message}`,
-              { status: result.status },
-            );
-          }
-        }
-      }
-    }
-  } catch (err) {
-    if (isRateLimited(err)) {
-      console.warn(
-        `strava blurb writeback rate-limited for activity ${activityId}; skipping, next debrief gets a fresh budget`,
-      );
-    } else {
-      console.warn("strava blurb writeback threw", err);
-    }
-  }
+  // The Strava verdict line is no longer written here. It's a first-class
+  // per-activity step (`ensureStravaLine`) owned by the webhook and the
+  // safety-net cron, so it fires for every activity class, not just runs
+  // that produced a debrief. See `lib/server/strava-line.ts`.
 
   // Best-effort push notification once the debrief is durably persisted.
   // Wrapped so a push failure can't surface as a debrief failure, the

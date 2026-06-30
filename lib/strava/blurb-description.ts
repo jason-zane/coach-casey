@@ -38,13 +38,16 @@ function escapeRegex(s: string): string {
 
 /**
  * Derive the stable marker we anchor on when looking for a previously
- * appended Casey block. Anchoring on the "coached by Coach Casey ..."
- * text (rather than the full signature) lets us still recognise blocks
- * posted under older signature variants whose leading punctuation has
- * since changed.
+ * appended Casey block. Anchoring on the "Coach Casey ..." stem (rather
+ * than the full signature) lets us still recognise blocks posted under
+ * older signature variants whose lead-in or leading punctuation has since
+ * changed, e.g. the earlier "coached by Coach Casey" and a leading em
+ * dash. The strip regex's `[^\n]*` before the marker eats whatever lead
+ * verb precedes the name, so both old and new blocks are replaced rather
+ * than stacked.
  */
 function signatureMarker(signature: string): string {
-  const markerMatch = signature.match(/coached by Coach Casey[^\n]*$/);
+  const markerMatch = signature.match(/Coach Casey[^\n]*$/);
   return markerMatch ? markerMatch[0] : signature.trim();
 }
 

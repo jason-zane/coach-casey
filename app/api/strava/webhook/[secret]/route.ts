@@ -6,6 +6,7 @@ import { fetchActivityDetail } from "@/lib/strava/client";
 import { captureError } from "@/lib/observability/capture";
 import { generateDebriefForActivity } from "@/lib/server/debrief-pipeline";
 import { generateCrossTrainingAckForActivity } from "@/lib/server/cross-training-pipeline";
+import { ensureStravaLine } from "@/lib/server/strava-line";
 import { classifyActivityType } from "@/lib/strava/activity-types";
 import {
   authorizeWebhookSubscription,
@@ -272,5 +273,16 @@ async function handleEvent(event: StravaWebhookEvent): Promise<void> {
       // Stored only, Walks and similar low-signal types are ambient
       // context, not thread-worthy.
       break;
+  }
+
+  // Casey's one-line verdict goes on EVERY activity's Strava description,
+  // independent of the in-app message routing above (runs, rides, swims,
+  // gym, walks all get one). Idempotent via activities.strava_line_written_at,
+  // so create + update events and webhook retries don't double-post.
+  // Isolated so a Strava/LLM hiccup here can't undo the message work above.
+  try {
+    await ensureStravaLine(athleteId, activityId);
+  } catch (err) {
+    console.warn("strava line writeback failed in webhook", err);
   }
 }

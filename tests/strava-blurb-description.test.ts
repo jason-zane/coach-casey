@@ -8,9 +8,9 @@ import {
 
 // Mirrors STRAVA_BLURB_SIGNATURE in lib/llm/debrief.ts (that module pulls
 // in `server-only` and the `@/` alias, which this runner can't load). The
-// strip logic anchors on the "coached by Coach Casey" stem, so these tests
-// pin that contract.
-const SIGNATURE = "coached by Coach Casey · coachcasey.app";
+// strip logic anchors on the stable "Coach Casey · coachcasey.app" stem,
+// so these tests pin that contract across signature lead-verb changes.
+const SIGNATURE = "a read from Coach Casey · coachcasey.app";
 
 const VERDICT = "An easy run that stayed easy. Underrated.";
 const BLOCK = `${VERDICT}\n\n${SIGNATURE}`;
@@ -45,12 +45,12 @@ test("stripPriorCaseyBlock removes a block that is the whole description", () =>
   assert.equal(stripPriorCaseyBlock(BLOCK, SIGNATURE), "");
 });
 
-test("stripPriorCaseyBlock recognises the legacy signature variant", () => {
+test("stripPriorCaseyBlock recognises the legacy 'coached by' signature", () => {
   // Blocks posted under the earlier signature carried a leading em dash
   // (written as the \u2014 escape so the repo stays free of the literal
-  // character). Those descriptions still exist on Strava; the strip
-  // anchors on the "coached by Coach Casey" stem, so they are recognised
-  // and replaced rather than stacked.
+  // character). Those descriptions still exist on Strava; stripping with
+  // the CURRENT signature must still recognise them, anchored on the
+  // stable "Coach Casey" stem, so they are replaced rather than stacked.
   const legacy = `${VERDICT}\n\n\u2014 coached by Coach Casey · coachcasey.app`;
   assert.equal(stripPriorCaseyBlock(legacy, SIGNATURE), "");
 });
