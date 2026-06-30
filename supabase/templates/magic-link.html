@@ -1,0 +1,24 @@
+<!--
+  Coach Casey magic-link / sign-in email.
+
+  Mobile-first: it leads with a 6-digit CODE ({{ .Token }}) the user types back
+  into the same browser tab, so there is no cross-browser handoff at all — the
+  most robust path on phones (in-app mail browsers, link prefetchers, and the
+  installed PWA all break the "tap a link" flow). See the code-entry UI in
+  app/(app)/_components/code-entry-form.tsx.
+
+  The link is the fallback, and it links to /auth/callback with a token_hash
+  (verified server-side via verifyOtp in app/auth/callback/route.ts), NOT the
+  default ConfirmationURL PKCE code link, which is browser-bound and fails when
+  opened in a different browser than the one that requested it.
+  `{{ .RedirectTo }}` carries the per-request next path, so one template serves
+  both the app (next=/app) and admin (next=/admin) surfaces.
+-->
+<h2>Sign in to Coach Casey</h2>
+<p>Enter this code to sign in:</p>
+<p style="font-size:30px;font-weight:700;letter-spacing:6px;margin:8px 0;">{{ .Token }}</p>
+<p>Or tap to sign in (works on any device):</p>
+<p>
+  <a href="{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=magiclink">Sign in to Coach Casey</a>
+</p>
+<p>The code and link expire shortly. If you didn't request this, you can safely ignore this email.</p>

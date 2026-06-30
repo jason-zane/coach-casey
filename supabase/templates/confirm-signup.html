@@ -1,0 +1,16 @@
+<!--
+  Coach Casey signup-confirmation email. Same shape and rationale as
+  magic-link.html: lead with a 6-digit CODE ({{ .Token }}) the new user types
+  back into the same tab (no cross-browser handoff), with a server-verified
+  token_hash link (type=signup) as the fallback. Avoids the default
+  ConfirmationURL PKCE code link, which fails cross-device and dumps a brand-new
+  user on /signin?error=auth_failed before they ever reach onboarding.
+-->
+<h2>Confirm your Coach Casey account</h2>
+<p>Enter this code to confirm your email and start setting up:</p>
+<p style="font-size:30px;font-weight:700;letter-spacing:6px;margin:8px 0;">{{ .Token }}</p>
+<p>Or tap to confirm (works on any device):</p>
+<p>
+  <a href="{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=signup">Confirm and continue</a>
+</p>
+<p>The code and link expire shortly. If you didn't request this, you can safely ignore this email.</p>
