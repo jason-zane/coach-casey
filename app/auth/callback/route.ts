@@ -92,7 +92,7 @@ export async function GET(request: Request) {
         title: "Sign-in failed",
         body: `${code ? "code" : "token_hash"} flow — ${failure}`.slice(0, 140),
         tag: "auth-failed",
-        url: "/app/admin",
+        url: "/admin",
       }),
     ]);
   }

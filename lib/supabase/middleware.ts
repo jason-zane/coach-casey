@@ -12,6 +12,7 @@ function adminAllowlist(): string[] {
 
 /**
  * Refreshes the Supabase session on every request and enforces routing gates:
+ *   - Any /app/admin/*                  → /admin/* (legacy surface forward)
  *   - Unauthed on /app or /onboarding   → /signin
  *   - Unauthed on /admin (not /admin/login) → /admin/login
  *   - Authed non-admin on /admin/*      → /admin/login?error=forbidden
@@ -50,6 +51,20 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
+
+  // The in-app admin surface (/app/admin) was folded into the console at
+  // /admin. Old push notifications and bookmarks still deep-link here; forward
+  // them (subpath + query intact) before every auth gate — including the
+  // signed-out one below, which would otherwise treat /app/admin as an athlete
+  // route and bounce it to /signin. After the forward, the /admin gates route
+  // by auth: signed-out → /admin/login, signed-in non-admin → forbidden,
+  // admin → the console.
+  if (pathname.startsWith("/app/admin")) {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname.replace(/^\/app\/admin/, "/admin");
+    return NextResponse.redirect(url);
+  }
+
   const onProtected =
     pathname.startsWith("/app") || pathname.startsWith("/onboarding");
   const onAdminConsole =
@@ -169,24 +184,6 @@ export async function updateSession(request: NextRequest) {
     url.pathname = decision.pathname;
     url.search = decision.search ? `?${decision.search}` : "";
     return NextResponse.redirect(url);
-  }
-
-  // Admin gate. requireAdmin() in each admin page is the real check, but it
-  // runs inside page.tsx, so the route-level loading.tsx would stream the
-  // admin shell, confirming the surface exists and revealing its structure,
-  // to any signed-in non-admin who hits the URL before that redirect fires.
-  // Gate here so non-admins never reach the admin route renderer at all,
-  // preserving requireAdmin's "don't even confirm the route exists" intent.
-  // Mirrors isAdminEmail() in lib/admin/auth.ts; inlined to keep that
-  // server-only module (and its Supabase client import) out of the proxy.
-  if (pathname.startsWith("/app/admin")) {
-    const admins = adminAllowlist();
-    const email = user.email?.toLowerCase() ?? "";
-    if (!email || admins.length === 0 || !admins.includes(email)) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/app";
-      return NextResponse.redirect(url);
-    }
   }
 
   return supabaseResponse;

@@ -15,10 +15,12 @@ export const metadata: Metadata = {
 };
 
 /**
- * Desktop admin console shell: a persistent left rail of sections and a wide
- * content column. Gated by requireAdmin (the proxy already enforces the same
- * allowlist before this renders; this is defence in depth and gives the rail
- * the signed-in admin's email).
+ * Admin console shell. Desktop: a persistent left rail of sections and a wide
+ * content column. Phone: the rail collapses into a sticky header — wordmark +
+ * sign-out on the first row, the same nav as a scrollable chip bar beneath.
+ * Gated by requireAdmin (the proxy already enforces the same allowlist before
+ * this renders; this is defence in depth and gives the shell the signed-in
+ * admin's email).
  */
 export default async function ConsoleLayout({
   children,
@@ -34,22 +36,41 @@ export default async function ConsoleLayout({
   ]);
   const pendingAccess = requests.filter((r) => r.status === "pending").length;
 
+  const wordmark = (
+    <Link href="/admin" className="block">
+      <span
+        className="text-[18px] font-medium text-ink"
+        style={{ fontFamily: "var(--font-serif)" }}
+      >
+        Coach Casey
+      </span>
+      <span className="ml-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-subtle">
+        admin
+      </span>
+    </Link>
+  );
+
   return (
-    <div className="flex min-h-svh bg-paper text-ink">
-      <aside className="sticky top-0 flex h-svh w-[244px] shrink-0 flex-col border-r border-rule bg-surface">
-        <div className="px-5 py-6">
-          <Link href="/admin" className="block">
-            <span
-              className="text-[18px] font-medium text-ink"
-              style={{ fontFamily: "var(--font-serif)" }}
+    <div className="flex min-h-svh flex-col bg-paper text-ink md:flex-row">
+      {/* Phone: sticky header with a horizontal nav bar. */}
+      <header className="sticky top-0 z-10 border-b border-rule bg-surface md:hidden">
+        <div className="flex items-center justify-between px-4 pt-4 pb-3">
+          {wordmark}
+          <form action={signOutAdmin}>
+            <button
+              type="submit"
+              className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-subtle transition-colors hover:text-ink"
             >
-              Coach Casey
-            </span>
-            <span className="ml-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-subtle">
-              admin
-            </span>
-          </Link>
+              Sign out
+            </button>
+          </form>
         </div>
+        <AdminNav pendingAccess={pendingAccess} unread={unread} variant="bar" />
+      </header>
+
+      {/* Desktop: persistent left rail. */}
+      <aside className="sticky top-0 hidden h-svh w-[244px] shrink-0 flex-col border-r border-rule bg-surface md:flex">
+        <div className="px-5 py-6">{wordmark}</div>
 
         <AdminNav pendingAccess={pendingAccess} unread={unread} />
 
@@ -72,7 +93,7 @@ export default async function ConsoleLayout({
       </aside>
 
       <main className="min-w-0 flex-1">
-        <div className="mx-auto max-w-[1180px] px-6 py-10 sm:px-10">
+        <div className="mx-auto max-w-[1180px] px-4 py-6 sm:px-10 md:py-10">
           {children}
         </div>
       </main>

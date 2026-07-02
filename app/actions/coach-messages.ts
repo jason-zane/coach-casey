@@ -72,8 +72,8 @@ export async function sendCoachMessage(formData: FormData) {
     targetAthleteId: athleteId,
   });
 
-  revalidatePath(`/app/admin/messages/${athleteId}`);
-  revalidatePath("/app/admin/messages");
+  revalidatePath(`/admin/messages/${athleteId}`);
+  revalidatePath("/admin/messages");
 }
 
 /**
@@ -117,7 +117,7 @@ export async function broadcastCoachMessage(formData: FormData) {
     metadata: { count: ids.length },
   });
 
-  revalidatePath("/app/admin/messages");
+  revalidatePath("/admin/messages");
 }
 
 /**
@@ -146,7 +146,7 @@ export async function replyToCoach(formData: FormData): Promise<void> {
     title: `Reply from ${who}`,
     body,
     tag: `coach-reply-${athlete.id}`,
-    url: `/app/admin/messages/${athlete.id}`,
+    url: `/admin/messages/${athlete.id}`,
   });
 
   revalidatePath("/app/messages");

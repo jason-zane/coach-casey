@@ -10,16 +10,8 @@ type Item = {
   isActive: (pathname: string) => boolean;
 };
 
-export function AdminNav({
-  pendingAccess,
-  unread,
-}: {
-  pendingAccess: number;
-  unread: number;
-}) {
-  const pathname = usePathname();
-
-  const items: Item[] = [
+function navItems(pendingAccess: number, unread: number): Item[] {
+  return [
     {
       href: "/admin",
       label: "Overview",
@@ -48,6 +40,57 @@ export function AdminNav({
       isActive: (p) => p.startsWith("/admin/observability"),
     },
   ];
+}
+
+function Badge({ count }: { count: number }) {
+  return (
+    <span className="grid h-4 min-w-4 place-items-center rounded-full bg-accent px-1 font-mono text-[9px] leading-none text-accent-ink">
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
+/**
+ * Console navigation. `rail` is the desktop sidebar (vertical, in the left
+ * aside); `bar` is the phone variant — a horizontally scrollable row of
+ * chips under the mobile header. Same items, same active logic.
+ */
+export function AdminNav({
+  pendingAccess,
+  unread,
+  variant = "rail",
+}: {
+  pendingAccess: number;
+  unread: number;
+  variant?: "rail" | "bar";
+}) {
+  const pathname = usePathname();
+  const items = navItems(pendingAccess, unread);
+
+  if (variant === "bar") {
+    return (
+      <nav className="flex items-center gap-1.5 overflow-x-auto px-4 pb-2.5 [scrollbar-width:none]">
+        {items.map((item) => {
+          const active = item.isActive(pathname);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={active ? "page" : undefined}
+              className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 font-sans text-[12.5px] whitespace-nowrap transition-colors ${
+                active
+                  ? "border-accent/30 bg-accent/10 text-ink"
+                  : "border-rule text-ink-muted hover:text-ink"
+              }`}
+            >
+              {item.label}
+              {item.badge && item.badge > 0 ? <Badge count={item.badge} /> : null}
+            </Link>
+          );
+        })}
+      </nav>
+    );
+  }
 
   return (
     <nav className="flex flex-col gap-0.5 px-3">
@@ -73,11 +116,7 @@ export function AdminNav({
               />
               {item.label}
             </span>
-            {item.badge && item.badge > 0 ? (
-              <span className="grid h-4 min-w-4 place-items-center rounded-full bg-accent px-1 font-mono text-[9px] leading-none text-accent-ink">
-                {item.badge > 99 ? "99+" : item.badge}
-              </span>
-            ) : null}
+            {item.badge && item.badge > 0 ? <Badge count={item.badge} /> : null}
           </Link>
         );
       })}

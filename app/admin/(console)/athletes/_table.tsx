@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { AdminAthleteRow } from "@/lib/admin/page-data";
-import { TestUserToggle } from "@/app/(app)/app/admin/_test-user-toggle";
-import { GenerateWeeklyReviewButton } from "@/app/(app)/app/admin/_generate-weekly-review-button";
+import { TestUserToggle } from "@/app/admin/(console)/_components/test-user-toggle";
+import { GenerateWeeklyReviewButton } from "@/app/admin/(console)/_components/generate-weekly-review-button";
 import { RegenerateDebriefButton } from "../_components/regenerate-debrief-button";
 import { Th, Td, TableShell, Pill, shortDate } from "../_components/ui";
 

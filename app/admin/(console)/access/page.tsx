@@ -2,8 +2,8 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/admin/auth";
 import { listAccessRequests } from "@/lib/admin/access-requests";
 import { SITE_URL } from "@/lib/site-url";
-import { StatusSelect } from "@/app/(app)/app/admin/access/_status-select";
-import { CopyInvite } from "@/app/(app)/app/admin/access/_copy-invite";
+import { StatusSelect } from "@/app/admin/(console)/_components/status-select";
+import { CopyInvite } from "@/app/admin/(console)/_components/copy-invite";
 import {
   PageHeader,
   Section,
