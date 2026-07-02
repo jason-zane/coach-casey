@@ -44,7 +44,7 @@ export async function toggleTestUser(formData: FormData) {
     metadata: { target },
   });
 
-  revalidatePath("/app/admin");
+  revalidatePath("/admin", "layout");
 }
 
 const ACCESS_STATUSES = ["pending", "invited", "joined", "declined"] as const;
@@ -88,7 +88,7 @@ export async function setAccessRequestStatus(formData: FormData) {
     metadata: { id, status },
   });
 
-  revalidatePath("/app/admin/access");
+  revalidatePath("/admin", "layout");
 }
 
 /**
@@ -130,7 +130,7 @@ export async function adminGenerateWeeklyReview(formData: FormData) {
     metadata: { force, weekStart: weekStart ?? null, weekEnd: weekEnd ?? null },
   });
 
-  revalidatePath("/app/admin");
+  revalidatePath("/admin", "layout");
 }
 
 /**
@@ -153,10 +153,11 @@ export async function adminRegenerateLatestDebrief(formData: FormData) {
     throw new Error("adminRegenerateLatestDebrief: athlete_id required");
   }
 
-  // Where to land on error / after the action. Defaults to the in-app admin;
-  // the desktop console passes its own athlete route so the admin stays put.
+  // Where to land on error / after the action. Callers pass their own route
+  // (e.g. the athlete detail page) so the admin stays put; default to the
+  // console overview otherwise.
   const rawReturn = String(formData.get("return_to") ?? "").trim();
-  const returnTo = rawReturn ? safeNextPath(rawReturn) : "/app/admin";
+  const returnTo = rawReturn ? safeNextPath(rawReturn) : "/admin";
 
   const admin = createAdminClient();
   const { data: latest } = await admin
@@ -214,6 +215,6 @@ export async function adminRegenerateLatestDebrief(formData: FormData) {
     metadata: { activityId: latest.id },
   });
 
-  revalidatePath("/app/admin");
+  revalidatePath("/admin", "layout");
   revalidatePath(returnTo);
 }

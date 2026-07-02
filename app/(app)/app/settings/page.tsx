@@ -136,7 +136,7 @@ export default async function SettingsPage() {
             </p>
             <div className="pt-2">
               <Link
-                href="/app/admin"
+                href="/admin"
                 className="inline-flex items-center h-9 px-3 rounded-[6px] border border-rule text-ink text-[13px] font-medium hover:bg-rule/40 transition-colors duration-150"
               >
                 Open admin

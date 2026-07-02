@@ -249,7 +249,7 @@ export async function requestAccess(
         note ? `\nNote:\n${note}` : "",
         "",
         "Manage it in the admin surface:",
-        "https://www.coachcasey.app/app/admin/access",
+        "https://www.coachcasey.app/admin/access",
       ].join("\n"),
       replyTo: email,
     }),
@@ -257,7 +257,7 @@ export async function requestAccess(
       title: "New early-access request",
       body: summary,
       tag: "access-request",
-      url: "/app/admin/access",
+      url: "/admin/access",
     }),
   ]);
 
