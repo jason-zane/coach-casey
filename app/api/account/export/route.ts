@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { recordAuditEvent } from "@/lib/audit/log";
+import {
+  EXPORT_TABLE_SECTIONS,
+  type ExportTableSection,
+} from "@/lib/account/export-tables";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,6 +17,15 @@ export const dynamic = "force-dynamic";
  * Auth: Supabase session cookie. Admin client is used to read the full
  * set; we still scope every query by the resolved athlete_id so we can
  * never accidentally return another athlete's data.
+ *
+ * The table list lives in lib/account/export-tables.ts and is checked
+ * against the migrations by tests/account-export.test.ts.
+ *
+ * Resilience: a single unreadable table must not take down the whole
+ * export (this endpoint backs a legal commitment, and a total 500 leaves
+ * the athlete with nothing). A failed section is exported as null with an
+ * entry in export_metadata.warnings; only failing to resolve the athlete
+ * itself is fatal.
  *
  * Strava OAuth tokens are deliberately excluded, the athlete already has
  * their data on Strava and exposing the access token serves no
@@ -47,94 +60,96 @@ export async function GET() {
 
   type AnyRow = Record<string, unknown>;
 
-  const fetchAll = async (table: string, columns = "*", order?: string) => {
-    let q = admin.from(table).select(columns).eq("athlete_id", athleteId);
-    if (order) q = q.order(order, { ascending: true });
-    const { data, error } = await q;
-    if (error) throw new Error(`export ${table} failed: ${error.message}`);
-    return (data as unknown as AnyRow[] | null) ?? [];
+  const warnings: string[] = [];
+  const warn = (section: string, err: unknown) => {
+    console.error(`account export: ${section} failed`, err);
+    warnings.push(
+      `${section}: could not be read; exported as null instead of its data. ` +
+        "Retry later or contact support for a complete copy.",
+    );
   };
 
-  let payload: Record<string, unknown>;
-  try {
-    // Strava connection, strip secrets.
-    const { data: stravaConnRaw, error: stravaError } = await admin
-      .from("strava_connections")
-      .select("athlete_id, strava_athlete_id, scope, is_mock, connected_at, created_at, updated_at")
-      .eq("athlete_id", athleteId)
-      .maybeSingle();
-    if (stravaError) throw new Error(`export strava connection failed: ${stravaError.message}`);
+  const fetchSection = async (
+    s: ExportTableSection,
+  ): Promise<AnyRow[] | null> => {
+    try {
+      let q = admin
+        .from(s.table)
+        .select(s.columns ?? "*")
+        .eq("athlete_id", athleteId);
+      if (s.order) q = q.order(s.order, { ascending: true });
+      const { data, error } = await q;
+      if (error) throw new Error(error.message);
+      return (data as unknown as AnyRow[] | null) ?? [];
+    } catch (err) {
+      warn(s.table, err);
+      return null;
+    }
+  };
 
-    const [
-      activities,
-      activityLaps,
-      messages,
-      memoryItems,
-      validationObservations,
-      trainingPlans,
-      goalRaces,
-      preferences,
-      pushSubscriptions,
-      trials,
-      athleteInsights,
-    ] = await Promise.all([
-      fetchAll("activities", "*", "start_date_local"),
-      fetchAll("activity_laps", "*", "lap_index"),
-      fetchAll("messages", "*", "created_at"),
-      fetchAll("memory_items", "*", "created_at"),
-      fetchAll("validation_observations", "*", "sequence_idx"),
-      fetchAll("training_plans", "*", "created_at"),
-      fetchAll("goal_races", "*", "race_date"),
-      admin
-        .from("preferences")
-        .select("*")
+  // Singleton rows read outside the generic loop. The Strava connection is
+  // narrowed to strip OAuth secrets.
+  const fetchSingle = async (
+    section: string,
+    table: string,
+    columns: string,
+  ): Promise<AnyRow | null> => {
+    try {
+      const { data, error } = await admin
+        .from(table)
+        .select(columns)
         .eq("athlete_id", athleteId)
-        .maybeSingle()
-        .then(({ data, error }) => {
-          if (error) throw new Error(`export preferences failed: ${error.message}`);
-          return data ? [data] : [];
-        }),
-      fetchAll(
-        "push_subscriptions",
-        "endpoint, created_at, last_used_at, last_error_at, last_error_code",
-      ),
-      fetchAll("trials", "*", "started_at"),
-      fetchAll("athlete_insights", "*", "recorded_at"),
-    ]);
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return (data as AnyRow | null) ?? null;
+    } catch (err) {
+      warn(section, err);
+      return null;
+    }
+  };
 
-    payload = {
-      export_metadata: {
-        generated_at: new Date().toISOString(),
-        coach_casey_export_version: 1,
-        athlete_id: athleteId,
-        notes:
-          "Full athlete-owned data export. Strava OAuth tokens are excluded. " +
-          "See Privacy Policy at /privacy for context on retention and deletion.",
-      },
-      athlete,
-      strava_connection: stravaConnRaw ?? null,
-      activities,
-      activity_laps: activityLaps,
-      messages,
-      memory_items: memoryItems,
-      validation_observations: validationObservations,
-      training_plans: trainingPlans,
-      goal_races: goalRaces,
-      preferences: preferences[0] ?? null,
-      push_subscriptions: pushSubscriptions,
-      trials,
-      athlete_insights: athleteInsights,
-    };
-  } catch (err) {
-    console.error("account export failed", err);
-    return NextResponse.json({ error: "export failed" }, { status: 500 });
-  }
+  const [sectionRows, stravaConnection, preferencesRow] = await Promise.all([
+    Promise.all(EXPORT_TABLE_SECTIONS.map(fetchSection)),
+    fetchSingle(
+      "strava_connection",
+      "strava_connections",
+      "athlete_id, strava_athlete_id, scope, is_mock, connected_at, created_at, updated_at",
+    ),
+    fetchSingle("preferences", "preferences", "*"),
+  ]);
+
+  const sections: Record<string, AnyRow[] | null> = {};
+  EXPORT_TABLE_SECTIONS.forEach((s, i) => {
+    sections[s.table] = sectionRows[i];
+  });
+
+  const payload = {
+    export_metadata: {
+      generated_at: new Date().toISOString(),
+      // v2: added activity_notes and coach_messages sections, dropped the
+      // never-populated activity_laps key (laps are embedded in each
+      // activities row), added complete/warnings.
+      coach_casey_export_version: 2,
+      athlete_id: athleteId,
+      complete: warnings.length === 0,
+      warnings,
+      notes:
+        "Full athlete-owned data export. Strava OAuth tokens are excluded. " +
+        "Lap data is embedded in each activity row under 'laps'. " +
+        "See Privacy Policy at /privacy for context on retention and deletion.",
+    },
+    athlete,
+    strava_connection: stravaConnection,
+    preferences: preferencesRow,
+    ...sections,
+  };
 
   await recordAuditEvent({
     actorType: "athlete",
     actorId: athleteId,
     action: "account.export",
     targetAthleteId: athleteId,
+    metadata: { complete: warnings.length === 0, warning_count: warnings.length },
   });
 
   const filename = `coach-casey-export-${new Date().toISOString().slice(0, 10)}.json`;

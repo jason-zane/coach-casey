@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { resolveAthleteRoute } from "@/lib/onboarding/routing";
 
 /** Comma-separated ADMIN_EMAILS, normalised to a lowercase list. */
 function adminAllowlist(): string[] {
@@ -15,10 +16,9 @@ function adminAllowlist(): string[] {
  *   - Unauthed on /admin (not /admin/login) → /admin/login
  *   - Authed non-admin on /admin/*      → /admin/login?error=forbidden
  *   - Authed admin on /admin/login      → /admin
- *   - Authed on /signin or /signup      → /app (onboarding gate below may redirect)
- *   - Authed + onboarding incomplete on /app → /onboarding
- *   - Authed + onboarding complete on /onboarding → /app
- *   - Authed + onboarding incomplete on exact /onboarding → /onboarding/{currentStep}
+ *   - Athlete routing gates: see resolveAthleteRoute() in
+ *     lib/onboarding/routing.ts (signin/signup bounce, onboarding gate,
+ *     DOB backfill hold, forward-jump gate)
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -156,44 +156,18 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
-  const onboardingComplete = Boolean(athlete?.onboarding_completed_at);
-  const currentStep = athlete?.onboarding_current_step ?? "strava";
-
-  if (pathname === "/signin" || pathname === "/signup") {
+  const decision = resolveAthleteRoute({
+    pathname,
+    searchParams: request.nextUrl.searchParams,
+    onboardingComplete: Boolean(athlete?.onboarding_completed_at),
+    currentStep: athlete?.onboarding_current_step ?? "strava",
+    hasDateOfBirth: Boolean(athlete?.date_of_birth),
+    userAgent: request.headers.get("user-agent"),
+  });
+  if (decision) {
     const url = request.nextUrl.clone();
-    url.pathname = onboardingComplete ? "/app" : "/onboarding";
-    return NextResponse.redirect(url);
-  }
-
-  if (pathname.startsWith("/app") && !onboardingComplete) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/onboarding";
-    return NextResponse.redirect(url);
-  }
-
-  if (pathname.startsWith("/onboarding") && onboardingComplete) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/app";
-    return NextResponse.redirect(url);
-  }
-
-  if (pathname === "/onboarding" || pathname === "/onboarding/") {
-    const url = request.nextUrl.clone();
-    url.pathname = `/onboarding/${currentStep}`;
-    return NextResponse.redirect(url);
-  }
-
-  // DOB backfill: athletes whose onboarding pre-dates the about-you
-  // step have a completed_at but no date_of_birth. Hold them on the
-  // backfill step until they fill it in.
-  if (
-    pathname.startsWith("/app") &&
-    onboardingComplete &&
-    !athlete?.date_of_birth
-  ) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/onboarding/about-you";
-    url.searchParams.set("backfill", "1");
+    url.pathname = decision.pathname;
+    url.search = decision.search ? `?${decision.search}` : "";
     return NextResponse.redirect(url);
   }
 

@@ -5,6 +5,7 @@ import { Suspense, useActionState } from "react";
 import { useSearchParams } from "next/navigation";
 import { requestSignInLink, signInWithGoogle } from "@/app/actions/auth";
 import { GoogleButton } from "@/app/(app)/_components/google-button";
+import { CodeEntryForm } from "@/app/(app)/_components/code-entry-form";
 
 export default function SignInPage() {
   return (
@@ -22,6 +23,16 @@ function SignInForm() {
   const searchParams = useSearchParams();
   const urlError = searchParams.get("error");
 
+  // After requesting a link we drop straight into same-tab code entry — the
+  // robust path on phones. The emailed link still works as a fallback.
+  if (state && "sent" in state) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center px-6 py-12">
+        <CodeEntryForm email={state.email} next="/app" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-dvh items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm space-y-10">
@@ -34,84 +45,68 @@ function SignInForm() {
           </p>
         </header>
 
-        {state && "sent" in state ? (
-          <div className="space-y-3 rounded-md border border-rule bg-surface p-5">
-            <p className="font-serif text-[18px] text-ink">Check your email.</p>
-            <p className="font-sans text-[13px] leading-[1.55] text-ink-muted">
-              If{" "}
-              <span className="font-mono text-[12px] text-ink">
-                {state.email}
-              </span>{" "}
-              has an account, a one-tap sign-in link is on its way. It expires
-              shortly, so use it soon.
-            </p>
+        <form action={signInWithGoogle}>
+          <GoogleButton />
+        </form>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center" aria-hidden>
+            <div className="w-full border-t rule" />
           </div>
-        ) : (
-          <>
-            <form action={signInWithGoogle}>
-              <GoogleButton />
-            </form>
+          <div className="relative flex justify-center">
+            <span className="bg-paper px-3 font-mono text-xs uppercase tracking-wide text-ink-subtle">
+              Or
+            </span>
+          </div>
+        </div>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center" aria-hidden>
-                <div className="w-full border-t rule" />
-              </div>
-              <div className="relative flex justify-center">
-                <span className="bg-paper px-3 font-mono text-xs uppercase tracking-wide text-ink-subtle">
-                  Or
-                </span>
-              </div>
-            </div>
+        <form action={formAction} className="space-y-5">
+          <div className="space-y-1.5">
+            <label
+              htmlFor="email"
+              className="block font-sans text-sm text-ink-muted"
+            >
+              Email
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              autoFocus
+              className="w-full rounded-md border border-rule bg-transparent px-3 py-2.5 font-sans text-sm text-ink outline-none transition-colors focus:border-accent"
+            />
+          </div>
 
-            <form action={formAction} className="space-y-5">
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="email"
-                  className="block font-sans text-sm text-ink-muted"
-                >
-                  Email
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  autoFocus
-                  className="w-full rounded-md border border-rule bg-transparent px-3 py-2.5 font-sans text-sm text-ink outline-none transition-colors focus:border-accent"
-                />
-              </div>
-
-              {(state && "error" in state) || urlError ? (
-                <p role="alert" className="font-sans text-sm text-red-700">
-                  {state && "error" in state
-                    ? state.error
-                    : urlError === "invite_required"
-                      ? "That account doesn’t have access yet — Coach Casey is invite-only right now. Use your invite link to create an account, or request access from the sign-up page."
-                      : "Something went wrong. Please try again."}
-                </p>
-              ) : null}
-
-              <button
-                type="submit"
-                disabled={isPending}
-                className="w-full rounded-md bg-accent px-4 py-3 font-sans text-sm text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50"
-              >
-                {isPending ? "Sending…" : "Email me a sign-in link"}
-              </button>
-            </form>
-
-            <p className="text-center font-sans text-sm text-ink-muted">
-              New here?{" "}
-              <Link
-                href="/signup"
-                className="text-accent underline-offset-4 hover:underline"
-              >
-                Create an account
-              </Link>
+          {(state && "error" in state) || urlError ? (
+            <p role="alert" className="font-sans text-sm text-red-700">
+              {state && "error" in state
+                ? state.error
+                : urlError === "invite_required"
+                  ? "That account doesn’t have access yet — Coach Casey is invite-only right now. Use your invite link to create an account, or request access from the sign-up page."
+                  : "Something went wrong. Please try again."}
             </p>
-          </>
-        )}
+          ) : null}
+
+          <button
+            type="submit"
+            disabled={isPending}
+            className="w-full rounded-md bg-accent px-4 py-3 font-sans text-sm text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
+            {isPending ? "Sending…" : "Email me a code"}
+          </button>
+        </form>
+
+        <p className="text-center font-sans text-sm text-ink-muted">
+          New here?{" "}
+          <Link
+            href="/signup"
+            className="text-accent underline-offset-4 hover:underline"
+          >
+            Create an account
+          </Link>
+        </p>
       </div>
     </div>
   );

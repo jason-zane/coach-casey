@@ -6,8 +6,10 @@ import { cookies, headers } from "next/headers";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { mayCreateAccount } from "@/lib/auth/invite";
 import { INVITE_COOKIE, INVITE_COOKIE_PATH } from "@/lib/auth/invite-cookie";
+import { enforceSignupGate } from "@/lib/auth/signup-gate";
 import { notifyFounder } from "@/lib/notify";
 import { pushAdmins } from "@/lib/admin/notify-admins";
+import { safeNextPath } from "@/lib/security/redirects";
 import { SITE_URL } from "@/lib/site-url";
 
 export type AuthState =
@@ -54,13 +56,80 @@ export async function requestSignInLink(
       emailRedirectTo: await appCallbackUrl(),
     },
   });
-  // Swallow send errors (e.g. "user not found", rate limits) into the generic
-  // response so we never reveal whether the address has an account.
   if (error) {
     console.error("[auth] sign-in magic link send failed (non-fatal)", error);
+    // A rate-limit is keyed on IP / global send volume, not on whether the
+    // address has an account, so surfacing it leaks nothing about who's
+    // registered — and silently swallowing it leaves the user staring at a
+    // "check your email" message for a link that was never sent. Every other
+    // error (e.g. "user not found") stays swallowed behind the generic
+    // response below so this surface can't be used to probe accounts.
+    if (error.status === 429 || error.code === "over_email_send_rate_limit") {
+      return {
+        error: "Too many sign-in links requested. Wait a minute, then try again.",
+      };
+    }
   }
 
   return { sent: true, email };
+}
+
+/**
+ * Verify the 6-digit code from the sign-in / sign-up email and establish the
+ * session — the same-tab alternative to the magic link. verifyOtp sets the
+ * session cookie server-side, so there is no PKCE / cross-browser dependency:
+ * this is what makes mobile signup (request code → type it back in the same
+ * tab → install the PWA) reliable. Tries the 'email' OTP type first
+ * (signInWithOtp codes), falling back to 'signup' so one action serves both
+ * returning and brand-new accounts.
+ */
+export async function verifyEmailCode(
+  _prev: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
+  const code = String(formData.get("code") ?? "").replace(/\D/g, "");
+  const next = safeNextPath(String(formData.get("next") ?? "/app"));
+
+  if (!email || !EMAIL_RE.test(email)) {
+    return { error: "Something went wrong. Head back and request a new code." };
+  }
+  if (!/^\d{6}$/.test(code)) {
+    return { error: "Enter the 6-digit code from your email." };
+  }
+
+  const supabase = await createClient();
+  let { data, error } = await supabase.auth.verifyOtp({
+    email,
+    token: code,
+    type: "email",
+  });
+  if (error) {
+    ({ data, error } = await supabase.auth.verifyOtp({
+      email,
+      token: code,
+      type: "signup",
+    }));
+  }
+  if (error) {
+    return {
+      error: "That code didn't work. It may have expired — request a new one.",
+    };
+  }
+
+  // Same invite gate as /auth/callback: this is a session-minting surface,
+  // and the code email can be triggered straight against GoTrue with the
+  // public anon key, bypassing the invite check in requestSignUpLink.
+  if (
+    data.user &&
+    (await enforceSignupGate(supabase, data.user)) === "refused"
+  ) {
+    redirect("/signin?error=invite_required");
+  }
+
+  redirect(next);
 }
 
 /**

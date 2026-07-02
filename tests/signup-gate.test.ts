@@ -37,20 +37,31 @@ test("Google signup validates the invite before OAuth and parks it in a cookie",
   assert.match(src, /httpOnly: true/);
 });
 
-test("auth callback refuses accounts minted around the gate, on both exchange paths", () => {
-  const src = readFileSync("app/auth/callback/route.ts", "utf8");
+test("the post-session gate stamps invited accounts and deletes the rest", () => {
+  const src = readFileSync("lib/auth/signup-gate.ts", "utf8");
   assert.match(src, /signup_authorized_at/);
   assert.match(src, /mayCreateAccount\(invite\)/);
   assert.match(src, /auth\.admin\.deleteUser/);
+});
+
+test("auth callback runs the gate on both exchange paths", () => {
+  const src = readFileSync("app/auth/callback/route.ts", "utf8");
   assert.match(src, /invite_required/);
   // Both the ?code= (OAuth + PKCE magic link) and ?token_hash= (cross-device
   // magic link) branches must run the gate — GoTrue's /auth/v1/otp can mint
   // users directly with the anon key too.
   assert.equal(
-    src.match(/refuseUnauthorizedSignup\(supabase/g)?.length ?? 0,
+    src.match(/enforceSignupGate\(supabase/g)?.length ?? 0,
     2,
     "both exchange branches must run the signup gate",
   );
+});
+
+test("same-tab code entry runs the gate too", () => {
+  const src = readFileSync("app/actions/auth.ts", "utf8");
+  // verifyEmailCode mints sessions without touching /auth/callback, so it
+  // must enforce the same gate.
+  assert.match(src, /enforceSignupGate\(supabase, data\.user\)/);
 });
 
 test("proxy blocks unauthorized accounts on every matched request", () => {

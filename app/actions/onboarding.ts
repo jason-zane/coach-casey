@@ -8,6 +8,7 @@ import { signupsOpen } from "@/lib/auth/invite";
 import {
   type OnboardingStep,
   nextStep,
+  stepIsAhead,
   stepOrderFor,
 } from "@/lib/onboarding/steps";
 import { kickOffHistoryBackfill } from "@/lib/strava/backfill";
@@ -22,7 +23,7 @@ export async function requireAthlete() {
   const { data: athlete } = await supabase
     .from("athletes")
     .select(
-      "id, onboarding_current_step, onboarding_completed_at, deleted_at, signup_authorized_at",
+      "id, onboarding_current_step, onboarding_completed_at, date_of_birth, deleted_at, signup_authorized_at",
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -50,6 +51,16 @@ export async function advanceFrom(current: OnboardingStep) {
   const admin = createAdminClient();
   const ua = (await headers()).get("user-agent");
   const order = stepOrderFor(ua);
+
+  // Step completion is positional (current → current + 1), so `current` must
+  // never be a step the athlete hasn't reached: accepting it would mark every
+  // step in between done without them ever rendering. The middleware gates
+  // page loads the same way; this covers direct action invocation.
+  const cursor = (athlete.onboarding_current_step ?? "strava") as OnboardingStep;
+  if (stepIsAhead(current, cursor, order)) {
+    redirect(`/onboarding/${cursor}`);
+  }
+
   const next = nextStep(current, order);
 
   if (next === "done") {
@@ -67,6 +78,18 @@ export async function advanceFrom(current: OnboardingStep) {
 export async function completeOnboarding() {
   const { athlete } = await requireAthlete();
   const admin = createAdminClient();
+
+  // Completion invariant: an athlete with onboarding_completed_at set but no
+  // date_of_birth is locked out of /app by the DOB-backfill hold, so never
+  // mint that state — park them back on about-you instead.
+  if (!athlete.date_of_birth) {
+    await admin
+      .from("athletes")
+      .update({ onboarding_current_step: "about-you" })
+      .eq("id", athlete.id);
+    revalidatePath("/onboarding", "layout");
+    redirect("/onboarding/about-you");
+  }
 
   const trialDays = 14;
   const endsAt = new Date();
