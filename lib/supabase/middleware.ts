@@ -12,6 +12,7 @@ function adminAllowlist(): string[] {
 
 /**
  * Refreshes the Supabase session on every request and enforces routing gates:
+ *   - Any /app/admin/*                  → /admin/* (legacy surface forward)
  *   - Unauthed on /app or /onboarding   → /signin
  *   - Unauthed on /admin (not /admin/login) → /admin/login
  *   - Authed non-admin on /admin/*      → /admin/login?error=forbidden
@@ -50,6 +51,20 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
+
+  // The in-app admin surface (/app/admin) was folded into the console at
+  // /admin. Old push notifications and bookmarks still deep-link here; forward
+  // them (subpath + query intact) before every auth gate — including the
+  // signed-out one below, which would otherwise treat /app/admin as an athlete
+  // route and bounce it to /signin. After the forward, the /admin gates route
+  // by auth: signed-out → /admin/login, signed-in non-admin → forbidden,
+  // admin → the console.
+  if (pathname.startsWith("/app/admin")) {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname.replace(/^\/app\/admin/, "/admin");
+    return NextResponse.redirect(url);
+  }
+
   const onProtected =
     pathname.startsWith("/app") || pathname.startsWith("/onboarding");
   const onAdminConsole =
@@ -154,17 +169,6 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url);
     }
     return supabaseResponse;
-  }
-
-  // The in-app admin surface (/app/admin) was folded into the console at
-  // /admin. Old push notifications and bookmarks still deep-link here, so
-  // forward them, subpath and query intact — before the athlete routing gate,
-  // since an admin needn't have an athlete row. The console gate above
-  // handles authorization on the follow-up request.
-  if (pathname.startsWith("/app/admin")) {
-    const url = request.nextUrl.clone();
-    url.pathname = pathname.replace(/^\/app\/admin/, "/admin");
-    return NextResponse.redirect(url);
   }
 
   const decision = resolveAthleteRoute({
