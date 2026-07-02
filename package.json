@@ -17,7 +17,9 @@
     "db:push": "node --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/db-push.mts",
     "db:push:dry": "node --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/db-push.mts --dry-run",
     "smtp:configure": "node --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/configure-supabase-smtp.mts",
-    "smtp:configure:dry": "node --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/configure-supabase-smtp.mts --dry-run"
+    "smtp:configure:dry": "node --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/configure-supabase-smtp.mts --dry-run",
+    "email:configure": "node --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/configure-supabase-email-templates.mts",
+    "email:configure:dry": "node --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/configure-supabase-email-templates.mts --dry-run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",

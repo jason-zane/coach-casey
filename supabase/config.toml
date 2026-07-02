@@ -222,6 +222,22 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
+# Cross-device magic-link / signup-confirmation emails. These link to
+# /auth/callback with `token_hash` (verified server-side via verifyOtp) instead
+# of the default `{{ .ConfirmationURL }}` PKCE `?code=`, which is browser-bound
+# and fails when the link is opened in a different browser than the one that
+# requested it (e.g. tapping the link in the Gmail app on mobile). See
+# app/auth/callback/route.ts. NOTE: applying these to the hosted project
+# requires `supabase config push` (or pasting the HTML into the dashboard's
+# Auth → Email Templates) — config.toml alone only changes local dev.
+[auth.email.template.magic_link]
+subject = "Your Coach Casey sign-in link"
+content_path = "./supabase/templates/magic-link.html"
+
+[auth.email.template.confirmation]
+subject = "Confirm your Coach Casey account"
+content_path = "./supabase/templates/confirm-signup.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"
