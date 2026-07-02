@@ -92,6 +92,26 @@ export function nextStep(
   return order[idx + 1];
 }
 
+/**
+ * True when `step` sits after `cursor` in `order` — i.e. the athlete hasn't
+ * reached it yet. Used to stop direct navigation (and the positional
+ * advanceFrom() it would trigger) from skipping steps: completing a later
+ * step's action would silently mark every earlier one done, including
+ * about-you's DOB capture. Steps missing from this UA's order (a cursor
+ * set on mobile, revisited on desktop) are treated as not-ahead rather
+ * than guessed at.
+ */
+export function stepIsAhead(
+  step: OnboardingStep,
+  cursor: OnboardingStep,
+  order: OnboardingStep[],
+): boolean {
+  const stepIdx = order.indexOf(step);
+  const cursorIdx = order.indexOf(cursor);
+  if (stepIdx === -1 || cursorIdx === -1) return false;
+  return stepIdx > cursorIdx;
+}
+
 export const STEP_TITLES: Record<OnboardingStep, string> = {
   strava: "Connect Strava",
   "about-you": "About you",
