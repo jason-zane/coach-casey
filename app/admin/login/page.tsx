@@ -4,6 +4,7 @@ import { Suspense, useActionState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { requestAdminMagicLink } from "@/app/actions/admin-auth";
+import { CodeEntryForm } from "@/app/(app)/_components/code-entry-form";
 
 export default function AdminLoginPage() {
   return (
@@ -28,6 +29,18 @@ function AdminLoginForm() {
         ? "That link didn't work. Request a fresh one below."
         : null;
 
+  // After the code is sent, drop straight into same-tab code entry, exactly
+  // like /signin. The email leads with a 6-digit code (and carries the link as
+  // a fallback); verifyEmailCode establishes the session and redirects to
+  // /admin, where the middleware re-checks the allowlist as the real gate.
+  if (state && "sent" in state) {
+    return (
+      <div className="flex min-h-svh items-center justify-center bg-paper px-6 py-16 text-ink">
+        <CodeEntryForm email={state.email} next="/admin" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-svh items-center justify-center bg-paper px-6 py-16 text-ink">
       <div className="w-full max-w-sm space-y-10">
@@ -42,25 +55,13 @@ function AdminLoginForm() {
             Admin
           </h1>
           <p className="font-sans text-[14px] leading-[1.55] text-ink-muted">
-            Sign in with a magic link. Enter your admin email and we&rsquo;ll
-            send a one-tap link to get you in.
+            Enter your admin email and we&rsquo;ll send you a sign-in code. Type
+            it back in on the next screen&mdash;or use the link in the same
+            email.
           </p>
         </header>
 
-        {state && "sent" in state ? (
-          <div className="space-y-3 rounded-md border border-rule bg-surface p-5">
-            <p className="font-serif text-[18px] text-ink">Check your email.</p>
-            <p className="font-sans text-[13px] leading-[1.55] text-ink-muted">
-              If{" "}
-              <span className="font-mono text-[12px] text-ink">
-                {state.email}
-              </span>{" "}
-              is an admin, a sign-in link is on its way. It expires shortly, so
-              use it soon.
-            </p>
-          </div>
-        ) : (
-          <form action={formAction} className="space-y-5">
+        <form action={formAction} className="space-y-5">
             <div className="space-y-1.5">
               <label
                 htmlFor="email"
@@ -91,10 +92,9 @@ function AdminLoginForm() {
               disabled={isPending}
               className="w-full rounded-md bg-accent px-4 py-3 font-sans text-[14px] text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              {isPending ? "Sending…" : "Send magic link"}
+              {isPending ? "Sending…" : "Email me a code"}
             </button>
           </form>
-        )}
 
         <p className="text-center font-sans text-[12px] text-ink-subtle">
           <Link href="/" className="underline-offset-4 hover:underline">
