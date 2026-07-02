@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin/auth";
 import { SITE_URL } from "@/lib/site-url";
 
@@ -46,6 +46,23 @@ export async function requestAdminMagicLink(
     // found" / rate-limit details here would leak allowlist membership.
     if (error) {
       console.error("[admin-auth] magic link send failed (non-fatal)", error);
+    } else {
+      // A first-time admin sign-in creates the account at send time, and the
+      // auth trigger adds an athlete row without signup_authorized_at — which
+      // the invite gate (lib/auth/signup-gate.ts) would delete at the
+      // callback. Allow-listed admins are authorized by definition, so stamp
+      // them here exactly like the invited signup flow does.
+      const { error: stampError } = await createAdminClient()
+        .from("athletes")
+        .update({ signup_authorized_at: new Date().toISOString() })
+        .eq("email", email)
+        .is("signup_authorized_at", null);
+      if (stampError) {
+        console.error(
+          "[admin-auth] failed to authorize admin account (non-fatal)",
+          stampError,
+        );
+      }
     }
   }
 

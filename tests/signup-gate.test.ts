@@ -64,6 +64,15 @@ test("same-tab code entry runs the gate too", () => {
   assert.match(src, /enforceSignupGate\(supabase, data\.user\)/);
 });
 
+test("first-time admin sign-ins are stamped, not deleted", () => {
+  const src = readFileSync("app/actions/admin-auth.ts", "utf8");
+  // requestAdminMagicLink creates the account at send time
+  // (shouldCreateUser: true); without the stamp the callback gate would
+  // delete a brand-new admin on their first link click.
+  assert.match(src, /update\(\{ signup_authorized_at/);
+  assert.match(src, /is\("signup_authorized_at", null\)/);
+});
+
 test("proxy blocks unauthorized accounts on every matched request", () => {
   const src = readFileSync("lib/supabase/middleware.ts", "utf8");
   assert.match(src, /signup_authorized_at/);
