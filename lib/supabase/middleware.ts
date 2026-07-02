@@ -82,7 +82,7 @@ export async function updateSession(request: NextRequest) {
   const { data: athlete } = await supabase
     .from("athletes")
     .select(
-      "onboarding_current_step, onboarding_completed_at, date_of_birth, deleted_at",
+      "onboarding_current_step, onboarding_completed_at, date_of_birth, deleted_at, signup_authorized_at",
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -98,6 +98,30 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.search = "deleted=1";
+    const redirectResponse = NextResponse.redirect(url);
+    for (const cookie of supabaseResponse.cookies.getAll()) {
+      redirectResponse.cookies.set(cookie);
+    }
+    return redirectResponse;
+  }
+
+  // Invite gate (see lib/auth/invite.ts). While signups are closed, an
+  // athlete row without signup_authorized_at means the account was minted
+  // around the gate — Google OAuth, or GoTrue's self-serve endpoints called
+  // directly with the public anon key. /auth/callback deletes such accounts
+  // when it sees them; this catches sessions that skipped the callback
+  // (e.g. tokens obtained straight from the Auth API), on every matched
+  // request including /api routes. OPEN_SIGNUP is read inline to keep the
+  // server-only invite module out of the proxy, like adminAllowlist below.
+  if (
+    athlete &&
+    !athlete.signup_authorized_at &&
+    process.env.OPEN_SIGNUP !== "true"
+  ) {
+    await supabase.auth.signOut();
+    const url = request.nextUrl.clone();
+    url.pathname = "/signin";
+    url.search = "error=invite_required";
     const redirectResponse = NextResponse.redirect(url);
     for (const cookie of supabaseResponse.cookies.getAll()) {
       redirectResponse.cookies.set(cookie);

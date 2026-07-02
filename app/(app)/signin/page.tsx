@@ -83,7 +83,9 @@ function SignInForm() {
             <p role="alert" className="font-sans text-sm text-red-700">
               {state && "error" in state
                 ? state.error
-                : "Something went wrong. Please try again."}
+                : urlError === "invite_required"
+                  ? "That account doesn’t have access yet — Coach Casey is invite-only right now. Use your invite link to create an account, or request access from the sign-up page."
+                  : "Something went wrong. Please try again."}
             </p>
           ) : null}
 

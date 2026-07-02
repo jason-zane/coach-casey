@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { enforceSignupGate } from "@/lib/auth/signup-gate";
 import { safeNextPath } from "@/lib/security/redirects";
 import { captureError } from "@/lib/observability/capture";
 import { notifyFounder } from "@/lib/notify";
@@ -17,6 +18,12 @@ import { pushAdmins } from "@/lib/admin/notify-admins";
  *                     supabase/templates/magic-link.html.
  * `next` is validated to an internal path; on failure we send the visitor back
  * to whichever sign-in surface they came from (admin vs the main app).
+ *
+ * Both paths run the invite gate (lib/auth/signup-gate.ts) after the session
+ * is established: accounts minted around the invite check — Google OAuth, or
+ * GoTrue's self-serve endpoints called directly with the public anon key —
+ * are deleted and refused unless signups are open or the visitor carried a
+ * valid invite through the round-trip (see signUpWithGoogle).
  */
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -30,27 +37,30 @@ export async function GET(request: Request) {
   let failure: string | null = null;
 
   if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error && data.user) {
+      if ((await enforceSignupGate(supabase, data.user)) === "refused") {
+        return NextResponse.redirect(`${origin}/signin?error=invite_required`);
+      }
       return NextResponse.redirect(`${origin}${next}`);
     }
-    failure = `exchangeCodeForSession: ${error.message}`;
+    failure = `exchangeCodeForSession: ${error?.message ?? "no user in exchange result"}`;
   } else if (tokenHash && type) {
-    const { error } = await supabase.auth.verifyOtp({
+    const { data, error } = await supabase.auth.verifyOtp({
       type,
       token_hash: tokenHash,
     });
-    if (!error) {
+    if (!error && data.user) {
+      if ((await enforceSignupGate(supabase, data.user)) === "refused") {
+        return NextResponse.redirect(`${origin}/signin?error=invite_required`);
+      }
       return NextResponse.redirect(`${origin}${next}`);
     }
-    failure = `verifyOtp: ${error.message}`;
+    failure = `verifyOtp: ${error?.message ?? "no user in verify result"}`;
   } else {
     failure = "no code or token_hash on callback";
   }
 
-  // Auth-callback failures were previously invisible (silent redirect to
-  // ?error=auth_failed). Capture them so a broken sign-in shows up in the
-  // observability dashboard. Best-effort and never throws.
   const err = new Error(`auth callback failed — ${failure}`);
   err.name = "AuthCallbackError";
   await captureError(err, {
@@ -63,9 +73,6 @@ export async function GET(request: Request) {
     },
   });
 
-  // A failed *verification* (vs a bot hitting the bare callback) means a real
-  // sign-in/sign-up funnel is broken — alert admins so it's never silently
-  // swallowed again. Both channels are best-effort and never throw.
   if (code || (tokenHash && type)) {
     await Promise.all([
       notifyFounder({
