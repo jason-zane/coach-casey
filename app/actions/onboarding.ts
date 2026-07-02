@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { signupsOpen } from "@/lib/auth/invite";
 import {
   type OnboardingStep,
   nextStep,
@@ -20,7 +21,9 @@ export async function requireAthlete() {
 
   const { data: athlete } = await supabase
     .from("athletes")
-    .select("id, onboarding_current_step, onboarding_completed_at, deleted_at")
+    .select(
+      "id, onboarding_current_step, onboarding_completed_at, deleted_at, signup_authorized_at",
+    )
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -31,6 +34,13 @@ export async function requireAthlete() {
   if (athlete.deleted_at) {
     await supabase.auth.signOut();
     redirect("/?deleted=1");
+  }
+  // Invite gate: accounts minted around it (see lib/auth/invite.ts) are
+  // blocked at the proxy on every request; mirror it here so a leftover
+  // session can't drive server actions directly while signups are closed.
+  if (!athlete.signup_authorized_at && !signupsOpen()) {
+    await supabase.auth.signOut();
+    redirect("/signin?error=invite_required");
   }
   return { supabase, user, athlete };
 }

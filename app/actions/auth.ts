@@ -2,9 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { isValidInviteCode } from "@/lib/auth/invite";
+import { mayCreateAccount } from "@/lib/auth/invite";
+import { INVITE_COOKIE, INVITE_COOKIE_PATH } from "@/lib/auth/invite-cookie";
 import { notifyFounder } from "@/lib/notify";
 import { pushAdmins } from "@/lib/admin/notify-admins";
 import { SITE_URL } from "@/lib/site-url";
@@ -78,8 +79,8 @@ export async function requestSignUpLink(
   const code = String(formData.get("code") ?? "");
 
   // Early-access gate. Re-checked here server-side so the access code is
-  // genuinely required to create an account.
-  if (!isValidInviteCode(code)) {
+  // genuinely required to create an account (until OPEN_SIGNUP flips).
+  if (!mayCreateAccount(code)) {
     return {
       error:
         "Coach Casey is invite-only right now. Use your invite link, or email hello@coachcasey.app to request access.",
@@ -103,11 +104,26 @@ export async function requestSignUpLink(
     return { error: error.message };
   }
 
+  // The user (and their athlete row, via the DB trigger) now exists, so mark
+  // the account as having come through the gate. Without this stamp the auth
+  // callback and the proxy treat the account as minted around the invite
+  // check and refuse it — so a stamp failure is fatal, not best-effort.
+  // Retrying signup stamps the already-created user and heals it.
+  const { error: stampError } = await createAdminClient()
+    .from("athletes")
+    .update({ signup_authorized_at: new Date().toISOString() })
+    .eq("email", email)
+    .is("signup_authorized_at", null);
+  if (stampError) {
+    console.error("[auth] failed to authorize signup", stampError);
+    return { error: "Something went wrong on our end. Please try again." };
+  }
+
   // Best-effort founder alert. Awaited so it fires before we return, but never
   // allowed to break the sign-up (notifyFounder swallows its own errors).
   await notifyFounder({
     subject: "New Coach Casey signup",
-    text: `Someone used an invite link to sign up.\n\nEmail: ${email}`,
+    text: `Someone signed up by email.\n\nEmail: ${email}`,
   });
 
   return { sent: true, email };
@@ -179,7 +195,42 @@ export async function requestAccess(
   return { success: true };
 }
 
+/**
+ * Sign in an existing account with Google. This surface can't be prevented
+ * from minting an account (OAuth has no shouldCreateUser), so the invite gate
+ * runs after the fact: /auth/callback deletes any account this creates unless
+ * signups are open or the visitor carried an invite (signUpWithGoogle below).
+ */
 export async function signInWithGoogle() {
+  return startGoogleOAuth();
+}
+
+/**
+ * Create an account with Google from the invite-gated signup page. The code
+ * is validated server-side before OAuth starts, then parked in a short-lived
+ * httpOnly cookie so it survives the round-trip through Google — the auth
+ * callback re-validates it before authorizing the new account.
+ */
+export async function signUpWithGoogle(formData: FormData) {
+  const code = String(formData.get("code") ?? "");
+  // The signup page only renders the Google button behind a valid code, so a
+  // failure here is a tampered request; bounce to the request-access view.
+  if (!mayCreateAccount(code)) {
+    redirect("/signup");
+  }
+
+  (await cookies()).set(INVITE_COOKIE, code, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: INVITE_COOKIE_PATH,
+    maxAge: 600,
+  });
+
+  return startGoogleOAuth();
+}
+
+async function startGoogleOAuth() {
   const supabase = await createClient();
   const origin = (await headers()).get("origin") ?? process.env.NEXT_PUBLIC_APP_URL;
 

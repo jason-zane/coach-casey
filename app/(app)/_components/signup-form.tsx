@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { requestSignUpLink } from "@/app/actions/auth";
+import { requestSignUpLink, signUpWithGoogle } from "@/app/actions/auth";
+import { GoogleButton } from "./google-button";
 
 export function SignUpForm({ code }: { code: string }) {
   const [state, formAction, isPending] = useActionState(requestSignUpLink, null);
@@ -39,6 +40,22 @@ export function SignUpForm({ code }: { code: string }) {
             sharper the longer it knows you.
           </p>
         </header>
+
+        <form action={signUpWithGoogle}>
+          <input type="hidden" name="code" value={code} />
+          <GoogleButton />
+        </form>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center" aria-hidden>
+            <div className="w-full border-t rule" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-paper px-3 font-mono text-xs uppercase tracking-wide text-ink-subtle">
+              Or
+            </span>
+          </div>
+        </div>
 
         <form action={formAction} className="space-y-5">
           <input type="hidden" name="code" value={code} />
