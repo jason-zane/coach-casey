@@ -4,6 +4,7 @@ import { verifyCronSecret } from "@/lib/auth/cron";
 import { recordCronRun } from "@/lib/observability/cron";
 import { generateDebriefForActivity } from "@/lib/server/debrief-pipeline";
 import { generateCrossTrainingAckForActivity } from "@/lib/server/cross-training-pipeline";
+import { ensureStravaLine } from "@/lib/server/strava-line";
 import { classifyActivityType } from "@/lib/strava/activity-types";
 
 export const runtime = "nodejs";
@@ -65,6 +66,7 @@ async function handleStravaPoll(): Promise<NextResponse> {
       activitiesScanned: 0,
       runDebriefs: { attempted: 0, created: 0, skipped: 0 },
       crossTrainingAcks: { attempted: 0, created: 0, skipped: 0 },
+      stravaLines: { attempted: 0, written: 0, skipped: 0 },
       errors: [],
     });
   }
@@ -119,11 +121,41 @@ async function handleStravaPoll(): Promise<NextResponse> {
     }
   }
 
+  // Backfill Casey's Strava verdict line for any recent activity that
+  // hasn't had one written yet, missed webhook, new opt-in, freshly
+  // granted write scope. Independent of the in-app message above and
+  // covers every class (including ambient walks). Idempotent via
+  // activities.strava_line_written_at, so this is a no-op steady-state.
+  const lineStats = { attempted: 0, written: 0, skipped: 0 };
+  const { data: pendingLine, error: pendingErr } = await admin
+    .from("activities")
+    .select("id, athlete_id")
+    .gte("start_date_local", since.toISOString())
+    .is("strava_line_written_at", null);
+  if (pendingErr) {
+    errors.push({ activityId: "(strava-line-query)", error: pendingErr.message });
+  } else {
+    for (const a of (pendingLine ?? []) as Array<{ id: string; athlete_id: string }>) {
+      lineStats.attempted += 1;
+      try {
+        const r = await ensureStravaLine(a.athlete_id, a.id);
+        if (r.kind === "written") lineStats.written += 1;
+        else lineStats.skipped += 1;
+      } catch (e) {
+        errors.push({
+          activityId: a.id,
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     activitiesScanned: recent.length,
     runDebriefs: runStats,
     crossTrainingAcks: ctStats,
+    stravaLines: lineStats,
     errors,
   });
 }
